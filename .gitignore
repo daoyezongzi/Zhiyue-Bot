@@ -1,0 +1,14 @@
+# 忽略 Python 缓存
+__pycache__/
+*.pyc
+
+# 忽略环境依赖
+venv/
+.env
+
+# 核心：忽略真实的配置文件
+config/config.yaml
+
+# 忽略日志
+logs/
+*.log

@@ -1,0 +1,9 @@
+# 基础依赖
+pyyaml
+pydantic
+
+# LLM 核心驱动 (对接 DeepSeek/OpenAI)
+openai
+
+# 以后如果接入 Web 后台或异步任务可能会用到 (预留)
+requests
