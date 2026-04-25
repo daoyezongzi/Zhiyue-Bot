@@ -1,56 +1,145 @@
+from __future__ import annotations
+
+import asyncio
 import signal
-import sys
-import time
-import logging
-from internal.config.config import load_config
-from internal.logger.logger import init_logger
-from internal.memory.manager import MemoryManager
-from internal.agent.agent import ZhiyueAgent
-from internal.llm.client import LLMClient
+from pathlib import Path
 
-def main():
-    # 1. 加载配置 (对应 main.go 第 51 行)
-    config_path = "config/config.yaml"
-    cfg = load_config(config_path)
-    if not cfg:
-        print(f"无法加载配置文件: {config_path}")
-        sys.exit(1)
+from adapters.llm.chat import ChatLLMAdapter
+from adapters.onebot import OneBotClient
+from core.agent import ZhiyueAgent
+from internal.config import Config, load_config
+from internal.logger import get_logger, init_logger
 
-    # 2. 初始化日志 (对应 main.go 第 57 行)
-    init_logger(cfg.app.log_level, cfg.app.debug)
-    logger = logging.getLogger("Main")
-    logger.info(f"配置已从 {config_path} 加载")
+INVALID_LLM_API_KEYS = {
+    "",
+    "sk-...",
+    "your_api_key_here",
+    "your-api-key-here",
+    "<your_api_key>",
+    "replace_with_your_api_key",
+}
 
-    # 3. 初始化模型客户端 (对应 main.go 第 60-64 行)
-    # 这里的 LLMClient 将负责 Embedding 和 Chat 任务
-    llm_client = LLMClient(cfg.llm)
 
-    # 4. 初始化记忆系统 (对应 main.go 第 70-74 行)
-    # 将模型客户端传入，以便记忆系统进行向量化检索
-    memory_mgr = MemoryManager(llm_client)
-    logger.info("记忆系统已初始化")
+def _is_invalid_llm_api_key(api_key: str) -> bool:
+    normalized = api_key.strip().lower()
+    if not normalized:
+        return True
+    return normalized in INVALID_LLM_API_KEYS
 
-    # 5. 创建并启动 Agent (对应 main.go 第 77-81 行)
-    # 纸月的大脑，持有记忆引用
-    zhiyue = ZhiyueAgent(memory_mgr, cfg)
-    zhiyue.start()
 
-    # 6. 设置退出信号处理 (对应 main.go 第 101-102 行)
-    def handle_exit(sig, frame):
-        logger.info("正在关闭纸月...")
-        zhiyue.stop()
-        memory_mgr.close()
-        logger.info("再见！")
-        sys.exit(0)
+class BotApp:
+    def __init__(self, config_path: str = "config/config.yaml") -> None:
+        self.config_path: str = config_path
+        self.cfg: Config = self._load_config(config_path)
 
-    signal.signal(signal.SIGINT, handle_exit)
-    signal.signal(signal.SIGTERM, handle_exit)
+        init_logger(self.cfg.app.log_level, self.cfg.app.debug)
+        self.logger = get_logger("BotApp")
+        self._validate_llm_api_key()
 
-    logger.info("纸月已上线，按 Ctrl+C 退出")
-    
-    # 保持主线程运行 (对应 main.go 第 105 行的 <-quit)
-    while True:
-        time.sleep(1)
+        ws_url = self.cfg.onebot.ws_url or "ws://127.0.0.1:3001"
+        self.onebot_client = OneBotClient(
+            ws_url=ws_url,
+            access_token=self.cfg.onebot.access_token,
+        )
+        self.llm = ChatLLMAdapter(self.cfg.llm)
+        self.agent = ZhiyueAgent(self.onebot_client, self.cfg, self.llm)
+
+        self._stop_event: asyncio.Event = asyncio.Event()
+        self._tasks: list[asyncio.Task[None]] = []
+
+    async def start(self) -> None:
+        self.logger.info("Starting BotApp")
+        await self.onebot_client.start()
+        await self.agent.start()
+
+        processor = asyncio.create_task(
+            self.process_messages(),
+            name="process-messages",
+        )
+        self._tasks.append(processor)
+        self.logger.info("BotApp started; OneBot endpoint=%s", self.onebot_client.ws_url)
+
+    async def stop(self) -> None:
+        if self._stop_event.is_set():
+            return
+
+        self._stop_event.set()
+        self.logger.info("Stopping BotApp")
+
+        for task in self._tasks:
+            task.cancel()
+        for task in self._tasks:
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+        self._tasks.clear()
+
+        await self.agent.stop()
+        await self.onebot_client.stop()
+        self.logger.info("BotApp stopped")
+
+    async def wait_closed(self) -> None:
+        await self._stop_event.wait()
+
+    async def process_messages(self) -> None:
+        while not self._stop_event.is_set():
+            try:
+                packet = await self.onebot_client.message_queue.get()
+            except asyncio.CancelledError:
+                return
+
+            try:
+                await self.agent.handle_message(packet)
+            except Exception:
+                self.logger.exception("Message processing failed")
+            finally:
+                self.onebot_client.message_queue.task_done()
+
+    @staticmethod
+    def _load_config(config_path: str) -> Config:
+        file_path = Path(config_path)
+        if file_path.exists():
+            return load_config(file_path)
+
+        fallback = Path("config/config.yaml.example")
+        if fallback.exists():
+            return load_config(fallback)
+
+        raise FileNotFoundError(
+            "Cannot find config/config.yaml or config/config.yaml.example",
+        )
+
+    def _validate_llm_api_key(self) -> None:
+        api_key = self.cfg.llm.api_key or ""
+        if _is_invalid_llm_api_key(api_key):
+            self.logger.error(
+                "Startup aborted: invalid llm.api_key. Configure LLM_API_KEY "
+                "or set llm.api_key in config/config.yaml. Placeholder values "
+                "like 'sk-...' are not allowed.",
+            )
+            raise SystemExit(1)
+
+
+async def _register_signals(app: BotApp) -> None:
+    loop = asyncio.get_running_loop()
+
+    def _request_stop() -> None:
+        asyncio.create_task(app.stop())
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        try:
+            loop.add_signal_handler(sig, _request_stop)
+        except NotImplementedError:
+            signal.signal(sig, lambda *_: _request_stop())
+
+
+async def main() -> None:
+    app = BotApp()
+    await _register_signals(app)
+    await app.start()
+    await app.wait_closed()
+
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
