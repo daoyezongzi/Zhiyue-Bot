@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 import time
 from typing import Any, Mapping
+from urllib.parse import parse_qs, urlparse
 
 import websockets
 from websockets.exceptions import ConnectionClosed
@@ -14,27 +16,35 @@ from internal.logger import get_logger
 class OneBotClient:
     def __init__(
         self,
-        ws_url: str = "ws://127.0.0.1:3001",
+        ws_url: str = "ws://127.0.0.1:6199",
+        ws_mode: str = "reverse",
         access_token: str = "",
         reconnect_initial: float = 1.0,
         reconnect_max: float = 30.0,
     ) -> None:
-        self.endpoint: str = ws_url or "ws://127.0.0.1:3001"
+        self.endpoint: str = ws_url or "ws://127.0.0.1:6199"
+        self.ws_mode: str = self._normalize_mode(ws_mode)
         # Backward-compatible alias used by existing startup logs.
         self.ws_url: str = self.endpoint
-        self.access_token: str = access_token
+        self.access_token: str = (access_token or "").strip()
         self.message_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
 
         self._logger = get_logger("OneBotClient")
         self._ws: Any | None = None
+        self._server: Any | None = None
         self._runner_task: asyncio.Task[None] | None = None
         self._stop_event: asyncio.Event = asyncio.Event()
         self._connected_event: asyncio.Event = asyncio.Event()
         self._send_lock: asyncio.Lock = asyncio.Lock()
+        self._connection_lock: asyncio.Lock = asyncio.Lock()
 
         self._echo_seed: int = int(time.time() * 1000)
         self._reconnect_initial: float = reconnect_initial
         self._reconnect_max: float = reconnect_max
+
+        _, _, expected_path = self._parse_listen_endpoint(self.endpoint)
+        self._expected_path: str = expected_path
+        self._connect_header_kw: str = self._resolve_connect_header_kw()
 
     @property
     def connected(self) -> bool:
@@ -44,12 +54,31 @@ class OneBotClient:
         if self._runner_task and not self._runner_task.done():
             return
         self._stop_event.clear()
-        self._runner_task = asyncio.create_task(self._run_forever(), name="onebot-connection-loop")
+        if self.ws_mode == "reverse":
+            self._runner_task = asyncio.create_task(self._run_reverse_server(), name="onebot-reverse-server")
+        else:
+            self._runner_task = asyncio.create_task(self._run_forward_forever(), name="onebot-forward-loop")
 
     async def stop(self) -> None:
         self._stop_event.set()
-        if self._ws is not None:
-            await self._ws.close()
+
+        if self._server is not None:
+            self._server.close()
+            try:
+                await self._server.wait_closed()
+            except Exception:
+                pass
+            self._server = None
+
+        async with self._connection_lock:
+            ws = self._ws
+            self._ws = None
+            self._connected_event.clear()
+        if ws is not None:
+            try:
+                await ws.close()
+            except Exception:
+                pass
 
         if self._runner_task is not None:
             self._runner_task.cancel()
@@ -59,32 +88,28 @@ class OneBotClient:
                 pass
             self._runner_task = None
 
-        self._connected_event.clear()
         self._logger.info("OneBot client stopped")
 
-    async def _run_forever(self) -> None:
+    async def _run_forward_forever(self) -> None:
         backoff: float = max(0.1, self._reconnect_initial)
         while not self._stop_event.is_set():
             try:
+                connect_kwargs: dict[str, Any] = {}
                 if self.access_token:
-                    self._logger.warning(
-                        "access_token is configured but ignored in websocket connect for compatibility",
-                    )
+                    connect_kwargs[self._connect_header_kw] = {"Authorization": f"Bearer {self.access_token}"}
 
-                self._logger.info("Connecting to OneBot: %s", self.endpoint)
-                async with websockets.connect(self.endpoint) as websocket:
-                    self._ws = websocket
-                    self._connected_event.set()
+                self._logger.info("Connecting to OneBot (forward): %s", self.endpoint)
+                async with websockets.connect(self.endpoint, **connect_kwargs) as websocket:
+                    await self._attach_connection(websocket)
                     backoff = max(0.1, self._reconnect_initial)
-                    self._logger.info("OneBot connected")
-                    await self._receive_loop()
+                    self._logger.info("OneBot connected (forward)")
+                    await self._receive_loop(websocket)
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
-                self._connected_event.clear()
-                self._ws = None
+                await self._detach_connection(None)
                 self._logger.warning(
-                    "OneBot connection error: %s; reconnect in %.1fs",
+                    "OneBot forward connection error: %s; reconnect in %.1fs",
                     exc,
                     backoff,
                 )
@@ -94,15 +119,66 @@ class OneBotClient:
                     pass
                 backoff = min(backoff * 2, self._reconnect_max)
             finally:
-                self._connected_event.clear()
-                self._ws = None
+                await self._detach_connection(None)
 
-    async def _receive_loop(self) -> None:
-        if self._ws is None:
+    async def _run_reverse_server(self) -> None:
+        host, port, path = self._parse_listen_endpoint(self.endpoint)
+        self._expected_path = path
+        self._logger.info("Starting OneBot reverse server: ws://%s:%s%s", host, port, path)
+
+        async with websockets.serve(self._accept_reverse_connection, host=host, port=port) as server:
+            self._server = server
+            try:
+                await self._stop_event.wait()
+            finally:
+                self._server = None
+
+    async def _accept_reverse_connection(self, websocket: Any, path: str | None = None) -> None:
+        raw_path = self._resolve_connection_path(websocket, path)
+        path_only = self._path_only(raw_path)
+        if self._expected_path != "/" and path_only != self._expected_path:
+            self._logger.warning(
+                "Rejected reverse connection due to path mismatch: got=%s expect=%s",
+                path_only,
+                self._expected_path,
+            )
+            await websocket.close(code=1008, reason="invalid path")
             return
 
+        if not self._is_authorized_reverse_connection(websocket, raw_path):
+            self._logger.warning("Rejected reverse connection: invalid access token")
+            await websocket.close(code=1008, reason="unauthorized")
+            return
+
+        await self._attach_connection(websocket)
+        self._logger.info("OneBot connected (reverse): path=%s", path_only)
         try:
-            async for raw_message in self._ws:
+            await self._receive_loop(websocket)
+        except ConnectionClosed:
+            pass
+        finally:
+            await self._detach_connection(websocket)
+            self._logger.info("OneBot reverse connection closed")
+
+    async def _attach_connection(self, websocket: Any) -> None:
+        async with self._connection_lock:
+            if self._ws is not None and self._ws is not websocket:
+                try:
+                    await self._ws.close(code=1012, reason="replaced by new connection")
+                except Exception:
+                    pass
+            self._ws = websocket
+            self._connected_event.set()
+
+    async def _detach_connection(self, websocket: Any | None) -> None:
+        async with self._connection_lock:
+            if websocket is None or self._ws is websocket:
+                self._ws = None
+                self._connected_event.clear()
+
+    async def _receive_loop(self, websocket: Any) -> None:
+        try:
+            async for raw_message in websocket:
                 packet = self._parse_message(raw_message)
                 if packet is None:
                     continue
@@ -213,7 +289,7 @@ class OneBotClient:
         return int(echo)
 
     async def _send_action(self, action: str, params: dict[str, Any]) -> str:
-        if not self.connected or self._ws is None:
+        if not self.connected:
             raise RuntimeError("OneBot is not connected")
 
         echo = self._next_echo()
@@ -224,11 +300,115 @@ class OneBotClient:
         }
 
         async with self._send_lock:
-            assert self._ws is not None
-            await self._ws.send(json.dumps(payload, ensure_ascii=False))
+            websocket = self._ws
+            if websocket is None:
+                raise RuntimeError("OneBot is not connected")
+            await websocket.send(json.dumps(payload, ensure_ascii=False))
 
         self._logger.info("TX action=%s echo=%s params=%s", action, echo, params)
         return echo
+
+    def _is_authorized_reverse_connection(self, websocket: Any, raw_path: str) -> bool:
+        expected = self.access_token.strip()
+        if not expected:
+            return True
+
+        headers = self._extract_request_headers(websocket)
+        token = self._extract_token_from_headers(headers)
+        if token == expected:
+            return True
+
+        query = parse_qs(urlparse(raw_path).query)
+        query_token = query.get("access_token", [""])[0].strip()
+        return query_token == expected
+
+    @staticmethod
+    def _extract_request_headers(websocket: Any) -> Mapping[str, Any]:
+        headers = getattr(websocket, "request_headers", None)
+        if headers is not None:
+            return headers
+        request = getattr(websocket, "request", None)
+        if request is not None:
+            request_headers = getattr(request, "headers", None)
+            if request_headers is not None:
+                return request_headers
+        return {}
+
+    @staticmethod
+    def _extract_token_from_headers(headers: Mapping[str, Any]) -> str:
+        access_token = OneBotClient._get_header(headers, "x-access-token").strip()
+        if access_token:
+            return access_token
+
+        auth = OneBotClient._get_header(headers, "authorization").strip()
+        if auth.lower().startswith("bearer "):
+            return auth[7:].strip()
+        return ""
+
+    @staticmethod
+    def _get_header(headers: Mapping[str, Any], key: str) -> str:
+        if hasattr(headers, "get"):
+            value = headers.get(key)
+            if value is None:
+                value = headers.get(key.lower())  # type: ignore[arg-type]
+            if value is not None:
+                return str(value)
+
+        for item_key, value in headers.items():
+            if str(item_key).lower() == key.lower():
+                return str(value)
+        return ""
+
+    @staticmethod
+    def _resolve_connection_path(websocket: Any, path: str | None) -> str:
+        if path is not None:
+            return str(path)
+        ws_path = getattr(websocket, "path", None)
+        if ws_path is not None:
+            return str(ws_path)
+        request = getattr(websocket, "request", None)
+        if request is not None:
+            req_path = getattr(request, "path", None)
+            if req_path is not None:
+                return str(req_path)
+        return "/"
+
+    @staticmethod
+    def _path_only(raw_path: str) -> str:
+        parsed = urlparse(raw_path)
+        return parsed.path or "/"
+
+    @staticmethod
+    def _parse_listen_endpoint(endpoint: str) -> tuple[str, int, str]:
+        parsed = urlparse(endpoint)
+        host = parsed.hostname or "127.0.0.1"
+        if parsed.port is not None:
+            port = parsed.port
+        elif parsed.scheme == "wss":
+            port = 443
+        else:
+            port = 80
+        path = parsed.path or "/"
+        return host, port, path
+
+    @staticmethod
+    def _normalize_mode(mode: str) -> str:
+        normalized = str(mode or "").strip().lower()
+        if normalized in {"forward", "reverse"}:
+            return normalized
+        return "reverse"
+
+    @staticmethod
+    def _resolve_connect_header_kw() -> str:
+        try:
+            params = inspect.signature(websockets.connect).parameters
+        except (TypeError, ValueError):
+            return "additional_headers"
+        if "additional_headers" in params:
+            return "additional_headers"
+        if "extra_headers" in params:
+            return "extra_headers"
+        return "additional_headers"
 
     def _next_echo(self) -> str:
         self._echo_seed += 1
@@ -236,4 +416,3 @@ class OneBotClient:
 
 
 OneBotAdapter = OneBotClient
-

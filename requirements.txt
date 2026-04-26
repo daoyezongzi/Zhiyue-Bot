@@ -5,3 +5,8 @@ pydantic-settings
 aiohttp
 python-dotenv
 pyahocorasick
+chromadb
+fastapi
+uvicorn
+jinja2
+python-multipart

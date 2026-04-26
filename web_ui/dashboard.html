@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zhiyue Admin</title>
+  <style>
+    :root {
+      --panel-bg: rgba(10, 16, 24, 0.72);
+      --line: rgba(255, 255, 255, 0.14);
+      --text: #f4f6fb;
+      --muted: #b5bccd;
+      --ok: #45d483;
+      --warn: #ffc857;
+      --danger: #ff6f6f;
+      --accent: #62d9ff;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      {% if background_url %}
+      background: linear-gradient(160deg, rgba(12, 16, 24, 0.85), rgba(20, 23, 37, 0.75)), url("{{ background_url }}") center / cover fixed no-repeat;
+      {% else %}
+      background: radial-gradient(circle at 10% 20%, #0f172a 0%, #111827 45%, #09090b 100%);
+      {% endif %}
+    }
+
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    }
+
+    .card {
+      background: var(--panel-bg);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      backdrop-filter: blur(6px);
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 28px;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 16px;
+      color: var(--accent);
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .progress {
+      margin-top: 8px;
+      height: 12px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .progress > span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      transition: width 0.25s ease;
+    }
+
+    .energy { background: linear-gradient(90deg, var(--danger), var(--warn), var(--ok)); }
+    .mood { background: linear-gradient(90deg, #fb7185, #facc15, #22c55e); }
+
+    .row { margin-bottom: 12px; }
+    .row:last-child { margin-bottom: 0; }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    input, textarea, button {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: rgba(4, 8, 14, 0.74);
+      color: var(--text);
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+
+    textarea { min-height: 120px; resize: vertical; }
+    button {
+      cursor: pointer;
+      background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+      border: 0;
+      font-weight: 600;
+    }
+
+    .inline {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .inline input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+
+    pre {
+      margin: 0;
+      padding: 10px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--line);
+      max-height: 300px;
+      overflow: auto;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Zhiyue Remote Admin</h1>
+    <p class="muted">服务地址 {{ host }}:{{ port }}。所有 API 需要 Access-Token（`X-Access-Token` 或 `Authorization: Bearer`）。</p>
+
+    <div class="grid">
+      <section class="card">
+        <h2>状态仪表盘</h2>
+        <div class="row">
+          <label>Access-Token</label>
+          <input id="token" placeholder="请输入 Token" />
+        </div>
+        <div class="row">
+          <div class="muted">Energy: <span id="energyText">-</span></div>
+          <div class="progress"><span id="energyBar" class="energy"></span></div>
+        </div>
+        <div class="row">
+          <div class="muted">Mood: <span id="moodText">-</span></div>
+          <div class="progress"><span id="moodBar" class="mood"></span></div>
+        </div>
+        <div class="row muted">
+          运行时长: <span id="uptime">-</span>
+        </div>
+        <div class="row">
+          <pre id="modelsView">{}</pre>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>重置动作</h2>
+        <div class="row inline">
+          <input type="checkbox" id="fillEnergy" />
+          <label for="fillEnergy">补满精力</label>
+        </div>
+        <div class="row inline">
+          <input type="checkbox" id="resetMood" />
+          <label for="resetMood">重置情绪</label>
+        </div>
+        <div class="row">
+          <label>清除会话记忆（session_id）</label>
+          <input id="clearSessionId" placeholder="例如 group:10001 或 private:123456" />
+        </div>
+        <div class="row">
+          <button id="resetBtn">执行重置</button>
+        </div>
+        <pre id="resetResult">{}</pre>
+      </section>
+
+      <section class="card">
+        <h2>人格热更新</h2>
+        <div class="row">
+          <label>System Prompt</label>
+          <textarea id="systemPrompt" placeholder="输入新的人格定义"></textarea>
+        </div>
+        <div class="row">
+          <button id="updatePromptBtn">更新 Prompt</button>
+        </div>
+        <pre id="promptResult">{}</pre>
+      </section>
+
+      <section class="card">
+        <h2>背景设置</h2>
+        <div class="row">
+          <label>背景图片 URL</label>
+          <input id="backgroundUrl" placeholder="https://example.com/bg.jpg 或 /assets/uploads/xxx.png" />
+        </div>
+        <div class="row">
+          <button id="updateBgUrlBtn">使用 URL 更新</button>
+        </div>
+        <div class="row">
+          <label>上传图片</label>
+          <input id="backgroundFile" type="file" accept="image/*" />
+        </div>
+        <div class="row">
+          <button id="uploadBgBtn">上传并设为背景</button>
+        </div>
+        <pre id="backgroundResult">{}</pre>
+      </section>
+    </div>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>短期记忆摘要</h2>
+      <pre id="memoryView">[]</pre>
+    </section>
+  </div>
+
+  <script>
+    const tokenInput = document.getElementById("token");
+    const energyBar = document.getElementById("energyBar");
+    const moodBar = document.getElementById("moodBar");
+    const energyText = document.getElementById("energyText");
+    const moodText = document.getElementById("moodText");
+    const uptime = document.getElementById("uptime");
+    const modelsView = document.getElementById("modelsView");
+    const memoryView = document.getElementById("memoryView");
+    const resetResult = document.getElementById("resetResult");
+    const promptResult = document.getElementById("promptResult");
+    const backgroundResult = document.getElementById("backgroundResult");
+
+    tokenInput.value = localStorage.getItem("zhiyue_admin_token") || "";
+    tokenInput.addEventListener("change", () => {
+      localStorage.setItem("zhiyue_admin_token", tokenInput.value.trim());
+    });
+
+    function authHeaders(extra = {}) {
+      const token = tokenInput.value.trim();
+      const headers = Object.assign({}, extra);
+      if (token) {
+        headers["X-Access-Token"] = token;
+      }
+      return headers;
+    }
+
+    async function requestJSON(url, options = {}) {
+      const init = Object.assign({ method: "GET" }, options);
+      init.headers = authHeaders(init.headers || {});
+      const response = await fetch(url, init);
+      const text = await response.text();
+      let data = {};
+      try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
+      if (!response.ok) {
+        throw new Error(data.detail || `HTTP ${response.status}`);
+      }
+      return data;
+    }
+
+    function formatUptime(seconds) {
+      const total = Number(seconds || 0);
+      const h = Math.floor(total / 3600);
+      const m = Math.floor((total % 3600) / 60);
+      const s = total % 60;
+      return `${h}h ${m}m ${s}s`;
+    }
+
+    async function refreshStatus() {
+      try {
+        const data = await requestJSON("/api/status");
+        const energy = Number(data.energy || 0);
+        const mood = Number(data.mood || 0);
+        energyBar.style.width = `${Math.max(0, Math.min(100, energy))}%`;
+        moodBar.style.width = `${Math.max(0, Math.min(100, mood))}%`;
+        energyText.textContent = `${energy.toFixed(1)} / 100`;
+        moodText.textContent = `${mood.toFixed(1)} / 100`;
+        uptime.textContent = formatUptime(data.uptime_seconds || 0);
+        modelsView.textContent = JSON.stringify(data.models || {}, null, 2);
+        memoryView.textContent = JSON.stringify(data.short_term_memory || {}, null, 2);
+      } catch (err) {
+        modelsView.textContent = `状态获取失败: ${err.message}`;
+      }
+    }
+
+    document.getElementById("resetBtn").addEventListener("click", async () => {
+      try {
+        const payload = {
+          fill_energy: document.getElementById("fillEnergy").checked,
+          reset_mood: document.getElementById("resetMood").checked,
+          clear_session_id: document.getElementById("clearSessionId").value.trim(),
+        };
+        const data = await requestJSON("/api/action/reset", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        resetResult.textContent = JSON.stringify(data, null, 2);
+        await refreshStatus();
+      } catch (err) {
+        resetResult.textContent = `执行失败: ${err.message}`;
+      }
+    });
+
+    document.getElementById("updatePromptBtn").addEventListener("click", async () => {
+      try {
+        const prompt = document.getElementById("systemPrompt").value.trim();
+        const data = await requestJSON("/api/config/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ system_prompt: prompt }),
+        });
+        promptResult.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        promptResult.textContent = `更新失败: ${err.message}`;
+      }
+    });
+
+    document.getElementById("updateBgUrlBtn").addEventListener("click", async () => {
+      try {
+        const url = document.getElementById("backgroundUrl").value.trim();
+        const data = await requestJSON("/api/ui/background", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ background_url: url }),
+        });
+        backgroundResult.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        backgroundResult.textContent = `更新失败: ${err.message}`;
+      }
+    });
+
+    document.getElementById("uploadBgBtn").addEventListener("click", async () => {
+      try {
+        const input = document.getElementById("backgroundFile");
+        if (!input.files || input.files.length === 0) {
+          throw new Error("请先选择图片");
+        }
+        const form = new FormData();
+        form.append("file", input.files[0]);
+        const data = await requestJSON("/api/ui/background", {
+          method: "POST",
+          body: form,
+        });
+        backgroundResult.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        backgroundResult.textContent = `上传失败: ${err.message}`;
+      }
+    });
+
+    refreshStatus();
+    setInterval(refreshStatus, 5000);
+  </script>
+</body>
+</html>

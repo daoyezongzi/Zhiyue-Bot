@@ -128,6 +128,7 @@ class PersonalityManager:
         *,
         hobbies: Sequence[str] | None = None,
         styles: Sequence[str] | None = None,
+        is_master: bool = False,
     ) -> str:
         default_hobbies = _normalize_items(getattr(self.cfg, "hobbies", None))
         default_hobbies.extend(_normalize_items(getattr(self.cfg, "interests", None)))
@@ -139,10 +140,14 @@ class PersonalityManager:
         if speaking_style:
             default_styles.insert(0, speaking_style)
         merged_styles = _dedupe_keep_order(default_styles + _normalize_items(styles))
-        style_block = "\n".join(merged_styles) if merged_styles else "自然、口语化、简洁。"
+        style_block = "\n".join(merged_styles) if merged_styles else "自然、克制、略带文艺，保留少量古典意象。"
 
         name = str(getattr(self.cfg, "name", "")).strip() or "Bot"
         qq = int(getattr(self.cfg, "qq", 0) or 0)
+        custom_system_prompt = str(getattr(self.cfg, "system_prompt", "")).strip()
+        admin_system_prompt = str(getattr(self.cfg, "admin_system_prompt", "")).strip()
+        if is_master and admin_system_prompt:
+            custom_system_prompt = admin_system_prompt
 
         prompt = (
             f"你是{name}，QQ群里的一个普通群友，你的QQ号是{qq}。你通过工具调用与QQ客户端交互。\n\n"
@@ -158,11 +163,14 @@ class PersonalityManager:
         if personality_extra:
             prompt += f"\n## 更多关于你\n{personality_extra}\n"
 
+        if custom_system_prompt:
+            prompt = f"{custom_system_prompt}\n\n{prompt}"
+
         prompt += (
             "\n## 行为准则\n"
             "1. 你是群里的一员，不是为人服务的工具\n"
             "2. 你有记忆能力，主动记住群内事件和群友特点\n"
-            "3. 用纯文字说话，不用 markdown，说话像真人网友\n"
+            "3. 用纯文字说话，不用 markdown，说话像真实群友，语言自然克制，可少量文艺表达\n"
             "4. 发言应言之有物，不说空话套话，不附和别人的话，不要刷存在感\n"
             "5. 若有人表现出厌烦，请减少发言；若被追问或话题未完，请继续参与\n"
             "6. 你有自己的偏见和喜好，用第一人称表达主观看法\n"

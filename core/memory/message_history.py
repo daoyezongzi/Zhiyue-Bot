@@ -131,6 +131,45 @@ class MessageHistory:
             "total_messages": bucket.total_messages,
         }
 
+    def list_session_ids(self) -> list[str]:
+        return list(self._sessions.keys())
+
+    def clear_session(self, session_id: str) -> bool:
+        return self._sessions.pop(session_id, None) is not None
+
+    def short_term_summary(self, max_sessions: int = 8, max_messages: int = 3) -> list[dict]:
+        session_rows: list[tuple[datetime, str, _SessionBucket]] = []
+        for session_id, bucket in self._sessions.items():
+            if not bucket.messages:
+                continue
+            last_time = bucket.messages[-1].created_at
+            session_rows.append((last_time, session_id, bucket))
+
+        session_rows.sort(key=lambda item: item[0], reverse=True)
+        out: list[dict] = []
+        for last_time, session_id, bucket in session_rows[: max(1, max_sessions)]:
+            recent_messages = list(bucket.messages)[-max(1, max_messages) :]
+            preview = [
+                {
+                    "role": msg.role,
+                    "speaker": msg.speaker,
+                    "content": msg.content,
+                    "created_at": msg.created_at.isoformat(),
+                }
+                for msg in recent_messages
+            ]
+            out.append(
+                {
+                    "session_id": session_id,
+                    "last_message_at": last_time.isoformat(),
+                    "dropped_count": bucket.dropped_count,
+                    "summary": bucket.summary.text if bucket.summary else "",
+                    "summary_updated_at": bucket.summary.updated_at.isoformat() if bucket.summary else "",
+                    "recent_messages": preview,
+                },
+            )
+        return out
+
     def _bucket(self, session_id: str) -> _SessionBucket:
         bucket = self._sessions.get(session_id)
         if bucket is not None:

@@ -1,15 +1,5 @@
-﻿from __future__ import annotations
+from adapters.web.admin_service import AdminService
 
-from dataclasses import dataclass
+AdminWebAdapter = AdminService
 
-
-@dataclass
-class AdminWebAdapter:
-    port: int
-    admin_key: str
-
-    async def start(self) -> None:
-        return None
-
-    async def stop(self) -> None:
-        return None
+__all__ = ["AdminService", "AdminWebAdapter"]

@@ -118,17 +118,17 @@ class JargonManager:
 
         if mood >= self.cfg.high_mood_threshold:
             if energy >= 0.65:
-                return StyleClassification(intent="轻松起哄", tone="夸张", tone_key="exaggerate")
-            return StyleClassification(intent="认同接话", tone="轻松", tone_key="light")
+                return StyleClassification(intent="轻快回应", tone="舒展", tone_key="exaggerate")
+            return StyleClassification(intent="自然应答", tone="轻和", tone_key="light")
 
         if energy <= 0.35:
             return StyleClassification(intent="询问推进", tone="直接", tone_key="direct")
 
         if speaker_is_master:
-            return StyleClassification(intent="认同接话", tone="轻松", tone_key="light")
+            return StyleClassification(intent="自然应答", tone="轻和", tone_key="light")
 
         if mood >= 0:
-            return StyleClassification(intent="认同接话", tone="轻松", tone_key="light")
+            return StyleClassification(intent="自然应答", tone="轻和", tone_key="light")
 
         return StyleClassification(intent="询问推进", tone="直接", tone_key="direct")
 
@@ -137,7 +137,7 @@ class JargonManager:
         return (
             "风格建议："
             f"intent={style.intent}，tone={style.tone}。"
-            "表达保持口语化，可适度混入群内黑话与语气助词，不要过量堆叠。"
+            "表达以自然、克制、略带文艺为主；可保留少量古典意象，不主动堆叠黑话或语气助词。"
         )
 
     def apply_post_process(

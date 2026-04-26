@@ -1,3 +1,3 @@
-﻿from adapters.web.app import AdminWebAdapter
+from adapters.web.app import AdminService, AdminWebAdapter
 
-__all__ = ["AdminWebAdapter"]
+__all__ = ["AdminService", "AdminWebAdapter"]

@@ -14,15 +14,16 @@ class AppConfig(BaseModel):
 class PersonaConfig(BaseModel):
     name: str = "Zhiyue"
     qq: int = 0
-    master_name: str = "Zongzi"
+    master_name: str = ""
     master_id: int = 0
     alias_names: List[str] = Field(default_factory=list)
     interests: List[str] = Field(default_factory=list)
     hobbies: List[str] = Field(default_factory=list)
-    speaking_style: str = "冷静、简洁"
+    speaking_style: str = "清冷、文艺、克制"
     styles: List[str] = Field(default_factory=list)
     personality: str = ""
     system_prompt: str = ""
+    admin_system_prompt: str = ""
 
 
 class PersonalityConfig(BaseModel):
@@ -50,21 +51,26 @@ class JargonReplaceRuleConfig(BaseModel):
 
 class JargonConfig(BaseModel):
     enabled: bool = True
+    conversion_rate: float = 0.0
+    lexicon_store_path: str = "data/jargon_lexicon.json"
+    learn_trigger_count: int = 20
+    learn_context_limit: int = 40
     low_mood_threshold: float = -0.35
     high_mood_threshold: float = 0.45
     keyword_aliases: Dict[str, str] = Field(default_factory=dict)
     tone_particles: Dict[str, List[str]] = Field(
         default_factory=lambda: {
-            "direct": ["。"],
-            "light": ["呀", "啦", "捏"],
-            "exaggerate": ["！！", "笑死", "绝了"],
-            "restrained": ["嗯", "好吧", "行"],
+            "direct": [],
+            "light": [],
+            "exaggerate": [],
+            "restrained": [],
         }
     )
     style_rules: Dict[str, List[JargonReplaceRuleConfig]] = Field(default_factory=dict)
 
 
 class OneBotConfig(BaseModel):
+    ws_mode: str = "reverse"
     ws_url: str = "ws://127.0.0.1:3001"
     access_token: str = ""
     reconnect_interval: int = 5
@@ -91,6 +97,10 @@ class LearningConfig(BaseModel):
     enabled: bool = True
     interval_minutes: int = 10
     review_interval_minutes: int = 30
+    profile_store_path: str = "data/user_profiles.json"
+    profile_trigger_count: int = 20
+    profile_context_limit: int = 40
+    profile_max_tags: int = 12
 
 
 class LLMConfig(BaseModel):
@@ -119,12 +129,31 @@ class MemoryConfig(BaseModel):
     mysql_dsn: str = ""
     milvus_address: str = "127.0.0.1:19530"
     vector_dim: int = 1536
+    chroma_path: str = "./data/chroma"
+    short_term_threshold: int = 20
+    short_term_keep_last: int = 3
+    topic_shift_similarity_threshold: float = 0.35
+    topic_shift_min_messages: int = 8
+    rag_top_k: int = 5
+
+
+class UISettingsConfig(BaseModel):
+    background_url: str = ""
 
 
 class WebConfig(BaseModel):
     enabled: bool = False
+    host: str = "127.0.0.1"
     port: int = 8080
+    access_token: str = ""
     admin_key: str = ""
+    ui_settings: UISettingsConfig = Field(default_factory=UISettingsConfig)
+
+    def resolved_access_token(self) -> str:
+        primary = str(self.access_token or "").strip()
+        if primary:
+            return primary
+        return str(self.admin_key or "").strip()
 
 
 class Config(BaseModel):
