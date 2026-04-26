@@ -91,6 +91,7 @@ class AgentConfig(BaseModel):
     max_step: int = 12
     max_coroutine: int = 4
     enable_active_retrieval: bool = True
+    active_reply_probability: float = 1.0
 
 
 class LearningConfig(BaseModel):
@@ -156,6 +157,12 @@ class WebConfig(BaseModel):
         return str(self.admin_key or "").strip()
 
 
+class PathsConfig(BaseModel):
+    napcat_path: str = ""
+    napcat_args: List[str] = Field(default_factory=list)
+    knowledge_dir: str = "data/knowledge"
+
+
 class Config(BaseModel):
     app: AppConfig = Field(default_factory=AppConfig)
     persona: PersonaConfig = Field(default_factory=PersonaConfig)
@@ -171,6 +178,7 @@ class Config(BaseModel):
     vision_llm: VisionConfig = Field(default_factory=VisionConfig)
     memory: MemoryConfig = Field(default_factory=MemoryConfig)
     web: WebConfig = Field(default_factory=WebConfig)
+    paths: PathsConfig = Field(default_factory=PathsConfig)
 
     def get_group(self, group_id: int) -> Optional[GroupConfig]:
         for item in self.groups:

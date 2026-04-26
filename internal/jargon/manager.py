@@ -137,7 +137,7 @@ class JargonManager:
         return (
             "风格建议："
             f"intent={style.intent}，tone={style.tone}。"
-            "表达以自然、克制、略带文艺为主；可保留少量古典意象，不主动堆叠黑话或语气助词。"
+            "表达以自然、克制、像真实群友为主；少用场景意象，不主动堆叠黑话或语气助词。"
         )
 
     def apply_post_process(

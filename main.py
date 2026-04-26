@@ -7,9 +7,11 @@ from typing import Any
 
 from adapters.llm.chat import ChatLLMAdapter
 from adapters.onebot import OneBotClient
+from plugins import RuntimePluginManager
 from core.agent import ZhiyueAgent
 from internal.config import Config, load_config
 from internal.logger import get_logger, init_logger
+from internal.management import BotLogCapture, LogStreamHub, ProcessSupervisor
 
 INVALID_LLM_API_KEYS = {
     "",
@@ -46,6 +48,10 @@ class BotApp:
         )
         self.llm = ChatLLMAdapter(self.cfg.llm, self.cfg.auxiliary_model)
         self.agent = ZhiyueAgent(self.onebot_client, self.cfg, self.llm)
+        self.log_hub = LogStreamHub()
+        self.log_capture = BotLogCapture(self.log_hub)
+        self.process_supervisor = ProcessSupervisor(self.log_hub)
+        self.plugin_manager = RuntimePluginManager(Path(__file__).resolve().parent / "plugins")
         self.admin_service: Any | None = None
         if self.cfg.web.enabled:
             from adapters.web import AdminService
@@ -54,6 +60,8 @@ class BotApp:
                 cfg=self.cfg,
                 agent=self.agent,
                 config_path=self.config_file,
+                log_hub=self.log_hub,
+                plugin_manager=self.plugin_manager,
             )
 
         self._stop_event: asyncio.Event = asyncio.Event()
@@ -61,6 +69,9 @@ class BotApp:
 
     async def start(self) -> None:
         self.logger.info("Starting BotApp")
+        self.log_capture.install(asyncio.get_running_loop())
+        await self.plugin_manager.start()
+        await self._start_managed_onebot()
         startup_tasks = [self.onebot_client.start(), self.agent.start()]
         if self.admin_service is not None:
             startup_tasks.append(self.admin_service.start())
@@ -93,6 +104,12 @@ class BotApp:
         if self.admin_service is not None:
             shutdown_tasks.append(self.admin_service.stop())
         await asyncio.gather(*shutdown_tasks, return_exceptions=True)
+        await asyncio.gather(
+            self.process_supervisor.stop_all(),
+            self.plugin_manager.stop(),
+            return_exceptions=True,
+        )
+        self.log_capture.restore()
         self.logger.info("BotApp stopped")
 
     async def wait_closed(self) -> None:
@@ -137,6 +154,20 @@ class BotApp:
             )
             raise SystemExit(1)
 
+    async def _start_managed_onebot(self) -> None:
+        executable = str(getattr(self.cfg.paths, "napcat_path", "")).strip()
+        if not executable:
+            return
+        args = [str(item) for item in list(getattr(self.cfg.paths, "napcat_args", []) or [])]
+        try:
+            await self.process_supervisor.start_napcat(
+                executable=executable,
+                args=args,
+            )
+            self.logger.info("Managed NapCat started: %s", executable)
+        except Exception:
+            self.logger.exception("Failed to start managed NapCat process: %s", executable)
+
 
 async def _register_signals(app: BotApp) -> None:
     loop = asyncio.get_running_loop()
@@ -154,8 +185,11 @@ async def _register_signals(app: BotApp) -> None:
 async def main() -> None:
     app = BotApp()
     await _register_signals(app)
-    await app.start()
-    await app.wait_closed()
+    try:
+        await app.start()
+        await app.wait_closed()
+    finally:
+        await app.stop()
 
 
 if __name__ == "__main__":

@@ -1,0 +1,174 @@
+{
+  "version": 1,
+  "spaces": {
+    "user": {
+      "我靠\t握草": {
+        "jargon": "握草",
+        "standard": "我靠",
+        "meaning": "表示惊讶或感叹的粗话",
+        "confidence": 0.95,
+        "weight": 1.95,
+        "source_users": [
+          3052304356
+        ],
+        "updated_at": "2026-04-26T06:58:46.971082+00:00"
+      },
+      "厉害\t牛皮": {
+        "jargon": "牛皮",
+        "standard": "厉害",
+        "meaning": "表示赞叹或佩服",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          3052304356
+        ],
+        "updated_at": "2026-04-26T06:58:46.971085+00:00"
+      },
+      "进去\t金曲": {
+        "jargon": "金曲",
+        "standard": "进去",
+        "meaning": "谐音或打字错误，指进入考场",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          3052304356
+        ],
+        "updated_at": "2026-04-26T06:58:46.971087+00:00"
+      },
+      "什么几把\tsmjb": {
+        "jargon": "smjb",
+        "standard": "什么几把",
+        "meaning": "粗口，表示不满或质疑",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          3052304356
+        ],
+        "updated_at": "2026-04-26T07:10:03.359147+00:00"
+      },
+      "哦牛逼\t哦牛批": {
+        "jargon": "哦牛批",
+        "standard": "哦牛逼",
+        "meaning": "表示惊讶或赞叹，带调侃语气",
+        "confidence": 0.95,
+        "weight": 1.95,
+        "source_users": [
+          3052304356
+        ],
+        "updated_at": "2026-04-26T07:10:03.359150+00:00"
+      },
+      "溜溜溜\t66666666666666666": {
+        "jargon": "66666666666666666",
+        "standard": "溜溜溜",
+        "meaning": "表示厉害、佩服",
+        "confidence": 0.95,
+        "weight": 1.95,
+        "source_users": [
+          3052304356
+        ],
+        "updated_at": "2026-04-26T07:10:03.359152+00:00"
+      },
+      "非常生气/愤怒\t红温了": {
+        "jargon": "红温了",
+        "standard": "非常生气/愤怒",
+        "meaning": "源自游戏梗，形容极度愤怒或情绪激动",
+        "confidence": 0.95,
+        "weight": 1.95,
+        "source_users": [
+          2902336359
+        ],
+        "updated_at": "2026-04-26T07:11:06.664172+00:00"
+      },
+      "最令人愤怒的一次\t最红温的一集": {
+        "jargon": "最红温的一集",
+        "standard": "最令人愤怒的一次",
+        "meaning": "指某次经历特别让人生气",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          2902336359
+        ],
+        "updated_at": "2026-04-26T07:11:06.664174+00:00"
+      },
+      "最生气的人\t全场最红之人": {
+        "jargon": "全场最红之人",
+        "standard": "最生气的人",
+        "meaning": "形容自己是所有人中最愤怒的",
+        "confidence": 0.85,
+        "weight": 1.85,
+        "source_users": [
+          2902336359
+        ],
+        "updated_at": "2026-04-26T07:11:06.664176+00:00"
+      },
+      "骂人的脏话\tcnm": {
+        "jargon": "cnm",
+        "standard": "骂人的脏话",
+        "meaning": "粗口，表示极度不满",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          2902336359
+        ],
+        "updated_at": "2026-04-26T07:11:06.664177+00:00"
+      },
+      "情绪激动/愤怒\t红温": {
+        "jargon": "红温",
+        "standard": "情绪激动/愤怒",
+        "meaning": "形容情绪激动或生气，源自游戏术语",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          3052304356
+        ],
+        "updated_at": "2026-04-26T07:15:16.043779+00:00"
+      },
+      "快速完成\t速通": {
+        "jargon": "速通",
+        "standard": "快速完成",
+        "meaning": "指以最快速度完成某项任务",
+        "confidence": 0.95,
+        "weight": 1.95,
+        "source_users": [
+          3052304356
+        ],
+        "updated_at": "2026-04-26T07:15:16.043783+00:00"
+      },
+      "童老师/童导演\t童导": {
+        "jargon": "童导",
+        "standard": "童老师/童导演",
+        "meaning": "对姓童的人的戏称或尊称",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          3052304356
+        ],
+        "updated_at": "2026-04-26T07:15:16.043786+00:00"
+      },
+      "碰运气\t撞大运": {
+        "jargon": "撞大运",
+        "standard": "碰运气",
+        "meaning": "指偶然遇到好机会或好运",
+        "confidence": 0.95,
+        "weight": 1.95,
+        "source_users": [
+          3052304356
+        ],
+        "updated_at": "2026-04-26T07:15:16.043789+00:00"
+      },
+      "高手/大侠\t大虾": {
+        "jargon": "大虾",
+        "standard": "高手/大侠",
+        "meaning": "网络用语，指技术高超或厉害的人",
+        "confidence": 0.85,
+        "weight": 1.85,
+        "source_users": [
+          3052304356
+        ],
+        "updated_at": "2026-04-26T07:15:16.043792+00:00"
+      }
+    },
+    "group": {},
+    "public": {}
+  }
+}

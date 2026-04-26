@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "spaces": {
+    "user": {
+      "3052304356": {
+        "tags": [
+          "学生",
+          "考试相关",
+          "使用表情包",
+          "网络用语",
+          "群聊互动",
+          "询问考试难度"
+        ],
+        "affinity": 0.022000000000000002,
+        "interaction_style": "频繁使用表情包和网络用语、在群聊中主动询问考试情况并表达情绪、表达考试情况和情绪",
+        "updated_at": "2026-04-26T07:12:46.480649+00:00",
+        "tag_scores": {
+          "学生": 4.1693449375,
+          "考试相关": 4.1693449375,
+          "使用表情包": 4.1693449375,
+          "网络用语": 2.7358374999999997,
+          "群聊互动": 2.7358374999999997,
+          "询问考试难度": 2.7358374999999997
+        },
+        "style_scores": {
+          "表达考试情况和情绪": 2.5464186,
+          "使用网络用语和表情包": 1.3584185999999998,
+          "频繁使用表情包和网络用语": 2.5601399999999996,
+          "在群聊中主动询问考试情况并表达情绪": 2.5601399999999996
+        }
+      },
+      "2902336359": {
+        "tags": [
+          "competitive programmer",
+          "frustrated",
+          "expressive"
+        ],
+        "affinity": -0.022000000000000002,
+        "interaction_style": "Emotionally vents about technical setbacks with repeated emphasis and slang.",
+        "updated_at": "2026-04-26T07:11:06.734116+00:00",
+        "tag_scores": {
+          "competitive programmer": 1.576,
+          "frustrated": 1.576,
+          "expressive": 1.576
+        },
+        "style_scores": {
+          "Emotionally vents about technical setbacks with repeated emphasis and slang.": 1.4849999999999999
+        }
+      }
+    },
+    "group": {},
+    "public": {}
+  }
+}

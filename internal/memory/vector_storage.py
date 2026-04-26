@@ -138,6 +138,19 @@ class ChromaVectorStorage:
 
         return self._fallback_query(collection_type, embedding, limit)
 
+    async def clear_collection(self, collection_type: CollectionType) -> None:
+        await self.start()
+        if self._use_chroma:
+            name = str(collection_type)
+            try:
+                await asyncio.to_thread(self._client.delete_collection, name=name)
+            except Exception:
+                # Keep idempotent semantics for reindex flows.
+                pass
+            self._collections[collection_type] = self._client.get_or_create_collection(name=name)
+            return
+        self._fallback_rows[collection_type] = []
+
     def _parse_query_payload(self, payload: dict[str, Any]) -> list[VectorRecord]:
         ids = payload.get("ids", [[]])
         docs = payload.get("documents", [[]])

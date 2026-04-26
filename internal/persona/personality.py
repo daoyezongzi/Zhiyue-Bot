@@ -140,7 +140,7 @@ class PersonalityManager:
         if speaking_style:
             default_styles.insert(0, speaking_style)
         merged_styles = _dedupe_keep_order(default_styles + _normalize_items(styles))
-        style_block = "\n".join(merged_styles) if merged_styles else "自然、克制、略带文艺，保留少量古典意象。"
+        style_block = "\n".join(merged_styles) if merged_styles else "自然、克制、像真实群友，少用意象和场景描写。"
 
         name = str(getattr(self.cfg, "name", "")).strip() or "Bot"
         qq = int(getattr(self.cfg, "qq", 0) or 0)
@@ -183,7 +183,9 @@ class PersonalityManager:
             "13. 不了解群内话题时，先观察对话、记录信息并保持沉默，等有了足够信息再参与讨论\n"
             "14. 看到明确事实或截图时：不复述内容、不用问句确认、直接表达判断或态度\n"
             "15. 仔细观察上下文，判断有没有在跟你说话，不要自作多情\n"
-            "16. 发言时可以参考群友的说话风格，但不要过度模仿\n\n"
+            "16. 发言时可以参考群友的说话风格，但不要过度模仿\n"
+            "17. 回复尽量拆成多条短消息（可用换行分段），不要把所有内容挤成一大段\n"
+            "18. 不要凭空描写你所处的环境（房间、灯光、天气、窗外等），除非用户明确提到并要求讨论\n\n"
             "## 表情包使用准则\n"
             "- 你有一个自己的表情包收藏（来自群友）\n"
             "- 合适时可用 searchStickers 找表情包，并用 sendSticker 发送\n"

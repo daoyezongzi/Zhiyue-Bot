@@ -5,6 +5,7 @@ import math
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Awaitable, Callable, Dict, List
 
 from adapters.llm.chat import ChatLLMAdapter
@@ -184,6 +185,79 @@ class MemoryManager:
         if rows:
             self._logger.info("向量库命中: collection=external_knowledge count=%s", len(rows))
         return rows
+
+    async def reindex_external_knowledge(self, knowledge_dir: str | Path) -> dict[str, Any]:
+        root = Path(knowledge_dir).resolve()
+        root.mkdir(parents=True, exist_ok=True)
+        await self._vector_storage.clear_collection("external_knowledge")
+
+        files_seen = 0
+        files_indexed = 0
+        chunks_indexed = 0
+        skipped_files: list[str] = []
+        allowed_extensions = {
+            ".txt",
+            ".md",
+            ".markdown",
+            ".rst",
+            ".json",
+            ".yaml",
+            ".yml",
+            ".csv",
+            ".log",
+        }
+
+        for file_path in sorted(root.rglob("*")):
+            if not file_path.is_file():
+                continue
+            if file_path.name.startswith("."):
+                continue
+            files_seen += 1
+            relative_path = str(file_path.relative_to(root))
+            if file_path.suffix.lower() not in allowed_extensions:
+                skipped_files.append(relative_path)
+                continue
+
+            text = file_path.read_text(encoding="utf-8", errors="replace").strip()
+            if not text:
+                skipped_files.append(relative_path)
+                continue
+
+            chunks = self._chunk_text(text)
+            if not chunks:
+                skipped_files.append(relative_path)
+                continue
+
+            for idx, chunk in enumerate(chunks, start=1):
+                await self.store_external_knowledge(
+                    chunk,
+                    metadata={
+                        "source": "knowledge_file",
+                        "file_path": relative_path,
+                        "chunk_index": idx,
+                        "chunk_total": len(chunks),
+                        "updated_at": datetime.now(timezone.utc).isoformat(),
+                    },
+                )
+                chunks_indexed += 1
+
+            files_indexed += 1
+
+        self._logger.info(
+            "Knowledge reindex finished: dir=%s seen=%s indexed=%s chunks=%s skipped=%s",
+            root,
+            files_seen,
+            files_indexed,
+            chunks_indexed,
+            len(skipped_files),
+        )
+        return {
+            "knowledge_dir": str(root),
+            "files_seen": files_seen,
+            "files_indexed": files_indexed,
+            "chunks_indexed": chunks_indexed,
+            "skipped_files": skipped_files,
+        }
 
     async def retrieve_for_prompt(
         self,
@@ -575,3 +649,24 @@ class MemoryManager:
             "重要约定："
             + " | ".join(previews)
         )
+
+    @staticmethod
+    def _chunk_text(text: str, *, chunk_size: int = 1200, overlap: int = 120) -> list[str]:
+        clean = str(text).strip()
+        if not clean:
+            return []
+        chunk_size = max(200, int(chunk_size))
+        overlap = max(0, min(int(overlap), chunk_size // 2))
+        step = chunk_size - overlap
+        chunks: list[str] = []
+        start = 0
+        total = len(clean)
+        while start < total:
+            end = min(total, start + chunk_size)
+            chunk = clean[start:end].strip()
+            if chunk:
+                chunks.append(chunk)
+            if end >= total:
+                break
+            start += step
+        return chunks

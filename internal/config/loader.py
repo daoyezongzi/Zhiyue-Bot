@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shlex
 from pathlib import Path
 
 import yaml
@@ -55,6 +56,11 @@ WEB_HOST=127.0.0.1
 WEB_PORT=8080
 WEB_ACCESS_TOKEN=
 WEB_BACKGROUND_URL=
+
+# Optional managed OneBot process (NapCat)
+NAPCAT_PATH=
+NAPCAT_ARGS=
+KNOWLEDGE_DIR=data/knowledge
 
 # Persona privacy overrides
 PERSONA_MASTER_NAME=
@@ -235,6 +241,21 @@ def _apply_env_overrides(cfg: Config) -> None:
     background_url = _read_first_env("WEB_BACKGROUND_URL", "ZHIYUE_WEB_BACKGROUND_URL")
     if background_url:
         cfg.web.ui_settings.background_url = background_url
+
+    napcat_path = _read_first_env("NAPCAT_PATH", "ZHIYUE_NAPCAT_PATH")
+    if napcat_path:
+        cfg.paths.napcat_path = napcat_path
+
+    napcat_args = _read_first_env("NAPCAT_ARGS", "ZHIYUE_NAPCAT_ARGS")
+    if napcat_args:
+        try:
+            cfg.paths.napcat_args = [part for part in shlex.split(napcat_args, posix=False) if part.strip()]
+        except ValueError:
+            cfg.paths.napcat_args = [part for part in napcat_args.split(" ") if part.strip()]
+
+    knowledge_dir = _read_first_env("KNOWLEDGE_DIR", "ZHIYUE_KNOWLEDGE_DIR")
+    if knowledge_dir:
+        cfg.paths.knowledge_dir = knowledge_dir
 
     master_name = _read_first_env("PERSONA_MASTER_NAME", "MASTER_NAME", "ZHIYUE_MASTER_NAME")
     if master_name is not None:

@@ -1,6 +1,8 @@
 ﻿from __future__ import annotations
 
 import asyncio
+import random
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Awaitable
@@ -213,6 +215,11 @@ class ContextBuilder:
 
 
 class ZhiyueAgent:
+    _CQ_AT_PATTERN = re.compile(r"\[CQ:at,[^\]]*(?:qq|uid|user_id)=(\d+)[^\]]*\]", re.IGNORECASE)
+    _REPLY_LINE_SPLIT_PATTERN = re.compile(r"(?:\r?\n)+")
+    _REPLY_SENTENCE_PATTERN = re.compile(r"[^。！？!?；;\n]+(?:[。！？!?；;]+|$)")
+    _LEADING_QUOTES = ("\"", "'", "“", "‘", "「", "『")
+
     def __init__(self, bot_client: OneBotClient, cfg: Config, llm: ChatLLMAdapter) -> None:
         self.bot_client = bot_client
         self.cfg = cfg
@@ -266,6 +273,7 @@ class ZhiyueAgent:
         self._inbound_worker: asyncio.Task[None] | None = None
         self._dispatch_worker: asyncio.Task[None] | None = None
         self._debounce_window_sec = 0.5
+        self._rng = random.Random()
         self._started = False
 
     async def start(self) -> None:
@@ -442,12 +450,20 @@ class ZhiyueAgent:
         message_type = str(message.get("message_type", "")).strip() or "private"
         group_id = self._to_int(message.get("group_id"))
         if message_type == "group":
-            if group_id is None or not self.cfg.is_group_enabled(group_id):
+            if group_id is None:
+                self._logger.warning("Skip group message: invalid group_id raw=%s", message.get("group_id"))
+                return
+            if not self.cfg.is_group_enabled(group_id):
+                self._logger.info("Skip group message: group not enabled group_id=%s", group_id)
                 return
 
+        mentioned_in_window = bool(message.get("_debounced_mention"))
         text = str(message.get("text", "")).strip()
         if not text:
-            return
+            if message_type == "group" and mentioned_in_window:
+                text = "[用户仅@了你]"
+            else:
+                return
 
         user_id = self._to_int(message.get("user_id"))
         self_id = self._to_int(message.get("self_id"))
@@ -459,7 +475,6 @@ class ZhiyueAgent:
         speaker = self._extract_speaker(message)
         is_master = self._is_master(user_id)
         merged_count = int(message.get("_debounced_count", 1) or 1)
-        mentioned_in_window = bool(message.get("_debounced_mention"))
         memory_group_id = group_id if group_id is not None else 0
 
         self._logger.info(
@@ -545,6 +560,19 @@ class ZhiyueAgent:
             status_after_user.mood,
             status_after_user.fatigue_mode,
         )
+
+        if message_type == "group" and not mentioned_in_window:
+            active_reply_probability = self._clamp_probability(self.cfg.agent.active_reply_probability)
+            if active_reply_probability < 1.0:
+                roll = self._rng.random()
+                if roll >= active_reply_probability:
+                    self._logger.info(
+                        "Queue.SkipReply: session=%s reason=active_probability roll=%.4f threshold=%.4f",
+                        session_id,
+                        roll,
+                        active_reply_probability,
+                    )
+                    return
 
         social_background = await self.user_profiler.build_social_background(user_id, speaker)
         ctx = await self._build_context(
@@ -725,7 +753,8 @@ class ZhiyueAgent:
             energy=ctx.mood.energy,
             speaker_is_master=ctx.is_master,
         )
-        return await self.jargon_engine.apply_to_reply(styled)
+        processed = await self.jargon_engine.apply_to_reply(styled)
+        return self._strip_self_prefix(processed)
 
     async def _sync_learned_jargon(self, term: str, meaning: str) -> None:
         clean_term = str(term).strip()
@@ -835,22 +864,138 @@ class ZhiyueAgent:
         await self.handle_message(packet)
 
     async def _reply(self, message: dict[str, Any], reply: str) -> None:
+        parts = self._split_reply_parts(reply)
+        if not parts:
+            return
+
         message_type = str(message.get("message_type", "")).strip() or "private"
         if message_type == "group":
             group_id = self._to_int(message.get("group_id"))
             if group_id is None:
                 self._logger.warning("Skip group reply: missing group_id")
                 return
-            await self.bot_client.send_group_msg(group_id=group_id, message=reply)
-            self._logger.info("Queue.Reply: target=group group_id=%s", group_id)
+            for idx, part in enumerate(parts):
+                await self.bot_client.send_group_msg(group_id=group_id, message=part)
+                self._logger.info(
+                    "Queue.Reply: target=group group_id=%s part=%s/%s",
+                    group_id,
+                    idx + 1,
+                    len(parts),
+                )
+                if idx + 1 < len(parts):
+                    await asyncio.sleep(self._reply_gap_seconds(part))
             return
 
         user_id = self._to_int(message.get("user_id"))
         if user_id is None:
             self._logger.warning("Skip private reply: missing user_id")
             return
-        await self.bot_client.send_private_msg(user_id=user_id, message=reply)
-        self._logger.info("Queue.Reply: target=private user_id=%s", user_id)
+        for idx, part in enumerate(parts):
+            await self.bot_client.send_private_msg(user_id=user_id, message=part)
+            self._logger.info(
+                "Queue.Reply: target=private user_id=%s part=%s/%s",
+                user_id,
+                idx + 1,
+                len(parts),
+            )
+            if idx + 1 < len(parts):
+                await asyncio.sleep(self._reply_gap_seconds(part))
+
+    @classmethod
+    def _split_reply_parts(cls, reply: str) -> list[str]:
+        text = reply.strip()
+        if not text:
+            return []
+
+        normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+        by_lines = [item.strip() for item in cls._REPLY_LINE_SPLIT_PATTERN.split(normalized) if item.strip()]
+        if len(by_lines) > 1:
+            return cls._merge_short_parts(by_lines)
+
+        by_sentences = [item.strip() for item in cls._REPLY_SENTENCE_PATTERN.findall(normalized) if item.strip()]
+        if len(by_sentences) > 1:
+            return cls._merge_short_parts(by_sentences)
+
+        return [text]
+
+    @classmethod
+    def _merge_short_parts(cls, parts: list[str]) -> list[str]:
+        merged: list[str] = []
+        buffer = ""
+        for part in parts:
+            item = part.strip()
+            if not item:
+                continue
+            if not buffer:
+                buffer = item
+                continue
+            if len(buffer) < 8:
+                buffer = cls._concat_reply_text(buffer, item)
+                continue
+            merged.append(buffer)
+            buffer = item
+        if buffer:
+            merged.append(buffer)
+        return merged
+
+    @staticmethod
+    def _concat_reply_text(left: str, right: str) -> str:
+        if not left:
+            return right
+        if not right:
+            return left
+        if left[-1].isascii() and left[-1].isalnum() and right[0].isascii() and right[0].isalnum():
+            return f"{left} {right}"
+        return f"{left}{right}"
+
+    def _reply_gap_seconds(self, part: str) -> float:
+        # 小间隔让多条消息看起来更像自然打字，而不是一次性刷屏。
+        base = 0.18
+        length_factor = min(0.6, max(0.0, len(part)) * 0.012)
+        jitter = self._rng.uniform(0.04, 0.18)
+        return min(1.2, base + length_factor + jitter)
+
+    def _strip_self_prefix(self, text: str) -> str:
+        clean = str(text or "").strip()
+        if not clean:
+            return ""
+
+        prefix = ""
+        tail = clean
+        while tail and tail[0] in self._LEADING_QUOTES:
+            prefix += tail[0]
+            tail = tail[1:].lstrip()
+
+        names = self._self_names_for_prefix()
+        lowered = tail.lower()
+        for name in names:
+            if not lowered.startswith(name.lower()):
+                continue
+            remain = tail[len(name):].lstrip()
+            if not remain.startswith(("：", ":")):
+                continue
+            stripped = remain[1:].lstrip()
+            if not stripped:
+                return ""
+            return f"{prefix}{stripped}"
+        return clean
+
+    def _self_names_for_prefix(self) -> list[str]:
+        candidates = [
+            str(self.cfg.persona.name or "").strip(),
+            *[str(item or "").strip() for item in getattr(self.cfg.persona, "alias_names", [])],
+        ]
+        unique: list[str] = []
+        seen: set[str] = set()
+        for item in sorted(candidates, key=len, reverse=True):
+            if not item:
+                continue
+            lowered = item.lower()
+            if lowered in seen:
+                continue
+            seen.add(lowered)
+            unique.append(item)
+        return unique
 
     def _build_debounce_key(self, message: dict[str, Any]) -> str:
         message_type = str(message.get("message_type", "")).strip() or "private"
@@ -870,9 +1015,33 @@ class ZhiyueAgent:
 
     def _is_packet_mentioned(self, message: dict[str, Any]) -> bool:
         text = str(message.get("text", "")).strip()
-        if not text:
+        if text and self.personality.is_mentioned(text):
+            return True
+
+        target_ids: set[int] = set()
+        self_id = self._to_int(message.get("self_id"))
+        if self_id is not None:
+            target_ids.add(self_id)
+        persona_qq = self._to_int(self.cfg.persona.qq)
+        if persona_qq is not None:
+            target_ids.add(persona_qq)
+        if not target_ids:
             return False
-        return self.personality.is_mentioned(text)
+
+        raw = message.get("raw")
+        if isinstance(raw, dict):
+            if bool(raw.get("at_me")):
+                return True
+            if self._has_at_segment(raw.get("message"), target_ids):
+                return True
+            if self._has_cq_at(raw.get("raw_message"), target_ids):
+                return True
+
+        if self._has_at_segment(message.get("message"), target_ids):
+            return True
+        if self._has_cq_at(message.get("raw_message"), target_ids):
+            return True
+        return False
 
     def _build_session_id(self, message: dict[str, Any]) -> str:
         message_type = str(message.get("message_type", "")).strip() or "private"
@@ -910,6 +1079,45 @@ class ZhiyueAgent:
             return int(value)
         except (TypeError, ValueError):
             return None
+
+    @staticmethod
+    def _clamp_probability(value: Any) -> float:
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            return 1.0
+        return max(0.0, min(1.0, numeric))
+
+    @staticmethod
+    def _has_at_segment(segments: Any, target_ids: set[int]) -> bool:
+        if not isinstance(segments, list):
+            return False
+
+        for segment in segments:
+            if not isinstance(segment, dict):
+                continue
+            if str(segment.get("type", "")).strip().lower() != "at":
+                continue
+            data = segment.get("data")
+            if not isinstance(data, dict):
+                continue
+
+            for key in ("qq", "uid", "user_id"):
+                target = ZhiyueAgent._to_int(data.get(key))
+                if target is not None and target in target_ids:
+                    return True
+        return False
+
+    @classmethod
+    def _has_cq_at(cls, raw_message: Any, target_ids: set[int]) -> bool:
+        if not isinstance(raw_message, str) or not raw_message.strip():
+            return False
+
+        for match in cls._CQ_AT_PATTERN.findall(raw_message):
+            target = cls._to_int(match)
+            if target is not None and target in target_ids:
+                return True
+        return False
 
 
 AsyncReactAgent = ZhiyueAgent
