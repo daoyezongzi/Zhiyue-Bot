@@ -69,6 +69,13 @@ personality:
   other_mood_boost: 0.03
   other_energy_delta: -0.01
   reply_energy_cost: 0.06
+  energy_timezone_offset_hours: 8
+  energy_active_start_hour: 8
+  energy_active_end_hour: 21
+  energy_active_recovery_multiplier: 0.9
+  energy_active_reply_cost_multiplier: 0.9
+  energy_rest_recovery_multiplier: 1.12
+  energy_rest_reply_cost_multiplier: 1.12
 
 jargon:
   enabled: true
@@ -88,7 +95,7 @@ jargon:
 
 onebot:
   ws_mode: reverse
-  ws_url: ws://127.0.0.1:6199
+  ws_url: ws://127.0.0.1:18001/ws
   access_token: ""
   reconnect_interval: 5
 
@@ -96,6 +103,20 @@ groups:
   - group_id: 10001
     enabled: true
     extra_prompt: ""
+
+admin_commands:
+  enabled: true
+  prefix: "##zy"
+  # 为空时默认只有 persona.master_id / persona.master_name 具备权限
+  admin_user_ids: []
+  admin_names: []
+  commands:
+    - action: toggle_group_chat
+      triggers: ["开关群聊", "开关某群聊天", "开关某群的聊天"]
+    - action: join_group_chat
+      triggers: ["加入群聊", "加入某群聊天", "加入某群的聊天"]
+    - action: shutdown
+      triggers: ["关闭程序", "关闭机器人", "停止程序"]
 
 agent:
   observe_window: 30
@@ -106,7 +127,9 @@ agent:
   max_step: 12
   max_coroutine: 4
   enable_active_retrieval: true
-  active_reply_probability: 1.0
+  active_reply_probability: 0.35
+  prompt_cache_heartbeat_enabled: false
+  prompt_cache_heartbeat_interval_sec: 600
 
 learning:
   enabled: true
@@ -152,10 +175,33 @@ memory:
   topic_shift_min_messages: 8
   rag_top_k: 5
 
+sticker:
+  enabled: true
+  collection_rate: 0.1
+  storage_mode: local # local | cloud
+  local_dir: data/stickers
+  filter_keywords:
+    - 浮夸
+    - 低俗
+    - 吵闹
+    - 恶臭
+  user_weights: {}
+  enable_persona_filter: true
+  llm_filter_enabled: true
+  llm_filter_probability: 0.2
+  llm_filter_mood_threshold: 50
+  llm_filter_cache_ttl_seconds: 86400
+  llm_filter_max_tokens: 10
+  cloud_actions:
+    - set_msg_favorite
+    - nc_set_msg_favorite
+    - mark_msg_as_favorite
+  download_timeout_sec: 12
+
 web:
   enabled: false
   host: 127.0.0.1
-  port: 8080
+  port: 18002
   access_token: ""
   admin_key: ""
   ui_settings:

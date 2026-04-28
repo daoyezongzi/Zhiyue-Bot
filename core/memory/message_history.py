@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass
@@ -62,15 +62,10 @@ class MessageHistory:
 
         messages: list[dict[str, str]] = []
         for item in rows:
-            tags: list[str] = []
-            tags.append("GROUP" if item.message_type == "group" else "PRIVATE")
-            if item.user_id is not None:
-                tags.append(f"uid={item.user_id}")
-            if item.is_master:
-                tags.append("MASTER")
-            tag_text = "][".join(tags)
-            timestamp = item.created_at.astimezone().strftime("%Y-%m-%d %H:%M:%S")
-            content = f"[{tag_text}] ({timestamp}) {item.speaker}: {item.content}"
+            scope = "群聊" if item.message_type == "group" else "私聊"
+            speaker = str(item.speaker or "").strip() or "unknown"
+            role_tag = "管理员" if item.is_master else scope
+            content = f"[{role_tag}] {speaker}: {item.content}"
             messages.append({"role": item.role, "content": content})
         return messages
 
@@ -97,7 +92,10 @@ class MessageHistory:
         summary = self.get_summary(session_id)
         if summary is None or not summary.text:
             return ""
-        return f"历史总结（{summary.updated_at.astimezone().strftime('%Y-%m-%d %H:%M:%S')}）：{summary.text}"
+        return (
+            f"历史总结（{summary.updated_at.astimezone().strftime('%Y-%m-%d %H:%M:%S')}）："
+            f"{summary.text}"
+        )
 
     def export_session(self, session_id: str) -> dict:
         bucket = self._sessions.get(session_id)
@@ -177,3 +175,4 @@ class MessageHistory:
         new_bucket = _SessionBucket(messages=deque(maxlen=self._capacity))
         self._sessions[session_id] = new_bucket
         return new_bucket
+

@@ -12,3 +12,5 @@ config/config.yaml
 # 忽略日志
 logs/
 *.log
+# runtime status snapshots
+data/runtime/

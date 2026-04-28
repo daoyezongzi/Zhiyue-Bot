@@ -16,13 +16,13 @@ from internal.logger import get_logger
 class OneBotClient:
     def __init__(
         self,
-        ws_url: str = "ws://127.0.0.1:6199",
+        ws_url: str = "ws://127.0.0.1:18001/ws",
         ws_mode: str = "reverse",
         access_token: str = "",
         reconnect_initial: float = 1.0,
         reconnect_max: float = 30.0,
     ) -> None:
-        self.endpoint: str = ws_url or "ws://127.0.0.1:6199"
+        self.endpoint: str = ws_url or "ws://127.0.0.1:18001/ws"
         self.ws_mode: str = self._normalize_mode(ws_mode)
         # Backward-compatible alias used by existing startup logs.
         self.ws_url: str = self.endpoint
@@ -287,6 +287,13 @@ class OneBotClient:
     async def send_private_message(self, user_id: int, content: str) -> int:
         echo = await self.send_private_msg(user_id=user_id, message=content)
         return int(echo)
+
+    async def call_action(self, action: str, params: Mapping[str, Any] | None = None) -> str:
+        clean_action = str(action or "").strip()
+        if not clean_action:
+            raise ValueError("action is empty")
+        payload = dict(params or {})
+        return await self._send_action(clean_action, payload)
 
     async def _send_action(self, action: str, params: dict[str, Any]) -> str:
         if not self.connected:

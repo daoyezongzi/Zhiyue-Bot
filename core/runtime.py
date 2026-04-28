@@ -67,7 +67,7 @@ async def build_runtime(config_path: str | Path = "config/config.yaml") -> Runti
     logger.info("Config loaded: %s", config_file)
 
     onebot_client = OneBotClient(
-        ws_url=cfg.onebot.ws_url or "ws://127.0.0.1:6199",
+        ws_url=cfg.onebot.ws_url or "ws://127.0.0.1:18001/ws",
         ws_mode=cfg.onebot.ws_mode,
         access_token=cfg.onebot.access_token,
         reconnect_initial=float(max(1, cfg.onebot.reconnect_interval)),

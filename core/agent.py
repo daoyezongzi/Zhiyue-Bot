@@ -3,20 +3,62 @@
 import asyncio
 import random
 import re
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Awaitable
+from pathlib import Path
+from typing import Any, Awaitable, Callable
+
+import yaml
 
 from adapters.llm.chat import ChatLLMAdapter
 from adapters.onebot.client import OneBotClient
 from core.memory import ConversationMessage, MessageHistory
-from internal.config.schema import Config
+from internal.config.schema import Config, GroupConfig
 from internal.jargon import JargonManager, StyleClassification
 from internal.jargon.jargon_engine import JargonEvolutionEngine, JargonLexiconStore
 from internal.learning.user_profiling import UserProfileStore, UserProfilingEngine
 from internal.logger import get_logger
 from internal.memory import MemoryManager, MessageLog
 from internal.persona import MoodInfo, PersonalityManager, PromptContext, StatusEngine, StatusSnapshot
+from internal.sticker import StickerCollector
+
+
+_PROMPT_INLINE_SPACE_PATTERN = re.compile(r"[ \t\f\v]+")
+_PROMPT_MULTI_NEWLINE_PATTERN = re.compile(r"\n{3,}")
+_PROMPT_PUNCT_TRANSLATION = str.maketrans(
+    {
+        "，": ",",
+        "。": ".",
+        "；": ";",
+        "：": ":",
+        "！": "!",
+        "？": "?",
+        "（": "(",
+        "）": ")",
+        "【": "[",
+        "】": "]",
+        "“": "\"",
+        "”": "\"",
+        "‘": "'",
+        "’": "'",
+        "、": ",",
+        "…": "...",
+        "—": "-",
+        "～": "~",
+    }
+)
+
+
+def _normalize_prompt_input(text: Any) -> str:
+    clean = unicodedata.normalize("NFKC", str(text or ""))
+    clean = clean.replace("\u00A0", " ").replace("\u3000", " ")
+    clean = clean.replace("\r\n", "\n").replace("\r", "\n")
+    clean = clean.translate(_PROMPT_PUNCT_TRANSLATION)
+    clean = _PROMPT_INLINE_SPACE_PATTERN.sub(" ", clean)
+    clean = re.sub(r"[ \t]*\n[ \t]*", "\n", clean)
+    clean = _PROMPT_MULTI_NEWLINE_PATTERN.sub("\n\n", clean)
+    return clean.strip()
 
 
 @dataclass(slots=True)
@@ -26,6 +68,7 @@ class ThinkContext:
     user_id: int | None
     group_id: int | None
     speaker: str
+    source_text: str
     is_master: bool
     mood: MoodInfo
     style: StyleClassification
@@ -88,11 +131,16 @@ class ContextBuilder:
             speaker_is_master=is_master,
         )
 
-        current_text = str(message.get("text", "")).strip()
+        current_text = _normalize_prompt_input(message.get("text", ""))
         jargon_matches = await self._jargon_mgr.match(current_text)
 
         context_messages = self._history.get_structured_messages(session_id)
-        chat_context = "\n".join(item["content"] for item in context_messages)
+        chat_context_lines: list[str] = []
+        for item in context_messages:
+            normalized = _normalize_prompt_input(item.get("content", ""))
+            if normalized:
+                chat_context_lines.append(normalized)
+        chat_context = "\n".join(chat_context_lines)
         if not chat_context:
             chat_context = f"[{speaker}] {current_text}"
 
@@ -107,30 +155,31 @@ class ContextBuilder:
         if group_id is not None:
             group_cfg = self._cfg.get_group(group_id)
             if group_cfg and group_cfg.extra_prompt.strip():
-                group_extra = group_cfg.extra_prompt.strip()
+                group_extra = _normalize_prompt_input(group_cfg.extra_prompt)
 
-        summary_hint = self._history.summary_prompt(session_id)
+        summary_hint = _normalize_prompt_input(self._history.summary_prompt(session_id))
         if summary_hint:
             prompt_ctx.related_memories.append(summary_hint)
         elif self._history.should_refresh_summary(session_id):
             prompt_ctx.related_memories.append("历史上下文窗口已裁剪，暂无可用总结。")
         if history_background:
-            prompt_ctx.related_memories.extend(history_background[:5])
+            for item in history_background[:5]:
+                normalized = _normalize_prompt_input(item)
+                if normalized:
+                    prompt_ctx.related_memories.append(normalized)
+        if related_knowledge:
+            for item in related_knowledge[:5]:
+                normalized = _normalize_prompt_input(item)
+                if normalized:
+                    prompt_ctx.cross_group_experiences.append(normalized)
+        social_hint = _normalize_prompt_input(social_background)
+        if social_hint:
+            prompt_ctx.style_hints.append(social_hint)
 
-        recent_people = self._build_recent_people(session_id)
-        dynamic_hobbies = self._build_hobbies_hint(jargon_matches)
-        dynamic_styles = [f"当前建议语气：{style.tone}（意图：{style.intent}）"]
+        recent_people = _normalize_prompt_input(self._build_recent_people(session_id))
 
-        system_prompt = self._personality.get_system_prompt(
-            hobbies=dynamic_hobbies,
-            styles=dynamic_styles,
-            is_master=is_master,
-        )
-        retrieval_block = self._build_retrieval_block(history_background, related_knowledge)
-        if retrieval_block:
-            system_prompt = f"{system_prompt}\n\n{retrieval_block}"
-        if social_background.strip():
-            system_prompt = f"{system_prompt}\n\n## 社交背景\n{social_background.strip()}"
+        # Keep system prompt as stable as possible for model-side prefix caching.
+        system_prompt = self._personality.get_system_prompt(is_master=is_master)
         think_prompt = self._personality.get_think_prompt(
             prompt_ctx,
             chat_context,
@@ -216,11 +265,83 @@ class ContextBuilder:
 
 class ZhiyueAgent:
     _CQ_AT_PATTERN = re.compile(r"\[CQ:at,[^\]]*(?:qq|uid|user_id)=(\d+)[^\]]*\]", re.IGNORECASE)
+    _STICKER_MARKER_PATTERN = re.compile(
+        r"\[\[\s*(?:sticker|表情包)\s*[:：]\s*(?P<query>[^\]\r\n]{1,120})\s*\]\]",
+        re.IGNORECASE,
+    )
+    _STICKER_FUNC_CALL_PATTERN = re.compile(
+        r"sendSticker\s*[\(（]\s*(?P<query>[^)\）\r\n]{1,120})\s*[\)）]",
+        re.IGNORECASE,
+    )
+    _STICKER_INTENT_PATTERN = re.compile(
+        (
+            r"(?:sendSticker\s*[\(（])|"
+            r"(?:\[\[\s*(?:sticker|表情包)\s*[:：])|"
+            r"(?:发|来|整|给|甩|丢|回|用).{0,6}(?:表情包|斗图)|"
+            r"(?:表情包|斗图).{0,6}(?:发|来|整|给|甩|丢|回|用)|"
+            r"(?:\bsend\b.{0,8}\bsticker\b)|"
+            r"(?:\bshow\b.{0,8}\bmeme\b)"
+        ),
+        re.IGNORECASE,
+    )
+    _FAKE_STICKER_TEXT_PATTERN = re.compile(
+        r"[（(]?\s*(?:发送|发|甩|丢|整|来个|来一张)[^)\n]{0,20}表情包[^)\n]*[）)]?",
+        re.IGNORECASE,
+    )
+    _SILENCE_PLACEHOLDER_PATTERN = re.compile(
+        (
+            r"^\s*[（(]?\s*"
+            r"(?:沉默观察|保持沉默|先观察|继续观察|无必要回应|无需回应|无需回复|暂不回应|不作回应)"
+            r"(?:\s*[，,、；;]\s*"
+            r"(?:沉默观察|保持沉默|先观察|继续观察|无必要回应|无需回应|无需回复|暂不回应|不作回应))*"
+            r"\s*[）)]?\s*$"
+        ),
+        re.IGNORECASE,
+    )
+    _STAY_QUIET_PLACEHOLDER_PATTERN = re.compile(
+        (
+            r"^\s*(?:"
+            r"stayQuiet|stay_quiet|保持沉默|不回复|无需回复|无必要回应|"
+            r"\{.*?(?:stayQuiet|stay_quiet).*?\}"
+            r")\s*$"
+        ),
+        re.IGNORECASE | re.DOTALL,
+    )
     _REPLY_LINE_SPLIT_PATTERN = re.compile(r"(?:\r?\n)+")
     _REPLY_SENTENCE_PATTERN = re.compile(r"[^。！？!?；;\n]+(?:[。！？!?；;]+|$)")
+    _LOG_STYLE_SELF_PREFIX_PATTERN = re.compile(
+        r"^\s*(?:>\s*)?(?:(?:\[[^\]\r\n]+\]\s*)+(?:\(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\)\s*)?|\(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\)\s*)(?P<speaker>[^:\r\n]{1,32})\s*[:：]\s*(?P<body>.*)$",
+        re.DOTALL,
+    )
     _LEADING_QUOTES = ("\"", "'", "“", "‘", "「", "『")
+    _LOW_ENERGY_THRESHOLD = 30.0
+    _LOW_ENERGY_GROUP_BASE_REPLY_PROBABILITY = 0.001
+    _LOW_ENERGY_GROUP_REPLY_ENERGY_SPAN = 0.009
+    _LOW_ENERGY_DIRECT_BASE_REPLY_PROBABILITY = 0.02
+    _LOW_ENERGY_DIRECT_REPLY_ENERGY_SPAN = 0.08
+    _LOW_ENERGY_GROUP_COOLDOWN_SEC = 360
+    _LOW_ENERGY_DIRECT_COOLDOWN_SEC = 120
+    _LOW_ENERGY_REPLIES = ("嗯。", "收到。", "知道了。", "行。")
+    _AUTO_STICKER_SEND_PROBABILITY = 0.22
+    _AUTO_STICKER_GROUP_COOLDOWN_SEC = 300
+    _AUTO_STICKER_DIRECT_COOLDOWN_SEC = 180
+    _SUPPORTED_ADMIN_ACTIONS = {"toggle_group_chat", "join_group_chat", "shutdown"}
+    _ADMIN_HELP_SUBCOMMANDS = {"帮助", "列表", "list", "help", "帮助/list", "help/list"}
+    _ADMIN_ACTION_LABELS = {
+        "toggle_group_chat": "开关群聊",
+        "join_group_chat": "加入群聊",
+        "shutdown": "关闭程序",
+    }
 
-    def __init__(self, bot_client: OneBotClient, cfg: Config, llm: ChatLLMAdapter) -> None:
+    def __init__(
+        self,
+        bot_client: OneBotClient,
+        cfg: Config,
+        llm: ChatLLMAdapter,
+        *,
+        config_path: str | Path | None = None,
+        shutdown_handler: Callable[[], Awaitable[None]] | None = None,
+    ) -> None:
         self.bot_client = bot_client
         self.cfg = cfg
         self.llm = llm
@@ -232,15 +353,26 @@ class ZhiyueAgent:
         self.personality = PersonalityManager(self.cfg.persona, self.cfg.personality)
         self.status_engine = StatusEngine(
             initial_energy=float(self.cfg.personality.energy) * 100.0,
-            initial_mood=50.0 + (float(self.cfg.personality.mood) * 50.0),
             heartbeat_interval_sec=600,
             idle_threshold_sec=180,
             recovery_step=8.0,
-            mood_recovery_step=2.0,
+            reply_cost_per_turn=2.0,
+            timezone_offset_hours=self.cfg.personality.energy_timezone_offset_hours,
+            active_start_hour=self.cfg.personality.energy_active_start_hour,
+            active_end_hour=self.cfg.personality.energy_active_end_hour,
+            active_recovery_multiplier=self.cfg.personality.energy_active_recovery_multiplier,
+            active_reply_cost_multiplier=self.cfg.personality.energy_active_reply_cost_multiplier,
+            rest_recovery_multiplier=self.cfg.personality.energy_rest_recovery_multiplier,
+            rest_reply_cost_multiplier=self.cfg.personality.energy_rest_reply_cost_multiplier,
         )
         self.jargon_mgr = JargonManager(self.cfg.jargon)
         self.memory_mgr = MemoryManager(cfg=self.cfg, llm=self.llm, on_summary=self._on_memory_summary)
         self._evolution_llm = ChatLLMAdapter(self.cfg.auxiliary_model, self.cfg.llm)
+        self.sticker_collector = StickerCollector(
+            cfg=self.cfg,
+            bot_client=self.bot_client,
+            llm=self._evolution_llm,
+        )
         self.user_profile_store = UserProfileStore(self.cfg.learning.profile_store_path)
         self.user_profiler = UserProfilingEngine(
             llm=self._evolution_llm,
@@ -272,8 +404,17 @@ class ZhiyueAgent:
         self._debounce_lock = asyncio.Lock()
         self._inbound_worker: asyncio.Task[None] | None = None
         self._dispatch_worker: asyncio.Task[None] | None = None
+        self._prompt_cache_heartbeat_task: asyncio.Task[None] | None = None
         self._debounce_window_sec = 0.5
+        self._low_energy_last_reply_at: dict[str, datetime] = {}
+        self._low_energy_last_reply_text: dict[str, str] = {}
+        self._sticker_last_sent_at: dict[str, datetime] = {}
         self._rng = random.Random()
+        self._config_path = Path(config_path).resolve() if config_path is not None else None
+        self._config_lock = asyncio.Lock()
+        self._shutdown_handler = shutdown_handler
+        self._shutdown_lock = asyncio.Lock()
+        self._shutdown_requested = False
         self._started = False
 
     async def start(self) -> None:
@@ -285,13 +426,32 @@ class ZhiyueAgent:
         await self.user_profiler.start()
         await self.jargon_engine.start()
         await self.status_engine.start()
+        restored_status = await self._sync_personality_with_status_engine()
         self._inbound_worker = asyncio.create_task(self._inbound_loop(), name="zhiyue-inbound-worker")
         self._dispatch_worker = asyncio.create_task(self._dispatch_loop(), name="zhiyue-dispatch-worker")
         self._started = True
-        self._logger.info("Agent started at %s", self._started_at_utc.isoformat())
+        if self.cfg.agent.prompt_cache_heartbeat_enabled:
+            self._prompt_cache_heartbeat_task = asyncio.create_task(
+                self._prompt_cache_heartbeat_loop(),
+                name="zhiyue-prompt-cache-heartbeat",
+            )
+        self._logger.info(
+            "Agent started at %s (energy=%.1f tier=%s)",
+            self._started_at_utc.isoformat(),
+            restored_status.energy,
+            restored_status.energy_tier,
+        )
 
     async def stop(self) -> None:
         self._started = False
+        if self._prompt_cache_heartbeat_task is not None:
+            self._prompt_cache_heartbeat_task.cancel()
+            try:
+                await self._prompt_cache_heartbeat_task
+            except asyncio.CancelledError:
+                pass
+            self._prompt_cache_heartbeat_task = None
+
         if self._inbound_worker is not None:
             self._inbound_worker.cancel()
             try:
@@ -357,6 +517,49 @@ class ZhiyueAgent:
                 self._logger.exception("Queue.Dispatch processing failed")
             finally:
                 self._dispatch_queue.task_done()
+
+    async def _prompt_cache_heartbeat_loop(self) -> None:
+        interval = max(30, int(self.cfg.agent.prompt_cache_heartbeat_interval_sec))
+        while True:
+            try:
+                await asyncio.sleep(interval)
+            except asyncio.CancelledError:
+                return
+
+            if not self._started:
+                return
+            if self._inbound_queue.qsize() > 0 or self._dispatch_queue.qsize() > 0:
+                continue
+
+            await self._warm_prompt_cache()
+
+    async def _warm_prompt_cache(self) -> None:
+        try:
+            status = await self.status_engine.get_snapshot()
+            status_block = self._build_status_prompt(status)
+            user_prompt = self.personality.get_think_prompt(
+                None,
+                "[system] prompt cache heartbeat",
+                "",
+                "",
+            )
+            user_prompt = self._append_prompt_block(user_prompt, status_block)
+            user_prompt = self._append_prompt_block(
+                user_prompt,
+                "## 心跳请求(动态)\n这是缓存保温请求,无需真实对话。若必须回复,只输出 OK。",
+            )
+            messages = [
+                {"role": "system", "content": self.personality.get_system_prompt(is_master=False)},
+                {"role": "user", "content": user_prompt},
+            ]
+            extra_fields: dict[str, Any] = dict(self.cfg.llm.extra_fields)
+            self._set_response_token_cap(extra_fields, 8)
+            if "temperature" not in extra_fields:
+                extra_fields["temperature"] = 0
+            await self.llm.generate_from_messages(messages, extra_fields)
+            self._logger.debug("PromptCache.Heartbeat: warmed")
+        except Exception:
+            self._logger.debug("PromptCache.Heartbeat: failed", exc_info=True)
 
     async def _debounce(self, packet: dict[str, Any]) -> None:
         key = self._build_debounce_key(packet)
@@ -453,29 +656,61 @@ class ZhiyueAgent:
             if group_id is None:
                 self._logger.warning("Skip group message: invalid group_id raw=%s", message.get("group_id"))
                 return
-            if not self.cfg.is_group_enabled(group_id):
-                self._logger.info("Skip group message: group not enabled group_id=%s", group_id)
-                return
 
         mentioned_in_window = bool(message.get("_debounced_mention"))
-        text = str(message.get("text", "")).strip()
-        if not text:
-            if message_type == "group" and mentioned_in_window:
-                text = "[用户仅@了你]"
-            else:
-                return
-
         user_id = self._to_int(message.get("user_id"))
         self_id = self._to_int(message.get("self_id"))
         if user_id is not None and self_id is not None and user_id == self_id:
             return
 
-        now_utc = datetime.now(timezone.utc)
-        session_id = self._build_session_id(message)
         speaker = self._extract_speaker(message)
         is_master = self._is_master(user_id)
+        is_admin_sender = self._is_admin_sender(user_id=user_id, speaker=speaker)
+
+        raw_text = str(message.get("text", "")).strip()
+        if raw_text:
+            command_handled = await self._try_handle_admin_command(
+                message=message,
+                text=raw_text,
+                user_id=user_id,
+                speaker=speaker,
+                group_id=group_id,
+                is_admin_sender=is_admin_sender,
+            )
+            if command_handled:
+                return
+
+        if message_type == "group" and group_id is not None and not self.cfg.is_group_enabled(group_id):
+            self._logger.info("Skip group message: group not enabled group_id=%s", group_id)
+            return
+
+        if message_type == "group":
+            status_snapshot = await self.status_engine.get_snapshot()
+            await self.sticker_collector.observe_group_message(
+                message=message,
+                group_id=group_id,
+                sender_id=user_id,
+                speaker=speaker,
+                mood=status_snapshot.energy,
+                is_admin=is_admin_sender,
+            )
+
+        if not raw_text:
+            if message_type == "group" and mentioned_in_window:
+                raw_text = "[用户仅@了你]"
+            else:
+                return
+        text = _normalize_prompt_input(raw_text)
+        if not text:
+            return
+        message["text"] = text
+
+        now_utc = datetime.now(timezone.utc)
+        session_id = self._build_session_id(message)
         merged_count = int(message.get("_debounced_count", 1) or 1)
         memory_group_id = group_id if group_id is not None else 0
+        sticker_intent = self._is_sticker_request(text)
+        prefer_llm_route = bool(message_type != "group" or mentioned_in_window or sticker_intent)
 
         self._logger.info(
             "Queue.Dispatch: session=%s message_id=%s merged=%s mentioned=%s",
@@ -486,14 +721,7 @@ class ZhiyueAgent:
         )
 
         status_after_user = await self.status_engine.apply_user_message(text)
-        retrieval = await self.memory_mgr.retrieve_for_prompt(
-            text=text,
-            session_id=session_id,
-            group_id=group_id,
-            top_k=self.cfg.memory.rag_top_k,
-        )
 
-        mood = self.personality.update_state(now=now_utc, speaker_is_master=is_master)
         self._history.append(
             session_id,
             ConversationMessage(
@@ -546,70 +774,107 @@ class ZhiyueAgent:
         self._logger.info(
             (
                 "HandleMessage: session=%s type=%s user_id=%s group_id=%s master=%s "
-                "valence=%.2f energy=%.2f sociability=%.2f status_energy=%.1f status_mood=%.1f fatigue=%s"
+                "status_energy=%.1f status_tier=%s fatigue=%s"
             ),
             session_id,
             message_type,
             user_id,
             message.get("group_id"),
             is_master,
-            mood.valence,
-            mood.energy,
-            mood.sociability,
             status_after_user.energy,
-            status_after_user.mood,
+            status_after_user.energy_tier,
             status_after_user.fatigue_mode,
         )
 
-        if message_type == "group" and not mentioned_in_window:
-            active_reply_probability = self._clamp_probability(self.cfg.agent.active_reply_probability)
-            if active_reply_probability < 1.0:
+        low_energy_mode = bool(status_after_user.fatigue_mode)
+        final_reply = ""
+        forced_rest = False
+
+        if low_energy_mode and not prefer_llm_route:
+            if not self._allow_low_energy_reply(
+                session_id=session_id,
+                message_type=message_type,
+                mentioned_in_window=mentioned_in_window,
+                status_energy=status_after_user.energy,
+                forced_rest=status_after_user.forced_rest,
+            ):
+                return
+
+            final_reply = self._pick_low_energy_reply(session_id=session_id)
+            if not final_reply:
+                return
+
+            forced_rest = bool(status_after_user.forced_rest)
+            self._logger.info(
+                "Queue.LowEnergyReply: session=%s status_energy=%.1f fatigue=%s forced_rest=%s mode=rule",
+                session_id,
+                status_after_user.energy,
+                status_after_user.fatigue_mode,
+                status_after_user.forced_rest,
+            )
+
+        if not final_reply:
+            llm_route_probability = self._llm_route_probability(
+                message_type=message_type,
+                mentioned_in_window=mentioned_in_window,
+                status_energy=status_after_user.energy,
+                is_master=is_master,
+                is_admin_sender=is_admin_sender,
+                sticker_intent=sticker_intent,
+            )
+            if llm_route_probability < 1.0:
                 roll = self._rng.random()
-                if roll >= active_reply_probability:
+                if roll >= llm_route_probability:
                     self._logger.info(
-                        "Queue.SkipReply: session=%s reason=active_probability roll=%.4f threshold=%.4f",
+                        (
+                            "Queue.SkipReply: session=%s reason=llm_route_probability "
+                            "roll=%.4f threshold=%.4f status_energy=%.1f"
+                        ),
                         session_id,
                         roll,
-                        active_reply_probability,
+                        llm_route_probability,
+                        status_after_user.energy,
                     )
                     return
 
-        social_background = await self.user_profiler.build_social_background(user_id, speaker)
-        ctx = await self._build_context(
-            session_id=session_id,
-            message=message,
-            speaker=speaker,
-            user_id=user_id,
-            is_master=is_master,
-            mentioned_in_window=mentioned_in_window,
-            history_background=retrieval.history_background,
-            related_knowledge=retrieval.related_knowledge,
-            social_background=social_background,
-        )
-        ctx = await self._before_llm_think(ctx)
-        reply = await self._llm_think(ctx)
-        reply = await self._after_llm_think(ctx, reply)
-        if not reply:
-            return
+            retrieval = await self.memory_mgr.retrieve_for_prompt(
+                text=text,
+                session_id=session_id,
+                group_id=group_id,
+                top_k=self.cfg.memory.rag_top_k,
+            )
+            social_background = await self.user_profiler.build_social_background(user_id, speaker)
+            ctx = await self._build_context(
+                session_id=session_id,
+                message=message,
+                speaker=speaker,
+                user_id=user_id,
+                is_master=is_master,
+                mentioned_in_window=mentioned_in_window,
+                history_background=retrieval.history_background,
+                related_knowledge=retrieval.related_knowledge,
+                social_background=social_background,
+            )
+            ctx = await self._before_llm_think(ctx)
+            reply = await self._llm_think(ctx)
+            reply = await self._after_llm_think(ctx, reply)
+            if not reply:
+                return
 
-        final_reply = await self._response_post_process(reply, ctx)
-        if not final_reply:
-            return
+            final_reply = await self._response_post_process(reply, ctx)
+            if not final_reply:
+                return
 
-        final_reply, forced_rest = await self.status_engine.apply_reply_policy(final_reply)
-        if not final_reply:
-            return
+            final_reply, forced_rest = await self.status_engine.apply_reply_policy(final_reply)
+            if not final_reply:
+                return
 
         await self._reply(message, final_reply)
+        if low_energy_mode:
+            self._mark_low_energy_reply(session_id=session_id, reply=final_reply)
 
         now_after_reply = datetime.now(timezone.utc)
         status_after_reply = await self.status_engine.consume_reply(final_reply)
-        self.personality.update_state(
-            now=now_after_reply,
-            speaker_is_master=False,
-            is_bot_reply=True,
-            apply_interaction=False,
-        )
         self._history.append(
             session_id,
             ConversationMessage(
@@ -641,11 +906,11 @@ class ZhiyueAgent:
             stage="assistant_observe",
         )
         self._logger.info(
-            "ReplyStatus: session=%s forced_rest=%s status_energy=%.1f status_mood=%.1f fatigue=%s",
+            "ReplyStatus: session=%s forced_rest=%s status_energy=%.1f status_tier=%s fatigue=%s",
             session_id,
             forced_rest,
             status_after_reply.energy,
-            status_after_reply.mood,
+            status_after_reply.energy_tier,
             status_after_reply.fatigue_mode,
         )
 
@@ -662,6 +927,13 @@ class ZhiyueAgent:
         related_knowledge: list[str],
         social_background: str,
     ) -> ThinkContext:
+        status = await self.status_engine.get_snapshot()
+        current = self.personality.get_current_mood()
+        self.personality.set_mood(
+            valence=current.valence,
+            energy=status.energy / 100.0,
+            sociability=current.sociability,
+        )
         built = await self.context_builder.build(
             session_id=session_id,
             message=message,
@@ -673,19 +945,17 @@ class ZhiyueAgent:
             related_knowledge=related_knowledge,
             social_background=social_background,
         )
-        status = await self.status_engine.get_snapshot()
         status_block = self._build_status_prompt(status)
-        built.llm_messages[0]["content"] = f"{built.llm_messages[0]['content']}\n\n{status_block}"
-        if status.fatigue_mode:
-            built.llm_messages[1]["content"] = (
-                f"{built.llm_messages[1]['content']}\n"
-                "注意：你当前精力不足，回复应该更短、更冷淡，避免连续输出长句。"
-            )
-        if status.forced_rest:
-            built.llm_messages[1]["content"] = (
-                f"{built.llm_messages[1]['content']}\n"
-                "注意：你已经进入强制休眠状态，尽量用一句话结束对话。"
-            )
+        llm_messages = [dict(item) for item in built.llm_messages]
+        status_injected = False
+        for message_item in reversed(llm_messages):
+            if str(message_item.get("role", "")).strip() != "user":
+                continue
+            message_item["content"] = self._append_prompt_block(message_item.get("content", ""), status_block)
+            status_injected = True
+            break
+        if not status_injected:
+            llm_messages.append({"role": "user", "content": status_block})
 
         return ThinkContext(
             session_id=session_id,
@@ -693,11 +963,12 @@ class ZhiyueAgent:
             user_id=user_id,
             group_id=self._to_int(message.get("group_id")),
             speaker=speaker,
+            source_text=str(message.get("text", "")).strip(),
             is_master=is_master,
             mood=built.mood,
             style=built.style,
             prompt_context=built.prompt_context,
-            llm_messages=built.llm_messages,
+            llm_messages=llm_messages,
             status=status,
             social_background=social_background,
         )
@@ -708,13 +979,37 @@ class ZhiyueAgent:
         ctx.style = await self._classify_style_context(ctx)
         return ctx
 
-    async def _llm_think(self, ctx: ThinkContext) -> str:
+    async def _llm_think(
+        self,
+        ctx: ThinkContext,
+        *,
+        max_tokens_override: int | None = None,
+        temp_system_prompt: str = "",
+    ) -> str:
         extra_fields: dict[str, Any] = dict(self.cfg.llm.extra_fields)
         if self.cfg.llm.max_response_tokens > 0:
             if "max_tokens" not in extra_fields and "max_completion_tokens" not in extra_fields:
                 extra_fields["max_tokens"] = self.cfg.llm.max_response_tokens
 
-        reply = await self.llm.generate_from_messages(ctx.llm_messages, extra_fields)
+        if max_tokens_override is not None and max_tokens_override > 0:
+            self._set_response_token_cap(extra_fields, int(max_tokens_override))
+
+        llm_messages = ctx.llm_messages
+        hint = _normalize_prompt_input(temp_system_prompt)
+        if hint:
+            llm_messages = [dict(item) for item in ctx.llm_messages]
+            injected = False
+            hint_block = f"## 临时补充规则(动态)\n{hint}"
+            for message in reversed(llm_messages):
+                if str(message.get("role", "")).strip() != "user":
+                    continue
+                message["content"] = self._append_prompt_block(message.get("content", ""), hint_block)
+                injected = True
+                break
+            if not injected:
+                llm_messages.append({"role": "user", "content": hint_block})
+
+        reply = await self.llm.generate_from_messages(llm_messages, extra_fields)
         content = reply.strip()
         self._logger.info(
             "LLM.Think done: session=%s tone=%s has_reply=%s preview=%s",
@@ -726,35 +1021,385 @@ class ZhiyueAgent:
         return content
 
     async def _after_llm_think(self, ctx: ThinkContext, reply: str) -> str:
-        # 濡澘瀚弳鈧柨娑欒壘椤曨喗顬?ReAct 婵炵繝鑳堕埢鍏肩▔椤撶姵鐣遍柍銉︾矊娴兼劙宕楅柨瀣挃閻炴稑鑻ú鏍礃?闁告艾楠搁ˇ鈺呮偠閸″繆鍋撳┑瀣枆婵炲牏鍋ｉ埀?
-        _ = await self._apply_tool_results(ctx, reply)
-        return reply
+        tool_result = await self._apply_tool_results(ctx, reply)
+        clean_reply = str(tool_result.get("clean_reply", reply) or "").strip()
+        if self._is_silence_placeholder_reply(clean_reply):
+            self._logger.info("LLM.Reply suppressed: session=%s reason=silence_placeholder", ctx.session_id)
+            return ""
+        return clean_reply
 
     async def _plan_tool_calls(self, ctx: ThinkContext) -> list[str]:
         del ctx
         return []
 
     async def _classify_style_context(self, ctx: ThinkContext) -> StyleClassification:
+        energy_ratio = self._clamp_probability(
+            (ctx.status.energy / 100.0) if ctx.status is not None else ctx.mood.energy,
+        )
         return self.jargon_mgr.classify_style(
-            ctx.mood.valence,
-            ctx.mood.energy,
+            0.0,
+            energy_ratio,
             speaker_is_master=ctx.is_master,
         )
 
     async def _apply_tool_results(self, ctx: ThinkContext, reply: str) -> dict[str, Any]:
-        del ctx
-        del reply
-        return {}
+        raw_reply = str(reply or "")
+        clean_reply = raw_reply
+        sticker_queries = self._extract_sticker_queries(raw_reply)
+
+        if not sticker_queries and self._FAKE_STICKER_TEXT_PATTERN.search(raw_reply):
+            fallback_query = self._extract_sticker_fallback_query(raw_reply, ctx.source_text)
+            if fallback_query:
+                sticker_queries.append(fallback_query)
+
+        sticker_sent = False
+        used_query = ""
+        explicit_sticker_request = self._is_sticker_request(ctx.source_text)
+        auto_sticker_blocked = False
+        allow_sticker_send = True
+        if sticker_queries and not explicit_sticker_request:
+            allow_sticker_send = self._allow_auto_sticker_send(ctx=ctx)
+            auto_sticker_blocked = not allow_sticker_send
+
+        if allow_sticker_send:
+            for query in sticker_queries[:2]:
+                if await self._send_sticker_from_library(ctx, query):
+                    sticker_sent = True
+                    used_query = query
+                    self._mark_sticker_reply(session_id=ctx.session_id)
+                    break
+
+        clean_reply = self._STICKER_MARKER_PATTERN.sub("", clean_reply)
+        clean_reply = self._STICKER_FUNC_CALL_PATTERN.sub("", clean_reply)
+        if sticker_sent:
+            clean_reply = self._FAKE_STICKER_TEXT_PATTERN.sub("", clean_reply)
+            clean_reply = self._normalize_reply_spaces(clean_reply)
+            self._logger.info(
+                "Sticker.Reply executed: session=%s group_id=%s query=%s",
+                ctx.session_id,
+                ctx.group_id,
+                used_query,
+            )
+        elif sticker_queries:
+            clean_reply = self._normalize_reply_spaces(clean_reply)
+            if not clean_reply and not auto_sticker_blocked:
+                fallback_query = ""
+                if sticker_queries:
+                    fallback_query = str(sticker_queries[0] or "").strip()
+                if not fallback_query:
+                    fallback_query = self._extract_sticker_fallback_query(raw_reply, ctx.source_text)
+                clean_reply = self._build_sticker_action_text(fallback_query)
+            self._logger.info(
+                "Sticker.Reply skipped: session=%s group_id=%s queries=%s reason=%s",
+                ctx.session_id,
+                ctx.group_id,
+                sticker_queries,
+                "auto_rate_limit" if auto_sticker_blocked else "send_failed",
+            )
+
+        return {
+            "clean_reply": clean_reply.strip(),
+            "sticker_sent": sticker_sent,
+            "queries": sticker_queries,
+        }
+
+    def _extract_sticker_queries(self, reply: str) -> list[str]:
+        clean_reply = str(reply or "")
+        if not clean_reply:
+            return []
+
+        out: list[str] = []
+        seen: set[str] = set()
+
+        def _append(raw_query: str) -> None:
+            query = str(raw_query or "").strip().strip("\"'`“”‘’")
+            if not query:
+                return
+            lowered = query.lower()
+            if lowered in seen:
+                return
+            seen.add(lowered)
+            out.append(query)
+
+        for match in self._STICKER_MARKER_PATTERN.finditer(clean_reply):
+            _append(match.group("query"))
+        for match in self._STICKER_FUNC_CALL_PATTERN.finditer(clean_reply):
+            _append(match.group("query"))
+        return out
+
+    @staticmethod
+    def _normalize_reply_spaces(text: str) -> str:
+        clean = str(text or "")
+        clean = re.sub(r"[ \t]+", " ", clean)
+        clean = re.sub(r"\n{3,}", "\n\n", clean)
+        clean = re.sub(r"^[\s，。,\.!！?？;；:：\-~]+", "", clean)
+        return clean.strip()
+
+    @staticmethod
+    def _append_prompt_block(base: Any, block: Any) -> str:
+        base_text = str(base or "").strip()
+        block_text = str(block or "").strip()
+        if not base_text:
+            return block_text
+        if not block_text:
+            return base_text
+        return f"{base_text}\n\n{block_text}"
+
+    @staticmethod
+    def _extract_sticker_fallback_query(reply: str, source_text: str) -> str:
+        clean_reply = str(reply or "")
+        for pattern in (
+            r"(?:发了?|来|整|甩|丢|找)(?:一个|一张|个|张)?([^，。！？\s]{1,20})(?:的)?表情包",
+            r"表情包\s*[:：]\s*([^\s，。！？,;；]{1,20})",
+            r"[“\"「『]([^”\"」』]{1,20})[”\"」』]",
+        ):
+            match = re.search(pattern, clean_reply)
+            if match is not None:
+                query = str(match.group(1) or "").strip()
+                if query:
+                    return query
+        source = str(source_text or "").strip()
+        if source:
+            return source[:20]
+        return ""
+
+    @staticmethod
+    def _build_sticker_query_candidates(query: str, source_text: str) -> list[str]:
+        out: list[str] = []
+        seen: set[str] = set()
+
+        def _append(value: str) -> None:
+            clean = str(value or "").strip().strip("\"'`“”‘’")
+            clean = re.sub(r"\s+", "", clean)
+            if not clean:
+                return
+            lowered = clean.lower()
+            if lowered in seen:
+                return
+            seen.add(lowered)
+            out.append(clean)
+
+        raw_query = str(query or "").strip()
+        _append(raw_query)
+
+        for text in (raw_query, str(source_text or "").strip()):
+            clean = str(text or "").strip()
+            if not clean:
+                continue
+            for pattern in (
+                r"(?:发了?|来|整|甩|丢|找|回)(?:一个|一张|个|张)?([^，。！？\s]{1,20})(?:的)?表情包",
+                r"表情包\s*[:：]\s*([^\s，。！？,;；]{1,20})",
+            ):
+                match = re.search(pattern, clean)
+                if match is not None:
+                    _append(str(match.group(1) or ""))
+
+            stripped = re.sub(r"(表情包|斗图|sticker|meme)", "", clean, flags=re.IGNORECASE)
+            stripped = re.sub(r"(发|来|整|给|甩|丢|回|找|从|库|里|面|一个|一张|发出|出来|随机|随便|纸月|小纸月)", "", stripped)
+            _append(stripped[:20])
+
+        return out[:6]
+
+    @staticmethod
+    def _build_sticker_action_text(query: str) -> str:
+        clean_query = str(query or "").strip().strip("\"'`“”‘’")
+        clean_query = re.sub(r"\s+", "", clean_query)
+        if ZhiyueAgent._is_random_pick_request(clean_query):
+            return "（发了一个随机表情包）"
+        clean_query = re.sub(r"(表情包|斗图|sticker|meme)", "", clean_query, flags=re.IGNORECASE)
+        clean_query = re.sub(r"(发|来|整|给|甩|丢|回|找|从|库|里|面|一个|一张|发出|出来|随机|随便)", "", clean_query)
+        clean_query = clean_query[:12]
+        if clean_query:
+            return f"（发了一个{clean_query}的表情包）"
+        return "（发了一个表情包）"
+
+    async def _send_sticker_from_library(self, ctx: ThinkContext, query: str) -> bool:
+        group_id = ctx.group_id if (ctx.group_id is not None and ctx.group_id > 0) else None
+        user_id = ctx.user_id if (ctx.user_id is not None and ctx.user_id > 0) else None
+        if group_id is None and user_id is None:
+            return False
+
+        clean_query = str(query or "").strip().strip("\"'`“”‘’")
+        if not clean_query:
+            return False
+
+        query_candidates = self._build_sticker_query_candidates(clean_query, ctx.source_text)
+        if not query_candidates:
+            query_candidates = [clean_query]
+        random_pick = any(self._is_random_pick_request(item) for item in query_candidates) or self._is_random_pick_request(ctx.source_text)
+        reply_mood = float(ctx.status.energy) if ctx.status is not None else 50.0
+        candidate_items: list[dict[str, Any]] = []
+        seen_files: set[str] = set()
+
+        def _append_candidate(item: Any, *, require_sticker: bool) -> None:
+            if not isinstance(item, dict):
+                return
+            if str(item.get("storage_mode", "local")).strip().lower() != "local":
+                return
+            if require_sticker and not self.sticker_collector.is_sticker_item(item):
+                return
+            clean_name = str(item.get("file_name", "")).strip()
+            if not clean_name:
+                return
+            lowered = clean_name.lower()
+            if lowered in seen_files:
+                return
+            seen_files.add(lowered)
+            candidate_items.append(dict(item))
+
+        for candidate in query_candidates:
+            if candidate.isdigit():
+                item = await self.sticker_collector.get_sticker(candidate)
+                if item is not None:
+                    _append_candidate(item, require_sticker=True)
+
+            rows = await self.sticker_collector.search(candidate, limit=12, storage_mode="local")
+            for row in rows:
+                _append_candidate(row, require_sticker=True)
+
+            if not candidate_items:
+                for row in rows:
+                    _append_candidate(row, require_sticker=False)
+                if candidate_items:
+                    self._logger.info(
+                        "Sticker.Reply compatibility fallback: use_image_as_sticker query=%s target=%s count=%s",
+                        candidate,
+                        group_id if group_id is not None else user_id,
+                        len(candidate_items),
+                    )
+            if candidate_items:
+                break
+        if not candidate_items:
+            random_item = await self._pick_random_local_sticker_item(require_sticker=True)
+            if random_item is None:
+                random_item = await self._pick_random_local_sticker_item(require_sticker=False)
+            if random_item is not None:
+                _append_candidate(random_item, require_sticker=False)
+                self._logger.info(
+                    "Sticker.Reply fallback: random_pick_for_empty_result query=%s group_id=%s",
+                    clean_query,
+                    group_id if group_id is not None else user_id,
+                )
+
+        if random_pick and not candidate_items:
+            random_item = await self._pick_random_local_sticker_item(require_sticker=True)
+            if random_item is None:
+                random_item = await self._pick_random_local_sticker_item(require_sticker=False)
+            if random_item is not None:
+                _append_candidate(random_item, require_sticker=False)
+
+        for item in candidate_items:
+            file_name = str(item.get("file_name", "")).strip()
+            try:
+                if not self.sticker_collector.resolve_local_file_path(file_name).is_file():
+                    continue
+            except ValueError:
+                continue
+
+            decision = await self.sticker_collector.allow_sticker_for_reply(
+                item=item,
+                query=clean_query,
+                mood=reply_mood,
+            )
+            if not decision.allowed:
+                self._logger.info(
+                    "Sticker.Reply rejected by persona filter: target=%s file=%s reason=%s source=%s",
+                    group_id if group_id is not None else user_id,
+                    file_name,
+                    decision.reason,
+                    decision.source,
+                )
+                continue
+
+            content = self.sticker_collector.build_local_sticker_cq(file_name)
+            if group_id is not None:
+                await self.bot_client.send_group_msg(group_id=group_id, message=content)
+            else:
+                assert user_id is not None
+                await self.bot_client.send_private_msg(user_id=user_id, message=content)
+            return True
+
+        if random_pick:
+            random_item = await self._pick_random_local_sticker_item(require_sticker=True)
+            if random_item is None:
+                random_item = await self._pick_random_local_sticker_item(require_sticker=False)
+            if random_item is not None:
+                decision = await self.sticker_collector.allow_sticker_for_reply(
+                    item=random_item,
+                    query=clean_query,
+                    mood=reply_mood,
+                )
+                if decision.allowed:
+                    file_name = str(random_item.get("file_name", "")).strip()
+                    content = self.sticker_collector.build_local_sticker_cq(file_name)
+                    if group_id is not None:
+                        await self.bot_client.send_group_msg(group_id=group_id, message=content)
+                    else:
+                        assert user_id is not None
+                        await self.bot_client.send_private_msg(user_id=user_id, message=content)
+                    return True
+
+        return False
+
+    async def _pick_random_local_sticker_item(self, *, require_sticker: bool) -> dict[str, Any] | None:
+        files = await self.sticker_collector.list_local_files()
+        candidates: list[dict[str, Any]] = []
+        for row in files:
+            if require_sticker and not self.sticker_collector.is_sticker_item(row):
+                continue
+            file_name = str(row.get("file_name", "")).strip()
+            if not file_name:
+                continue
+            try:
+                if not self.sticker_collector.resolve_local_file_path(file_name).is_file():
+                    continue
+            except ValueError:
+                continue
+            candidates.append(dict(row))
+        if not candidates:
+            return None
+        return dict(self._rng.choice(candidates))
+
+    @staticmethod
+    def _is_random_pick_request(text: str) -> bool:
+        clean_text = str(text or "").strip().lower()
+        if not clean_text:
+            return False
+        if any(token in clean_text for token in ("随机", "随便", "任意", "都行", "库里", "库中", "库内")):
+            return True
+        if re.search(r"(来|找|挑|发).{0,6}(一|1)?(个|张)", clean_text):
+            return True
+        return False
 
     async def _response_post_process(self, reply: str, ctx: ThinkContext) -> str:
+        energy_ratio = self._clamp_probability(
+            (ctx.status.energy / 100.0) if ctx.status is not None else ctx.mood.energy,
+        )
         styled = self.jargon_mgr.apply_post_process(
             reply,
-            mood=ctx.mood.valence,
-            energy=ctx.mood.energy,
+            mood=0.0,
+            energy=energy_ratio,
             speaker_is_master=ctx.is_master,
         )
         processed = await self.jargon_engine.apply_to_reply(styled)
-        return self._strip_self_prefix(processed)
+        clean = self._strip_self_prefix(processed)
+        if self._is_silence_placeholder_reply(clean):
+            self._logger.info("LLM.Reply suppressed: session=%s reason=silence_placeholder_post", ctx.session_id)
+            return ""
+        return clean
+
+    @classmethod
+    def _is_silence_placeholder_reply(cls, text: str) -> bool:
+        clean = str(text or "").strip()
+        if not clean:
+            return False
+        if cls._STAY_QUIET_PLACEHOLDER_PATTERN.fullmatch(clean):
+            return True
+        if len(clean) > 48:
+            return False
+        if cls._SILENCE_PLACEHOLDER_PATTERN.fullmatch(clean):
+            return True
+        return False
 
     async def _sync_learned_jargon(self, term: str, meaning: str) -> None:
         clean_term = str(term).strip()
@@ -784,7 +1429,7 @@ class ZhiyueAgent:
         history_summary = self._history.short_term_summary(max_sessions=8, max_messages=3)
         return {
             "energy": round(status.energy, 2),
-            "mood": round(status.mood, 2),
+            "energy_tier": status.energy_tier,
             "fatigue_mode": status.fatigue_mode,
             "forced_rest": status.forced_rest,
             "last_active_at": status.last_active_at.isoformat(),
@@ -806,15 +1451,15 @@ class ZhiyueAgent:
         self,
         *,
         fill_energy: bool = False,
-        reset_mood: bool = False,
         session_id: str | None = None,
     ) -> dict[str, Any]:
-        snapshot = await self.status_engine.reset(fill_energy=fill_energy, reset_mood=reset_mood)
-        if fill_energy or reset_mood:
+        snapshot = await self.status_engine.reset(fill_energy=fill_energy)
+        if fill_energy:
+            current = self.personality.get_current_mood()
             self.personality.set_mood(
-                valence=(snapshot.mood - 50.0) / 50.0,
+                valence=current.valence,
                 energy=snapshot.energy / 100.0,
-                sociability=0.5,
+                sociability=current.sociability,
             )
 
         cleared = False
@@ -825,13 +1470,23 @@ class ZhiyueAgent:
         return {
             "status": {
                 "energy": round(snapshot.energy, 2),
-                "mood": round(snapshot.mood, 2),
+                "energy_tier": snapshot.energy_tier,
                 "fatigue_mode": snapshot.fatigue_mode,
                 "forced_rest": snapshot.forced_rest,
             },
             "cleared_session": session_id.strip() if session_id and cleared else "",
             "cleared": cleared,
         }
+
+    async def _sync_personality_with_status_engine(self) -> StatusSnapshot:
+        snapshot = await self.status_engine.get_snapshot()
+        current = self.personality.get_current_mood()
+        self.personality.set_mood(
+            valence=current.valence,
+            energy=snapshot.energy / 100.0,
+            sociability=current.sociability,
+        )
+        return snapshot
 
     def update_system_prompt(self, prompt: str) -> None:
         self.cfg.persona.system_prompt = prompt
@@ -842,13 +1497,18 @@ class ZhiyueAgent:
 
     @staticmethod
     def _build_status_prompt(status: StatusSnapshot) -> str:
-        mode = "疲劳模式" if status.fatigue_mode else "正常模式"
+        tier = status.energy_tier
+        if tier == "充沛":
+            policy = "维持常规清冷人设，按正常节奏短答。"
+        elif tier == "一般":
+            policy = "回复更短，体现轻微疲惫，避免展开。"
+        else:
+            policy = "极度冷淡，拒绝长谈，必要时可不回复。"
         return (
-            "## 生理状态\n"
-            f"- 精力: {status.energy:.1f}/100\n"
-            f"- 心情: {status.mood:.1f}/100\n"
-            f"- 当前模式: {mode}\n"
-            "- 当精力低于 10 时请主动缩短回复，并保持冷淡语气。"
+            "## 状态分档\n"
+            f"- 当前状态：[精力:{tier}]\n"
+            f"- 回复策略：{policy}\n"
+            "- 不要输出任何数值化状态（例如 0-100 分）。"
         )
 
     async def emit_debug_message(self, group_id: int, content: str, user_id: int = 10000) -> None:
@@ -978,7 +1638,30 @@ class ZhiyueAgent:
             if not stripped:
                 return ""
             return f"{prefix}{stripped}"
+
+        stripped_log = self._strip_log_style_self_prefix(tail, names)
+        if stripped_log is not None:
+            if not stripped_log:
+                return ""
+            return f"{prefix}{stripped_log}"
         return clean
+
+    @classmethod
+    def _strip_log_style_self_prefix(cls, text: str, names: list[str]) -> str | None:
+        match = cls._LOG_STYLE_SELF_PREFIX_PATTERN.match(text)
+        if match is None:
+            return None
+
+        speaker = str(match.group("speaker") or "").strip()
+        if not speaker:
+            return None
+
+        lowered_speaker = speaker.lower()
+        if not any(lowered_speaker == name.lower() for name in names):
+            return None
+
+        body = str(match.group("body") or "").strip()
+        return body
 
     def _self_names_for_prefix(self) -> list[str]:
         candidates = [
@@ -1055,6 +1738,355 @@ class ZhiyueAgent:
             return f"private:{user_id}"
         return "unknown"
 
+    async def _try_handle_admin_command(
+        self,
+        *,
+        message: dict[str, Any],
+        text: str,
+        user_id: int | None,
+        speaker: str,
+        group_id: int | None,
+        is_admin_sender: bool,
+    ) -> bool:
+        admin_cfg = self.cfg.admin_commands
+        if not bool(admin_cfg.enabled):
+            return False
+
+        prefix = str(admin_cfg.prefix or "").strip()
+        if not prefix:
+            return False
+
+        clean_text = str(text or "").strip()
+        if not clean_text.startswith(prefix):
+            return False
+
+        command_text = clean_text[len(prefix):].strip()
+        if not is_admin_sender:
+            self._logger.warning(
+                "AdminCommand denied: user_id=%s speaker=%s text=%s",
+                user_id,
+                speaker,
+                clean_text,
+            )
+            await self._reply(message, "你没有权限使用管理指令。")
+            return True
+
+        if not command_text:
+            await self._reply(message, self._admin_command_help(prefix))
+            return True
+        if self._is_admin_help_subcommand(command_text):
+            await self._reply(message, self._admin_custom_trigger_list(prefix))
+            return True
+
+        resolved = self._resolve_admin_command(command_text)
+        if resolved is None:
+            await self._reply(message, f"未知管理指令：{command_text}\n{self._admin_command_help(prefix)}")
+            return True
+
+        action, args, trigger = resolved
+        self._logger.info(
+            "AdminCommand accepted: user_id=%s group_id=%s action=%s trigger=%s args=%s",
+            user_id,
+            group_id,
+            action,
+            trigger,
+            args,
+        )
+
+        if action == "toggle_group_chat":
+            result = await self._admin_toggle_group_chat(args=args, fallback_group_id=group_id)
+            await self._reply(message, result)
+            return True
+
+        if action == "join_group_chat":
+            result = await self._admin_join_group_chat(args=args, fallback_group_id=group_id)
+            await self._reply(message, result)
+            return True
+
+        if action == "shutdown":
+            result = await self._admin_shutdown()
+            await self._reply(message, result)
+            return True
+
+        await self._reply(message, f"未支持的管理动作：{action}")
+        return True
+
+    def _resolve_admin_command(self, command_text: str) -> tuple[str, str, str] | None:
+        clean_text = str(command_text or "").strip()
+        if not clean_text:
+            return None
+
+        candidates: list[tuple[str, str]] = []
+        for item in self.cfg.admin_commands.commands:
+            action = str(item.action or "").strip()
+            if action not in self._SUPPORTED_ADMIN_ACTIONS:
+                continue
+            for raw_trigger in list(item.triggers or []):
+                trigger = str(raw_trigger or "").strip()
+                if not trigger:
+                    continue
+                candidates.append((trigger, action))
+
+        candidates.sort(key=lambda row: len(row[0]), reverse=True)
+        for trigger, action in candidates:
+            if not clean_text.startswith(trigger):
+                continue
+            args = clean_text[len(trigger):].strip()
+            return action, args, trigger
+        return None
+
+    def _admin_command_help(self, prefix: str) -> str:
+        rows: list[str] = []
+        for item in self.cfg.admin_commands.commands:
+            action = str(item.action or "").strip()
+            if action not in self._SUPPORTED_ADMIN_ACTIONS:
+                continue
+            triggers = [str(trigger).strip() for trigger in list(item.triggers or []) if str(trigger).strip()]
+            if not triggers:
+                continue
+            joined = " / ".join(triggers)
+            rows.append(f"- {joined}")
+
+        if not rows:
+            return f"没有可用管理指令，当前前缀：{prefix}"
+        body = "\n".join(rows)
+        return (
+            f"管理指令前缀：{prefix}\n"
+            "可用指令：\n"
+            f"{body}\n"
+            f"查看触发词：{prefix} 帮助 或 {prefix} list\n"
+            "群号参数可写在指令后，例如：\n"
+            f"{prefix} 加入群聊 123456789"
+        )
+
+    def _is_admin_help_subcommand(self, command_text: str) -> bool:
+        normalized = str(command_text or "").strip().lower()
+        return normalized in self._ADMIN_HELP_SUBCOMMANDS
+
+    def _admin_custom_trigger_list(self, prefix: str) -> str:
+        rows: list[str] = []
+        for item in self.cfg.admin_commands.commands:
+            action = str(item.action or "").strip()
+            if action not in self._SUPPORTED_ADMIN_ACTIONS:
+                continue
+            triggers = self._normalize_admin_triggers(item.triggers)
+            if not triggers:
+                continue
+            label = self._ADMIN_ACTION_LABELS.get(action, action)
+            rows.append(f"- {label}: {' / '.join(triggers)}")
+
+        if not rows:
+            return f"管理指令前缀：{prefix}\n当前没有生效的自定义触发词。"
+
+        body = "\n".join(rows)
+        return (
+            f"管理指令前缀：{prefix}\n"
+            "当前生效的自定义触发词：\n"
+            f"{body}"
+        )
+
+    @staticmethod
+    def _normalize_admin_triggers(raw_triggers: list[str] | None) -> list[str]:
+        out: list[str] = []
+        seen: set[str] = set()
+        for raw in list(raw_triggers or []):
+            trigger = str(raw or "").strip()
+            if not trigger:
+                continue
+            lowered = trigger.lower()
+            if lowered in seen:
+                continue
+            seen.add(lowered)
+            out.append(trigger)
+        return out
+
+    async def _admin_toggle_group_chat(self, *, args: str, fallback_group_id: int | None) -> str:
+        group_id = self._resolve_target_group_id(args=args, fallback_group_id=fallback_group_id)
+        if group_id is None:
+            prefix = str(self.cfg.admin_commands.prefix or "").strip() or "<prefix>"
+            return f"缺少群号。示例：{prefix} 开关群聊 123456789"
+
+        group = self.cfg.get_group(group_id)
+        created = False
+        if group is None:
+            group = GroupConfig(group_id=group_id, enabled=True, extra_prompt="")
+            self.cfg.groups.append(group)
+            created = True
+        else:
+            group.enabled = not bool(group.enabled)
+
+        persist_error = await self._try_persist_group_config(
+            group_id=group_id,
+            enabled=bool(group.enabled),
+            extra_prompt=group.extra_prompt,
+        )
+        if created:
+            base = f"群 {group_id} 未在配置中，已自动加入并开启聊天。"
+            if persist_error:
+                return f"{base}\n注意：写入配置失败：{persist_error}"
+            return base
+        state = "开启" if group.enabled else "关闭"
+        if persist_error:
+            return f"群 {group_id} 聊天已{state}。\n注意：写入配置失败：{persist_error}"
+        return f"群 {group_id} 聊天已{state}。"
+
+    async def _admin_join_group_chat(self, *, args: str, fallback_group_id: int | None) -> str:
+        group_id = self._resolve_target_group_id(args=args, fallback_group_id=fallback_group_id)
+        if group_id is None:
+            prefix = str(self.cfg.admin_commands.prefix or "").strip() or "<prefix>"
+            return f"缺少群号。示例：{prefix} 加入群聊 123456789"
+
+        group = self.cfg.get_group(group_id)
+        if group is None:
+            group = GroupConfig(group_id=group_id, enabled=True, extra_prompt="")
+            self.cfg.groups.append(group)
+            created = True
+        else:
+            group.enabled = True
+            created = False
+
+        persist_error = await self._try_persist_group_config(
+            group_id=group_id,
+            enabled=True,
+            extra_prompt=group.extra_prompt,
+        )
+        if created:
+            base = f"已加入群 {group_id} 的聊天列表，并开启回复。"
+            if persist_error:
+                return f"{base}\n注意：写入配置失败：{persist_error}"
+            return base
+        if persist_error:
+            return f"群 {group_id} 已开启聊天。\n注意：写入配置失败：{persist_error}"
+        return f"群 {group_id} 已开启聊天。"
+
+    async def _admin_shutdown(self) -> str:
+        if self._shutdown_handler is None:
+            return "关闭失败：shutdown handler 不可用。"
+
+        async with self._shutdown_lock:
+            if self._shutdown_requested:
+                return "关闭流程已在进行中。"
+            self._shutdown_requested = True
+
+        asyncio.create_task(self._run_shutdown_handler(), name="chat-admin-shutdown")
+        return "收到，正在关闭程序。"
+
+    async def _run_shutdown_handler(self) -> None:
+        await asyncio.sleep(0.2)
+        try:
+            handler = self._shutdown_handler
+            if handler is None:
+                return
+            await handler()
+        except Exception:
+            self._logger.exception("Admin shutdown handler failed")
+            async with self._shutdown_lock:
+                self._shutdown_requested = False
+
+    def _resolve_target_group_id(self, *, args: str, fallback_group_id: int | None) -> int | None:
+        if fallback_group_id is not None and not args.strip():
+            return fallback_group_id
+
+        match = re.search(r"\d+", str(args or ""))
+        if match is None:
+            return None
+        try:
+            value = int(match.group(0))
+        except (TypeError, ValueError):
+            return None
+        if value <= 0:
+            return None
+        return value
+
+    async def _persist_group_config(
+        self,
+        *,
+        group_id: int,
+        enabled: bool,
+        extra_prompt: str,
+    ) -> None:
+        if self._config_path is None:
+            return
+
+        async with self._config_lock:
+            config_data: dict[str, Any] = {}
+            if self._config_path.exists():
+                raw = yaml.safe_load(self._config_path.read_text(encoding="utf-8"))
+                if isinstance(raw, dict):
+                    config_data = raw
+
+            self._upsert_group_config_data(
+                config_data=config_data,
+                group_id=group_id,
+                enabled=enabled,
+                extra_prompt=extra_prompt,
+            )
+
+            self._config_path.parent.mkdir(parents=True, exist_ok=True)
+            temp_file = self._config_path.with_suffix(self._config_path.suffix + ".tmp")
+            temp_file.write_text(
+                yaml.safe_dump(config_data, allow_unicode=True, sort_keys=False),
+                encoding="utf-8",
+            )
+            temp_file.replace(self._config_path)
+
+    async def _try_persist_group_config(
+        self,
+        *,
+        group_id: int,
+        enabled: bool,
+        extra_prompt: str,
+    ) -> str:
+        try:
+            await self._persist_group_config(
+                group_id=group_id,
+                enabled=enabled,
+                extra_prompt=extra_prompt,
+            )
+            return ""
+        except Exception as exc:
+            self._logger.warning(
+                "Persist group config failed: group_id=%s enabled=%s err=%s",
+                group_id,
+                enabled,
+                exc,
+            )
+            return str(exc)
+
+    @staticmethod
+    def _upsert_group_config_data(
+        *,
+        config_data: dict[str, Any],
+        group_id: int,
+        enabled: bool,
+        extra_prompt: str,
+    ) -> None:
+        groups = config_data.setdefault("groups", [])
+        if not isinstance(groups, list):
+            groups = []
+            config_data["groups"] = groups
+
+        for row in groups:
+            if not isinstance(row, dict):
+                continue
+            raw_group_id = row.get("group_id")
+            try:
+                if int(raw_group_id) != int(group_id):
+                    continue
+            except (TypeError, ValueError):
+                continue
+            row["enabled"] = bool(enabled)
+            row["extra_prompt"] = str(extra_prompt or "")
+            return
+
+        groups.append(
+            {
+                "group_id": int(group_id),
+                "enabled": bool(enabled),
+                "extra_prompt": str(extra_prompt or ""),
+            },
+        )
+
     def _extract_speaker(self, message: dict[str, Any]) -> str:
         raw = message.get("raw", {})
         if isinstance(raw, dict):
@@ -1073,12 +2105,224 @@ class ZhiyueAgent:
         master_id = self.cfg.persona.master_id
         return bool(master_id and user_id is not None and user_id == master_id)
 
+    def _is_admin_sender(self, *, user_id: int | None, speaker: str) -> bool:
+        if self._is_master(user_id) or self._is_master_name(speaker):
+            return True
+
+        admin_ids = {
+            item
+            for item in (
+                self._to_int(value)
+                for value in list(getattr(self.cfg.admin_commands, "admin_user_ids", []) or [])
+            )
+            if item is not None and item > 0
+        }
+        if user_id is not None and user_id in admin_ids:
+            return True
+
+        speaker_clean = str(speaker or "").strip()
+        if not speaker_clean:
+            return False
+        admin_names = {
+            str(item).strip().lower()
+            for item in list(getattr(self.cfg.admin_commands, "admin_names", []) or [])
+            if str(item).strip()
+        }
+        if not admin_names:
+            return False
+        return speaker_clean.lower() in admin_names
+
+    def _is_master_name(self, speaker: str) -> bool:
+        master_name = str(self.cfg.persona.master_name or "").strip()
+        if not master_name:
+            return False
+        return master_name == str(speaker or "").strip()
+
     @staticmethod
     def _to_int(value: Any) -> int | None:
         try:
             return int(value)
         except (TypeError, ValueError):
             return None
+
+    @classmethod
+    def _is_sticker_request(cls, text: str) -> bool:
+        clean_text = str(text or "").strip()
+        if not clean_text:
+            return False
+        return bool(cls._STICKER_INTENT_PATTERN.search(clean_text))
+
+    def _allow_auto_sticker_send(self, *, ctx: ThinkContext) -> bool:
+        now = datetime.now(timezone.utc)
+        is_direct = ctx.message_type != "group"
+        cooldown = self._AUTO_STICKER_DIRECT_COOLDOWN_SEC if is_direct else self._AUTO_STICKER_GROUP_COOLDOWN_SEC
+        previous = self._sticker_last_sent_at.get(ctx.session_id)
+        if previous is not None:
+            elapsed = (now - previous).total_seconds()
+            if elapsed < float(cooldown):
+                self._logger.info(
+                    "Sticker.SkipAutoSend: session=%s reason=cooldown elapsed=%.1fs cooldown=%ss direct=%s",
+                    ctx.session_id,
+                    elapsed,
+                    cooldown,
+                    is_direct,
+                )
+                return False
+
+        probability = self._clamp_probability(self._AUTO_STICKER_SEND_PROBABILITY)
+        if probability <= 0.0:
+            self._logger.info(
+                "Sticker.SkipAutoSend: session=%s reason=probability_zero direct=%s",
+                ctx.session_id,
+                is_direct,
+            )
+            return False
+
+        roll = self._rng.random()
+        if roll > probability:
+            self._logger.info(
+                "Sticker.SkipAutoSend: session=%s reason=probability roll=%.4f threshold=%.4f direct=%s",
+                ctx.session_id,
+                roll,
+                probability,
+                is_direct,
+            )
+            return False
+        return True
+
+    def _mark_sticker_reply(self, *, session_id: str) -> None:
+        self._sticker_last_sent_at[session_id] = datetime.now(timezone.utc)
+
+    def _active_reply_probability(self, status_energy: float) -> float:
+        base = self._clamp_probability(self.cfg.agent.active_reply_probability)
+        if status_energy >= 70.0:
+            tier_scale = 1.0
+        elif status_energy >= 30.0:
+            tier_scale = 0.55
+        else:
+            tier_scale = 0.15
+        return self._clamp_probability(base * tier_scale)
+
+    def _llm_route_probability(
+        self,
+        *,
+        message_type: str,
+        mentioned_in_window: bool,
+        status_energy: float,
+        is_master: bool,
+        is_admin_sender: bool,
+        sticker_intent: bool = False,
+    ) -> float:
+        if is_master or is_admin_sender:
+            return 1.0
+
+        if message_type != "group":
+            return 1.0
+        if mentioned_in_window or sticker_intent:
+            return 1.0
+
+        base = self._active_reply_probability(status_energy)
+        return base
+
+    def _allow_low_energy_reply(
+        self,
+        *,
+        session_id: str,
+        message_type: str,
+        mentioned_in_window: bool,
+        status_energy: float,
+        forced_rest: bool,
+    ) -> bool:
+        if forced_rest:
+            self._logger.info(
+                (
+                    "Queue.SkipReply: session=%s reason=forced_rest "
+                    "status_energy=%.1f direct=%s"
+                ),
+                session_id,
+                status_energy,
+                message_type != "group" or mentioned_in_window,
+            )
+            return False
+
+        now = datetime.now(timezone.utc)
+        is_direct = message_type != "group" or mentioned_in_window
+        cooldown = self._LOW_ENERGY_DIRECT_COOLDOWN_SEC if is_direct else self._LOW_ENERGY_GROUP_COOLDOWN_SEC
+
+        previous = self._low_energy_last_reply_at.get(session_id)
+        if previous is not None:
+            elapsed = (now - previous).total_seconds()
+            if elapsed < float(cooldown):
+                self._logger.info(
+                    (
+                        "Queue.SkipReply: session=%s reason=low_energy_cooldown "
+                        "status_energy=%.1f elapsed=%.1fs cooldown=%ss direct=%s"
+                    ),
+                    session_id,
+                    status_energy,
+                    elapsed,
+                    cooldown,
+                    is_direct,
+                )
+                return False
+
+        probability = self._low_energy_reply_probability(
+            status_energy=status_energy,
+            is_direct=is_direct,
+        )
+        roll = self._rng.random()
+        if roll >= probability:
+            self._logger.info(
+                (
+                    "Queue.SkipReply: session=%s reason=low_energy_probability "
+                    "status_energy=%.1f roll=%.4f threshold=%.4f direct=%s"
+                ),
+                session_id,
+                status_energy,
+                roll,
+                probability,
+                is_direct,
+            )
+            return False
+        return True
+
+    def _low_energy_reply_probability(self, *, status_energy: float, is_direct: bool) -> float:
+        threshold = max(1.0, float(self._LOW_ENERGY_THRESHOLD))
+        energy_ratio = self._clamp_probability(float(status_energy) / threshold)
+        if is_direct:
+            base = self._LOW_ENERGY_DIRECT_BASE_REPLY_PROBABILITY
+            span = self._LOW_ENERGY_DIRECT_REPLY_ENERGY_SPAN
+        else:
+            base = self._LOW_ENERGY_GROUP_BASE_REPLY_PROBABILITY
+            span = self._LOW_ENERGY_GROUP_REPLY_ENERGY_SPAN
+        scale = self._clamp_probability(self.cfg.agent.active_reply_probability)
+        return self._clamp_probability((base + span * energy_ratio) * scale)
+
+    def _pick_low_energy_reply(self, *, session_id: str) -> str:
+        options = list(self._LOW_ENERGY_REPLIES)
+        last_reply = self._low_energy_last_reply_text.get(session_id)
+        if last_reply and len(options) > 1:
+            options = [item for item in options if item != last_reply] or options
+        return str(self._rng.choice(options))
+
+    def _mark_low_energy_reply(self, *, session_id: str, reply: str) -> None:
+        self._low_energy_last_reply_at[session_id] = datetime.now(timezone.utc)
+        self._low_energy_last_reply_text[session_id] = str(reply or "").strip()
+
+    @staticmethod
+    def _set_response_token_cap(extra_fields: dict[str, Any], cap: int) -> None:
+        token_cap = max(1, int(cap))
+        key = "max_completion_tokens" if "max_completion_tokens" in extra_fields else "max_tokens"
+        existing = ZhiyueAgent._parse_positive_int(extra_fields.get(key))
+        extra_fields[key] = min(existing, token_cap) if existing is not None else token_cap
+
+    @staticmethod
+    def _parse_positive_int(value: Any) -> int | None:
+        try:
+            numeric = int(value)
+        except (TypeError, ValueError):
+            return None
+        return numeric if numeric > 0 else None
 
     @staticmethod
     def _clamp_probability(value: Any) -> float:

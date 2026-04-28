@@ -10,12 +10,16 @@ from typing import Any
 @dataclass(slots=True, frozen=True)
 class LogEvent:
     source: str
+    channel: str
     message: str
     timestamp: str
 
     def as_dict(self) -> dict[str, str]:
+        event_type = "action" if self.channel == "action" else "system"
         return {
             "source": self.source,
+            "channel": self.channel,
+            "type": event_type,
             "message": self.message,
             "timestamp": self.timestamp,
         }
@@ -32,14 +36,18 @@ class LogStreamHub:
         source: str,
         message: str,
         *,
+        channel: str | None = None,
         timestamp: str | None = None,
     ) -> None:
         clean_message = str(message).rstrip()
         if not clean_message:
             return
+        clean_source = str(source or "system")
+        clean_channel = self._normalize_channel(channel) or self._infer_channel(clean_source, clean_message)
 
         event = LogEvent(
-            source=str(source or "bot"),
+            source=clean_source,
+            channel=clean_channel,
             message=clean_message,
             timestamp=timestamp or datetime.now(timezone.utc).isoformat(),
         )
@@ -88,13 +96,54 @@ class LogStreamHub:
         if isinstance(payload, LogEvent):
             return payload.as_dict()
         if isinstance(payload, dict):
+            source = str(payload.get("source", "system"))
+            message = str(payload.get("message", ""))
+            channel = LogStreamHub._normalize_channel(payload.get("channel"))
+            if not channel:
+                channel = LogStreamHub._infer_channel(source, message)
+            event_type = str(payload.get("type", "")).strip().lower()
+            if event_type not in {"system", "action"}:
+                event_type = "action" if channel == "action" else "system"
             return {
-                "source": str(payload.get("source", "bot")),
-                "message": str(payload.get("message", "")),
+                "source": source,
+                "channel": channel,
+                "type": event_type,
+                "message": message,
                 "timestamp": str(payload.get("timestamp", datetime.now(timezone.utc).isoformat())),
             }
         return {
-            "source": "bot",
+            "source": "system",
+            "channel": "system",
+            "type": "system",
             "message": str(payload),
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
+
+    @staticmethod
+    def _normalize_channel(raw: Any) -> str:
+        value = str(raw or "").strip().lower()
+        if value in {"system", "action", "napcat"}:
+            return value
+        return ""
+
+    @staticmethod
+    def _infer_channel(source: str, message: str) -> str:
+        source_l = str(source or "").strip().lower()
+        message_l = str(message or "").strip().lower()
+        if source_l == "napcat":
+            return "napcat"
+        if source_l in {"action", "plugin", "agent"}:
+            return "action"
+        action_tokens = (
+            "rx post_type",
+            "tx action",
+            "message_type=",
+            "post_type=",
+            "[plugins]",
+            "[groups]",
+            "[reset]",
+            "plugin",
+        )
+        if any(token in message_l for token in action_tokens):
+            return "action"
+        return "system"

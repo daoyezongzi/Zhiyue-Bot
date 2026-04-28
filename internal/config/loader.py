@@ -50,10 +50,12 @@ VISION_LLM_MODEL=
 
 # Legacy/other overrides
 ZHIYUE_ONEBOT_TOKEN=
+BOT_QQ=
 ONEBOT_WS_MODE=reverse
-ONEBOT_WS_URL=ws://127.0.0.1:6199
+ONEBOT_WS_URL=ws://127.0.0.1:18001/ws
+WEB_ENABLED=true
 WEB_HOST=127.0.0.1
-WEB_PORT=8080
+WEB_PORT=18002
 WEB_ACCESS_TOKEN=
 WEB_BACKGROUND_URL=
 
@@ -91,6 +93,15 @@ def _normalize_env_key(value: str) -> str:
     while "__" in normalized:
         normalized = normalized.replace("__", "_")
     return normalized.strip("_")
+
+
+def _parse_env_bool(raw: str) -> bool | None:
+    normalized = str(raw or "").strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    return None
 
 
 def _read_provider_api_key(provider: str | None) -> str | None:
@@ -179,6 +190,12 @@ def _apply_env_overrides(cfg: Config) -> None:
     web_host = _read_first_env("WEB_HOST", "ZHIYUE_WEB_HOST")
     if web_host:
         cfg.web.host = web_host
+
+    web_enabled = _read_first_env("WEB_ENABLED", "ZHIYUE_WEB_ENABLED")
+    if web_enabled is not None:
+        parsed_enabled = _parse_env_bool(web_enabled)
+        if parsed_enabled is not None:
+            cfg.web.enabled = parsed_enabled
 
     web_port = _read_first_env("WEB_PORT", "ZHIYUE_WEB_PORT")
     if web_port:

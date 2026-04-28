@@ -15,6 +15,8 @@ from internal.management.log_stream import LogStreamHub
 class ManagedProcess:
     name: str
     source: str
+    channel: str
+    merge_stderr_to_stdout: bool
     command: list[str]
     process: asyncio.subprocess.Process
     stdout_task: asyncio.Task[None] | None
@@ -52,10 +54,12 @@ class ProcessSupervisor:
         workdir = Path(cwd).resolve() if cwd else napcat_path.parent
         await self.start_process(
             name="napcat",
-            source="onebot",
+            source="napcat",
+            channel="napcat",
             command=command,
             cwd=workdir,
             hide_window=True,
+            merge_stderr_to_stdout=True,
         )
         return True
 
@@ -64,9 +68,11 @@ class ProcessSupervisor:
         *,
         name: str,
         source: str,
+        channel: str | None = None,
         command: list[str],
         cwd: str | Path | None = None,
         hide_window: bool = False,
+        merge_stderr_to_stdout: bool = False,
     ) -> None:
         clean_name = str(name).strip().lower()
         if not clean_name:
@@ -80,25 +86,45 @@ class ProcessSupervisor:
         if hide_window and hasattr(subprocess, "CREATE_NO_WINDOW"):
             creationflags = int(getattr(subprocess, "CREATE_NO_WINDOW"))
 
+        stderr_stream: int | None = asyncio.subprocess.PIPE
+        if merge_stderr_to_stdout:
+            stderr_stream = asyncio.subprocess.STDOUT
+
         process = await asyncio.create_subprocess_exec(
             *command,
             cwd=str(cwd) if cwd else None,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+            stderr=stderr_stream,
             creationflags=creationflags,
         )
 
         stdout_task = asyncio.create_task(
-            self._pump_stream(clean_name, source, process.stdout, stream_kind="stdout"),
+            self._pump_stream(
+                clean_name,
+                source,
+                process.stdout,
+                stream_kind="stdout",
+                channel=channel,
+            ),
             name=f"{clean_name}-stdout",
         )
-        stderr_task = asyncio.create_task(
-            self._pump_stream(clean_name, source, process.stderr, stream_kind="stderr"),
-            name=f"{clean_name}-stderr",
-        )
+        stderr_task: asyncio.Task[None] | None = None
+        if not merge_stderr_to_stdout:
+            stderr_task = asyncio.create_task(
+                self._pump_stream(
+                    clean_name,
+                    source,
+                    process.stderr,
+                    stream_kind="stderr",
+                    channel=channel,
+                ),
+                name=f"{clean_name}-stderr",
+            )
         entry = ManagedProcess(
             name=clean_name,
             source=source,
+            channel=str(channel or ""),
+            merge_stderr_to_stdout=bool(merge_stderr_to_stdout),
             command=list(command),
             process=process,
             stdout_task=stdout_task,
@@ -118,6 +144,7 @@ class ProcessSupervisor:
         await self._log_hub.publish(
             source,
             f"[{clean_name}] started pid={process.pid}",
+            channel=channel,
         )
 
     async def stop(self, name: str) -> None:
@@ -146,6 +173,7 @@ class ProcessSupervisor:
         await self._log_hub.publish(
             entry.source,
             f"[{entry.name}] exited with code {return_code}",
+            channel=entry.channel or None,
         )
         self._logger.info("Managed process exited: %s code=%s", entry.name, return_code)
         async with self._lock:
@@ -178,6 +206,7 @@ class ProcessSupervisor:
         await self._log_hub.publish(
             entry.source,
             f"[{entry.name}] stopped ({reason})",
+            channel=entry.channel or None,
         )
         self._logger.info(
             "Managed process stopped: %s reason=%s code=%s",
@@ -193,6 +222,7 @@ class ProcessSupervisor:
         stream: asyncio.StreamReader | None,
         *,
         stream_kind: str,
+        channel: str | None = None,
     ) -> None:
         if stream is None:
             return
@@ -203,11 +233,20 @@ class ProcessSupervisor:
                 return
             if not raw:
                 return
-            message = raw.decode("utf-8", errors="replace").rstrip("\r\n")
+            message = self._decode_pipe_line(raw).rstrip("\r\n")
             if not message:
                 continue
-            await self._log_hub.publish(source, message)
+            await self._log_hub.publish(source, message, channel=channel)
             self._logger.info("ProcessLog[%s:%s] %s", name, stream_kind, message)
+
+    @staticmethod
+    def _decode_pipe_line(raw: bytes) -> str:
+        for encoding in ("utf-8", "gbk"):
+            try:
+                return raw.decode(encoding)
+            except UnicodeDecodeError:
+                continue
+        return raw.decode("utf-8", errors="replace")
 
     @staticmethod
     def _build_napcat_command(executable: Path, args: list[str]) -> list[str]:

@@ -42,6 +42,13 @@ class PersonalityConfig(BaseModel):
     other_mood_boost: float = 0.03
     other_energy_delta: float = -0.01
     reply_energy_cost: float = 0.06
+    energy_timezone_offset_hours: int = 8
+    energy_active_start_hour: int = 8
+    energy_active_end_hour: int = 21
+    energy_active_recovery_multiplier: float = 0.9
+    energy_active_reply_cost_multiplier: float = 0.9
+    energy_rest_recovery_multiplier: float = 1.12
+    energy_rest_reply_cost_multiplier: float = 1.12
 
 
 class JargonReplaceRuleConfig(BaseModel):
@@ -71,7 +78,7 @@ class JargonConfig(BaseModel):
 
 class OneBotConfig(BaseModel):
     ws_mode: str = "reverse"
-    ws_url: str = "ws://127.0.0.1:3001"
+    ws_url: str = "ws://127.0.0.1:18001/ws"
     access_token: str = ""
     reconnect_interval: int = 5
 
@@ -80,6 +87,34 @@ class GroupConfig(BaseModel):
     group_id: int
     enabled: bool = True
     extra_prompt: str = ""
+
+
+class AdminCommandItemConfig(BaseModel):
+    action: str = ""
+    triggers: List[str] = Field(default_factory=list)
+
+
+class AdminCommandConfig(BaseModel):
+    enabled: bool = True
+    prefix: str = "##zy"
+    admin_user_ids: List[int] = Field(default_factory=list)
+    admin_names: List[str] = Field(default_factory=list)
+    commands: List[AdminCommandItemConfig] = Field(
+        default_factory=lambda: [
+            AdminCommandItemConfig(
+                action="toggle_group_chat",
+                triggers=["开关群聊", "开关某群聊天", "开关某群的聊天"],
+            ),
+            AdminCommandItemConfig(
+                action="join_group_chat",
+                triggers=["加入群聊", "加入某群聊天", "加入某群的聊天"],
+            ),
+            AdminCommandItemConfig(
+                action="shutdown",
+                triggers=["关闭程序", "关闭机器人", "停止程序"],
+            ),
+        ]
+    )
 
 
 class AgentConfig(BaseModel):
@@ -91,7 +126,9 @@ class AgentConfig(BaseModel):
     max_step: int = 12
     max_coroutine: int = 4
     enable_active_retrieval: bool = True
-    active_reply_probability: float = 1.0
+    active_reply_probability: float = 0.35
+    prompt_cache_heartbeat_enabled: bool = False
+    prompt_cache_heartbeat_interval_sec: int = 600
 
 
 class LearningConfig(BaseModel):
@@ -138,6 +175,31 @@ class MemoryConfig(BaseModel):
     rag_top_k: int = 5
 
 
+class StickerConfig(BaseModel):
+    enabled: bool = True
+    collection_rate: float = 0.1
+    storage_mode: str = "local"
+    local_dir: str = "data/stickers"
+    filter_keywords: List[str] = Field(
+        default_factory=lambda: ["浮夸", "低俗", "吵闹", "恶臭", "擦边", "鬼畜"],
+    )
+    user_weights: Dict[str, float] = Field(default_factory=dict)
+    enable_persona_filter: bool = True
+    llm_filter_enabled: bool = True
+    llm_filter_probability: float = 0.2
+    llm_filter_mood_threshold: float = 50.0
+    llm_filter_cache_ttl_seconds: int = 86400
+    llm_filter_max_tokens: int = 10
+    cloud_actions: List[str] = Field(
+        default_factory=lambda: [
+            "set_msg_favorite",
+            "nc_set_msg_favorite",
+            "mark_msg_as_favorite",
+        ],
+    )
+    download_timeout_sec: float = 12.0
+
+
 class UISettingsConfig(BaseModel):
     background_url: str = ""
 
@@ -145,7 +207,7 @@ class UISettingsConfig(BaseModel):
 class WebConfig(BaseModel):
     enabled: bool = False
     host: str = "127.0.0.1"
-    port: int = 8080
+    port: int = 18002
     access_token: str = ""
     admin_key: str = ""
     ui_settings: UISettingsConfig = Field(default_factory=UISettingsConfig)
@@ -170,6 +232,7 @@ class Config(BaseModel):
     jargon: JargonConfig = Field(default_factory=JargonConfig)
     onebot: OneBotConfig = Field(default_factory=OneBotConfig)
     groups: List[GroupConfig] = Field(default_factory=list)
+    admin_commands: AdminCommandConfig = Field(default_factory=AdminCommandConfig)
     agent: AgentConfig = Field(default_factory=AgentConfig)
     learning: LearningConfig = Field(default_factory=LearningConfig)
     llm: LLMConfig = Field(default_factory=LLMConfig)
@@ -177,6 +240,7 @@ class Config(BaseModel):
     embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
     vision_llm: VisionConfig = Field(default_factory=VisionConfig)
     memory: MemoryConfig = Field(default_factory=MemoryConfig)
+    sticker: StickerConfig = Field(default_factory=StickerConfig)
     web: WebConfig = Field(default_factory=WebConfig)
     paths: PathsConfig = Field(default_factory=PathsConfig)
 

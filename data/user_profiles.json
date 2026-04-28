@@ -13,20 +13,20 @@
         ],
         "affinity": 0.022000000000000002,
         "interaction_style": "频繁使用表情包和网络用语、在群聊中主动询问考试情况并表达情绪、表达考试情况和情绪",
-        "updated_at": "2026-04-26T07:12:46.480649+00:00",
+        "updated_at": "2026-04-26T12:00:38.601950+00:00",
         "tag_scores": {
-          "学生": 4.1693449375,
-          "考试相关": 4.1693449375,
-          "使用表情包": 4.1693449375,
-          "网络用语": 2.7358374999999997,
-          "群聊互动": 2.7358374999999997,
-          "询问考试难度": 2.7358374999999997
+          "学生": 5.3873047634375,
+          "考试相关": 5.3873047634375,
+          "使用表情包": 5.3873047634375,
+          "网络用语": 3.9752999374999995,
+          "群聊互动": 3.9752999374999995,
+          "询问考试难度": 3.9752999374999995
         },
         "style_scores": {
-          "表达考试情况和情绪": 2.5464186,
-          "使用网络用语和表情包": 1.3584185999999998,
-          "频繁使用表情包和网络用语": 2.5601399999999996,
-          "在群聊中主动询问考试情况并表达情绪": 2.5601399999999996
+          "表达考试情况和情绪": 3.708954414,
+          "使用网络用语和表情包": 1.3448344139999997,
+          "频繁使用表情包和网络用语": 3.7225385999999996,
+          "在群聊中主动询问考试情况并表达情绪": 3.7225385999999996
         }
       },
       "2902336359": {
@@ -36,15 +36,504 @@
           "expressive"
         ],
         "affinity": -0.022000000000000002,
-        "interaction_style": "Emotionally vents about technical setbacks with repeated emphasis and slang.",
-        "updated_at": "2026-04-26T07:11:06.734116+00:00",
+        "interaction_style": "Emotionally vents about technical setbacks with repeated emphasis and slang.、one-line interaction preference",
+        "updated_at": "2026-04-26T08:48:21.040829+00:00",
         "tag_scores": {
-          "competitive programmer": 1.576,
-          "frustrated": 1.576,
-          "expressive": 1.576
+          "competitive programmer": 1.55236,
+          "frustrated": 1.55236,
+          "expressive": 1.55236
         },
         "style_scores": {
-          "Emotionally vents about technical setbacks with repeated emphasis and slang.": 1.4849999999999999
+          "Emotionally vents about technical setbacks with repeated emphasis and slang.": 1.4701499999999998,
+          "one-line interaction preference": 1.188
+        }
+      },
+      "137566858": {
+        "tags": [
+          "casual_chatter",
+          "emoji_user",
+          "image_user",
+          "social_seeker",
+          "bot_developer",
+          "gaming_enthusiast",
+          "ai_enthusiast",
+          "humorous",
+          "music_fan",
+          "developer",
+          "stock_enthusiast",
+          "character_designer"
+        ],
+        "affinity": 0.18699999999999997,
+        "interaction_style": "Persistent and playful、using images、emojis",
+        "updated_at": "2026-04-27T15:13:57.450215+00:00",
+        "tag_scores": {
+          "casual_chatter": 14.003639019185972,
+          "emoji_user": 13.021057900087772,
+          "gaming_enthusiast": 5.32256506489028,
+          "music_fan": 3.1473664277272797,
+          "ai_enthusiast": 4.77844656349469,
+          "social_seeker": 6.448110580973837,
+          "image_user": 11.467905263160004,
+          "bot_developer": 6.040722416377213,
+          "character_designer": 1.1777983647660644,
+          "stock_enthusiast": 2.5935187551082843,
+          "developer": 2.7088999332641186,
+          "humorous": 4.328753400995211
+        },
+        "style_scores": {
+          "none": 0.905663144644359,
+          "Frequent use of images and casual": 1.0672798000859447,
+          "playful language.": 1.0672798000859447,
+          "Prefers sending images and emojis with short": 1.0010560895467013,
+          "casual replies.": 1.0010560895467013,
+          "Frequent use of images and emojis with short": 1.0889499031588048,
+          "playful text.": 1.0889499031588048,
+          "Persistent and playful": 4.274073313511014,
+          "using images": 2.2222322224847706,
+          "emojis": 2.2222322224847706,
+          "and replies to engage others.": 1.099949397130106,
+          "Frequent use of images and emojis": 0.9523371403723865,
+          "with casual and playful replies.": 0.9523371403723865,
+          "and casual slang.": 1.122282825354664,
+          "Playful and image-heavy": 1.1336190155097616,
+          "with casual banter and references to shared context.": 1.1336190155097616,
+          "Engages with images and references to bot development in a playful manner.": 1.0632790188763996,
+          "Technical and playful": 1.156636073369821,
+          "using images and replies to discuss bot development.": 1.156636073369821,
+          "Frequent image and emoji use": 1.001416513740105,
+          "with short and playful replies.": 1.001416513740105,
+          "User persistently shares images and emojis": 0.8429431933839266,
+          "often expressing casual or frustrated sentiments.": 0.8429431933839266,
+          "Proactive and descriptive": 1.1920408795328254,
+          "using images and emojis to discuss bot design and character mechanics.": 1.1920408795328254,
+          "Direct and technical": 1.1180758610336747,
+          "often uses images": 1.1180758610336747,
+          "sometimes critical": 1.1180758610336747,
+          "uses images and emojis": 0.9556203940458757,
+          "Playful and technically invested": 1.2285294321985547,
+          "using images and code references.": 1.2285294321985547,
+          "Communicates heavily with images and emojis": 1.3738965511599996,
+          "mixing technical talk with casual banter.": 1.3738965511599996,
+          "Playful banter with repeated catchphrases and image sharing": 0.8058044288328448,
+          "Playful and technical": 1.3113540087627664,
+          "using images and emojis to discuss emoji features.": 1.3113540087627664,
+          "using images and emojis.": 1.096220696980369,
+          "日常闲聊": 1.107293633313504,
+          "偶尔使用图片和表情表达情绪": 1.107293633313504,
+          "使用图片": 1.2116849522790867,
+          "表情和引用回复": 1.2116849522790867,
+          "表达直率且带有技术抱怨的日常交流": 1.2116849522790867,
+          "活泼幽默": 1.3180722091613997,
+          "频繁使用图片和表情": 1.3180722091613997,
+          "偶尔严肃处理敏感话题": 1.3180722091613997,
+          "喜欢@和口语化表达": 1.3180722091613997,
+          "Playful and image/emoji-heavy": 1.2362870648699997,
+          "occasionally assertive about boundaries.": 1.2362870648699997,
+          "急切重复地要求表情包": 1.1527152119999997,
+          "带撒娇语气": 1.1527152119999997,
+          "频繁使用图片和表情包": 1.40693355,
+          "互动轻松简短": 1.40693355,
+          "Brief and image-heavy": 0.8820899999999999,
+          "with occasional technical references.": 0.8820899999999999,
+          "热情幽默的表情包爱好者": 1.386,
+          "喜欢分享生活趣事和股票话题": 1.386
+        }
+      },
+      "2332876536": {
+        "tags": [
+          "seeks_emotional_support",
+          "self_aware_about_habits",
+          "values_human_connection"
+        ],
+        "affinity": 0.044000000000000004,
+        "interaction_style": "Expresses needs and expectations directly、with playful blame and emotional nuance.",
+        "updated_at": "2026-04-26T08:33:43.687153+00:00",
+        "tag_scores": {
+          "seeks_emotional_support": 1.576,
+          "self_aware_about_habits": 1.576,
+          "values_human_connection": 1.576
+        },
+        "style_scores": {
+          "Expresses needs and expectations directly": 1.4849999999999999,
+          "with playful blame and emotional nuance.": 1.4849999999999999
+        }
+      },
+      "2731616256": {
+        "tags": [
+          "frustrated",
+          "impatient",
+          "technical student",
+          "casual swearing",
+          "exam stress",
+          "platform complaint"
+        ],
+        "affinity": -0.044000000000000004,
+        "interaction_style": "Expresses intense frustration with profanity and detailed technical complaints about platform issues.、Expresses frustration with strong language and sarcasm.",
+        "updated_at": "2026-04-26T08:53:27.399703+00:00",
+        "tag_scores": {
+          "frustrated": 3.2268600000000003,
+          "impatient": 3.2268600000000003,
+          "technical student": 3.2268600000000003,
+          "casual swearing": 3.2268600000000003,
+          "exam stress": 1.6745,
+          "platform complaint": 1.6745
+        },
+        "style_scores": {
+          "Expresses frustration with strong language and sarcasm.": 1.4701499999999998,
+          "Expresses intense frustration with profanity and detailed technical complaints about platform issues.": 1.584
+        }
+      },
+      "2693053350": {
+        "tags": [
+          "student",
+          "tech-savvy",
+          "casual_gamer",
+          "exam_focused"
+        ],
+        "affinity": 0.022000000000000002,
+        "interaction_style": "Uses informal、playful language with memes and emojis.",
+        "updated_at": "2026-04-26T13:10:58.186023+00:00",
+        "tag_scores": {
+          "student": 1.4775,
+          "tech-savvy": 1.4775,
+          "casual_gamer": 1.4775,
+          "exam_focused": 1.4775
+        },
+        "style_scores": {
+          "Uses informal": 1.386,
+          "playful language with memes and emojis.": 1.386
+        }
+      },
+      "3440367913": {
+        "tags": [
+          "表情包爱好者",
+          "活泼回应",
+          "社交互动多",
+          "评价直率",
+          "学生"
+        ],
+        "affinity": 0.0374,
+        "interaction_style": "常用表情包和图片配合简短文字进行社交互动、偶尔直接评价他人、喜欢用表情包和图片配合直率幽默的文字进行社交互动",
+        "updated_at": "2026-04-27T03:39:06.183410+00:00",
+        "tag_scores": {
+          "表情包爱好者": 4.225177199999999,
+          "学生": 2.62430595,
+          "活泼回应": 4.225177199999999,
+          "社交互动多": 3.07837125,
+          "评价直率": 3.07837125
+        },
+        "style_scores": {
+          "喜欢用简短文字配合表情包和图片进行轻松互动": 1.0673289,
+          "偶尔反驳对方观点但总体友善。": 1.0673289,
+          "常用表情包和图片配合简短文字进行社交互动": 1.5191549999999998,
+          "偶尔直接评价他人": 1.5191549999999998,
+          "喜欢用表情包和图片配合直率幽默的文字进行社交互动": 1.386
+        }
+      },
+      "3571580399": {
+        "tags": [
+          "群聊互动",
+          "幽默调侃",
+          "频繁引用",
+          "自然观察",
+          "夸张表达",
+          "策划组织",
+          "导演角色",
+          "任务布置"
+        ],
+        "affinity": 0.0066,
+        "interaction_style": "喜欢用惊恐和困惑表情表达情绪、继续使用引用、@和表情包进行调侃互动",
+        "updated_at": "2026-04-27T07:12:51.465046+00:00",
+        "tag_scores": {
+          "自然观察": 5.451728432438154,
+          "幽默调侃": 6.657109885513467,
+          "群聊互动": 8.036109885513467,
+          "频繁引用": 5.652470805200312,
+          "夸张表达": 4.4470893521249995,
+          "策划组织": 1.379,
+          "导演角色": 1.379,
+          "任务布置": 1.379
+        },
+        "style_scores": {
+          "随意闲聊": 0.9414801494009999,
+          "喜欢重复引用和调侃": 0.9414801494009999,
+          "继续使用引用和表情包进行调侃互动": 1.1411880598799997,
+          "继续使用引用和表情包进行夸张的调侃互动": 1.2487748129999998,
+          "喜欢用惊恐和困惑表情表达情绪": 2.7527382629999995,
+          "继续使用引用": 1.5039634499999999,
+          "@和表情包进行调侃互动": 1.5039634499999999,
+          "喜欢用表情包": 1.4701499999999998,
+          "引用和@进行调侃互动": 1.4701499999999998,
+          "并关注群内管理事务": 1.4701499999999998,
+          "喜欢直接布置任务": 1.287,
+          "组织群成员进行角色扮演或视频拍摄": 1.287,
+          "使用@和引用进行协调": 1.287
+        }
+      },
+      "439612594": {
+        "tags": [
+          "英语学习者",
+          "网络活跃",
+          "幽默"
+        ],
+        "affinity": 0.022000000000000002,
+        "interaction_style": "频繁使用表情和引用、热衷网络梗和调侃、积极参与讨论",
+        "updated_at": "2026-04-27T03:37:04.685810+00:00",
+        "tag_scores": {
+          "英语学习者": 2.9343150000000002,
+          "网络活跃": 2.9343150000000002,
+          "幽默": 2.9343150000000002
+        },
+        "style_scores": {
+          "积极参与讨论": 1.27413,
+          "常用表情和网络梗表达情绪": 1.27413,
+          "频繁使用表情和引用": 1.4849999999999999,
+          "热衷网络梗和调侃": 1.4849999999999999
+        }
+      },
+      "1044973668": {
+        "tags": [
+          "鸟类摄影爱好者",
+          "社交粘性高",
+          "表情包爱好者",
+          "玩梗风格",
+          "亲昵表达倾向"
+        ],
+        "affinity": 0.033,
+        "interaction_style": "喜欢分享照片并配合表情包和昵称来建立亲昵互动",
+        "updated_at": "2026-04-27T03:36:28.637736+00:00",
+        "tag_scores": {
+          "鸟类摄影爱好者": 1.4775,
+          "社交粘性高": 1.4775,
+          "表情包爱好者": 1.4775,
+          "玩梗风格": 1.4775,
+          "亲昵表达倾向": 1.4775
+        },
+        "style_scores": {
+          "喜欢分享照片并配合表情包和昵称来建立亲昵互动": 1.386
+        }
+      },
+      "3557105149": {
+        "tags": [
+          "中文使用者",
+          "学生",
+          "喜欢蜜雪冰城"
+        ],
+        "affinity": 0.022000000000000002,
+        "interaction_style": "喜欢穿插图片、表情和引用进行随意幽默的交流",
+        "updated_at": "2026-04-27T03:43:52.452148+00:00",
+        "tag_scores": {
+          "中文使用者": 1.379,
+          "学生": 1.379,
+          "喜欢蜜雪冰城": 1.379
+        },
+        "style_scores": {
+          "喜欢穿插图片": 1.287,
+          "表情和引用进行随意幽默的交流": 1.287
+        }
+      },
+      "983392887": {
+        "tags": [
+          "playful",
+          "instructive",
+          "persistent",
+          "affectionate"
+        ],
+        "affinity": 0.044000000000000004,
+        "interaction_style": "Playfully instructive、uses affection and persistent questioning、with occasional mild complaint.",
+        "updated_at": "2026-04-27T04:43:16.384623+00:00",
+        "tag_scores": {
+          "playful": 2.9328375,
+          "instructive": 2.9328375,
+          "persistent": 2.9328375,
+          "affectionate": 2.9328375
+        },
+        "style_scores": {
+          "Playfully instructive": 2.7581399999999996,
+          "uses affection and persistent questioning to guide assistant behavior.": 1.37214,
+          "uses affection and persistent questioning": 1.386,
+          "with occasional mild complaint.": 1.386
+        }
+      },
+      "3469735163": {
+        "tags": [
+          "表情包交流",
+          "学业吐槽",
+          "网络用语",
+          "情绪化",
+          "幽默自嘲",
+          "学生"
+        ],
+        "affinity": 0.0154,
+        "interaction_style": "喜欢用表情包和网络用语进行情绪化学业吐槽",
+        "updated_at": "2026-04-27T06:33:45.187111+00:00",
+        "tag_scores": {
+          "表情包交流": 6.267141394436875,
+          "学业吐槽": 6.267141394436875,
+          "网络用语": 6.267141394436875,
+          "情绪化": 6.267141394436875,
+          "幽默自嘲": 6.267141394436875,
+          "学生": 6.267141394436875
+        },
+        "style_scores": {
+          "喜欢用表情包和网络用语进行情绪化学业吐槽": 6.94225928187
+        }
+      },
+      "1917173927": {
+        "tags": [
+          "traveler",
+          "fitness_conscious"
+        ],
+        "affinity": 0.0,
+        "interaction_style": "用户倾向于使用图片和简短文字进行互动、表达方式包含具体日程和事件。、用户倾向于使用图片和回复功能进行交互",
+        "updated_at": "2026-04-27T05:54:23.482746+00:00",
+        "tag_scores": {
+          "traveler": 2.983565,
+          "fitness_conscious": 2.983565
+        },
+        "style_scores": {
+          "用户倾向于使用图片和回复功能进行交互": 1.27413,
+          "表达方式包含具体日程和购票经历。": 1.27413,
+          "用户倾向于使用图片和简短文字进行互动": 1.5344999999999998,
+          "表达方式包含具体日程和事件。": 1.5344999999999998
+        }
+      },
+      "106715858": {
+        "tags": [
+          "学生",
+          "关注考试",
+          "情绪化",
+          "理性平衡",
+          "喜欢分享",
+          "图片使用"
+        ],
+        "affinity": 0.0,
+        "interaction_style": "喜欢分享个人经历和情绪、并用图片辅助表达。",
+        "updated_at": "2026-04-27T06:37:01.183804+00:00",
+        "tag_scores": {
+          "学生": 1.4775,
+          "关注考试": 1.4775,
+          "情绪化": 1.4775,
+          "理性平衡": 1.4775,
+          "喜欢分享": 1.4775,
+          "图片使用": 1.4775
+        },
+        "style_scores": {
+          "喜欢分享个人经历和情绪": 1.386,
+          "并用图片辅助表达。": 1.386
+        }
+      },
+      "2503601364": {
+        "tags": [
+          "二次元爱好者",
+          "游戏玩家",
+          "表情包分享",
+          "明日方舟关注者"
+        ],
+        "affinity": 0.011000000000000001,
+        "interaction_style": "通过图片和简短文字表达兴趣、并@对方寻求互动",
+        "updated_at": "2026-04-27T09:18:45.693163+00:00",
+        "tag_scores": {
+          "二次元爱好者": 1.1820000000000002,
+          "游戏玩家": 1.1820000000000002,
+          "表情包分享": 1.1820000000000002,
+          "明日方舟关注者": 1.1820000000000002
+        },
+        "style_scores": {
+          "通过图片和简短文字表达兴趣": 1.089,
+          "并@对方寻求互动": 1.089
+        }
+      },
+      "3511457481": {
+        "tags": [
+          "历史敏感话题兴趣",
+          "评判性互动",
+          "表情包用户"
+        ],
+        "affinity": -0.022000000000000002,
+        "interaction_style": "偏好简短指令和表情包、直接要求特定内容并表达不满",
+        "updated_at": "2026-04-27T09:45:34.515108+00:00",
+        "tag_scores": {
+          "历史敏感话题兴趣": 1.379,
+          "评判性互动": 1.379,
+          "表情包用户": 1.379
+        },
+        "style_scores": {
+          "偏好简短指令和表情包": 1.287,
+          "直接要求特定内容并表达不满": 1.287
+        }
+      },
+      "1575703183": {
+        "tags": [
+          "gamer",
+          "emotional_expression",
+          "values_communication"
+        ],
+        "affinity": 0.0,
+        "interaction_style": "用户倾向于分享游戏中的细节和情绪、并通过表情包和夸张语言表达。",
+        "updated_at": "2026-04-27T13:48:07.720481+00:00",
+        "tag_scores": {
+          "gamer": 1.379,
+          "emotional_expression": 1.379,
+          "values_communication": 1.379
+        },
+        "style_scores": {
+          "用户倾向于分享游戏中的细节和情绪": 1.287,
+          "并通过表情包和夸张语言表达。": 1.287
+        }
+      },
+      "2283003902": {
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "未定",
+        "updated_at": "2026-04-27T14:21:55.067236+00:00",
+        "tag_scores": {},
+        "style_scores": {
+          "未定": 1.188
+        }
+      },
+      "1578654702": {
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "仅发送图片、无文字交互",
+        "updated_at": "2026-04-27T14:31:53.293061+00:00",
+        "tag_scores": {},
+        "style_scores": {
+          "仅发送图片": 4.0185288,
+          "无文字交互": 4.0185288
+        }
+      },
+      "3144616920": {
+        "tags": [
+          "playful",
+          "tech-savvy",
+          "complaining",
+          "social",
+          "expressive"
+        ],
+        "affinity": 0.0,
+        "interaction_style": "Sends multiple short messages with frequent @mentions and internet slang.、Sends multiple short messages in rapid succession.",
+        "updated_at": "2026-04-27T14:28:09.030573+00:00",
+        "tag_scores": {
+          "playful": 1.0672475000000001,
+          "tech-savvy": 1.0672475000000001,
+          "complaining": 1.0672475000000001,
+          "social": 1.0672475000000001,
+          "expressive": 1.0672475000000001
+        },
+        "style_scores": {
+          "Sends multiple short messages in rapid succession.": 0.9801,
+          "Sends multiple short messages with frequent @mentions and internet slang.": 1.386
+        }
+      },
+      "2569818408": {
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "暂无明确长期互动风格",
+        "updated_at": "2026-04-27T14:28:03.661329+00:00",
+        "tag_scores": {},
+        "style_scores": {
+          "暂无明确长期互动风格": 0.7919999999999999
         }
       }
     },

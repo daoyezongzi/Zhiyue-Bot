@@ -102,13 +102,13 @@ class BotLogCapture:
         self._old_stderr = sys.stderr
         self._stdout_proxy = _LineMirroringStream(
             original=self._old_stdout,
-            source="bot",
+            source="system",
             hub=self._hub,
             loop=loop,
         )
         self._stderr_proxy = _LineMirroringStream(
             original=self._old_stderr,
-            source="bot",
+            source="system",
             hub=self._hub,
             loop=loop,
         )

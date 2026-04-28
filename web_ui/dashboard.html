@@ -1,81 +1,219 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Zhiyue Unified Dashboard</title>
+  <title>Zhiyue Dashboard</title>
   <style>
     :root {
-      --bg: #0b1018;
-      --bg-soft: #131d2a;
-      --panel: rgba(20, 30, 44, 0.78);
-      --line: rgba(255, 255, 255, 0.16);
-      --text: #f6f9ff;
-      --muted: #9fb1c8;
-      --ok: #4ade80;
-      --warn: #fbbf24;
-      --error: #f87171;
-      --accent: #38bdf8;
+      --bg: #f3efe5;
+      --bg-soft: #f9f6ef;
+      --panel: rgba(255, 255, 255, 0.88);
+      --line: #d8d3c8;
+      --text: #1d2935;
+      --muted: #5b6675;
+      --accent: #0f766e;
+      --accent-soft: #ccfbf1;
+      --accent-2: #c2410c;
+      --ok: #2e7d32;
+      --warn: #b45309;
+      --error: #b42318;
+      --shadow: 0 14px 40px rgba(66, 45, 20, 0.12);
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      color: var(--text);
-      font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
-      {% if background_url %}
-      background: linear-gradient(140deg, rgba(10, 15, 24, 0.88), rgba(14, 21, 36, 0.82)), url("{{ background_url }}") center / cover fixed no-repeat;
-      {% else %}
-      background: radial-gradient(circle at 20% 10%, #0f1d34 0%, #0b1018 50%, #080c12 100%);
-      {% endif %}
       min-height: 100vh;
+      color: var(--text);
+      font-family: "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(circle at 8% 8%, rgba(15, 118, 110, 0.2), transparent 38%),
+        radial-gradient(circle at 88% 14%, rgba(194, 65, 12, 0.17), transparent 38%),
+        linear-gradient(160deg, #faf7f0 0%, #efe7d9 55%, #f5eee0 100%);
     }
 
-    .wrap {
-      max-width: 1400px;
+    .page {
+      width: min(1480px, 96vw);
       margin: 0 auto;
-      padding: 18px 14px 40px;
+      padding: 20px 0 28px;
     }
 
-    .title {
+    .hero {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(250, 244, 232, 0.86));
+      box-shadow: var(--shadow);
+      padding: 18px 18px 16px;
+      margin-bottom: 12px;
+      animation: lift-in 0.45s ease;
+    }
+
+    .hero-top {
       display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
+      gap: 10px;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 14px;
+      flex-wrap: wrap;
     }
 
-    h1 {
+    .hero h1 {
       margin: 0;
       font-size: 24px;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.2px;
     }
 
-    .muted {
+    .meta {
+      margin-top: 8px;
+      font-size: 13px;
       color: var(--muted);
-      font-size: 12px;
     }
 
-    .grid {
+    .chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 12px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    .status-ok {
+      color: var(--ok);
+      border-color: color-mix(in srgb, var(--ok) 45%, white);
+      background: color-mix(in srgb, var(--ok) 11%, white);
+    }
+
+    .status-warn {
+      color: var(--warn);
+      border-color: color-mix(in srgb, var(--warn) 48%, white);
+      background: color-mix(in srgb, var(--warn) 12%, white);
+    }
+
+    .status-error {
+      color: var(--error);
+      border-color: color-mix(in srgb, var(--error) 50%, white);
+      background: color-mix(in srgb, var(--error) 12%, white);
+    }
+
+    .toolbar {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--panel);
+      padding: 14px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow);
+      animation: lift-in 0.5s ease;
+    }
+
+    .toolbar-grid {
       display: grid;
-      gap: 14px;
+      grid-template-columns: 1.7fr 1fr 1fr 1fr;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .control {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .control label {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.2px;
+    }
+
+    input,
+    textarea,
+    select,
+    button {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.95);
+      color: var(--text);
+      font-size: 13px;
+      padding: 10px 11px;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      font-family: inherit;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: color-mix(in srgb, var(--accent) 50%, white);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 140px;
+      line-height: 1.48;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      background: linear-gradient(130deg, var(--accent), #0b8f7c);
+      color: #f3fffd;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      box-shadow: 0 10px 24px rgba(15, 118, 110, 0.24);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: saturate(1.08);
+    }
+
+    button.secondary {
+      background: linear-gradient(130deg, #4b5563, #374151);
+      box-shadow: 0 10px 24px rgba(55, 65, 81, 0.24);
+    }
+
+    button.warn {
+      background: linear-gradient(130deg, #d97706, #b45309);
+      box-shadow: 0 10px 24px rgba(180, 83, 9, 0.23);
+    }
+
+    button.danger {
+      background: linear-gradient(130deg, #d92d20, #b42318);
+      box-shadow: 0 10px 24px rgba(180, 35, 24, 0.24);
+    }
+
+    .cards {
+      display: grid;
       grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 12px;
       align-items: start;
     }
 
     .card {
-      background: var(--panel);
       border: 1px solid var(--line);
-      border-radius: 14px;
+      border-radius: 16px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
       padding: 14px;
-      backdrop-filter: blur(5px);
+      animation: lift-in 0.55s ease both;
     }
 
     .card h2 {
-      margin: 0 0 12px;
+      margin: 0 0 10px;
       font-size: 15px;
       color: var(--accent);
+      letter-spacing: 0.2px;
     }
 
     .row {
@@ -86,127 +224,244 @@
       margin-bottom: 0;
     }
 
-    label {
-      display: block;
-      margin-bottom: 5px;
-      font-size: 12px;
+    .muted {
       color: var(--muted);
+      font-size: 12px;
     }
 
-    input, textarea, button, select {
-      width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      color: var(--text);
-      background: rgba(8, 14, 22, 0.8);
-      padding: 9px 10px;
-      font-size: 13px;
-    }
-
-    textarea {
-      min-height: 150px;
-      resize: vertical;
-      line-height: 1.45;
-    }
-
-    button {
-      cursor: pointer;
-      border: none;
-      background: linear-gradient(135deg, #0ea5e9, #2563eb);
-      font-weight: 600;
-    }
-
-    button.secondary {
-      background: linear-gradient(135deg, #475569, #334155);
-    }
-
-    button.warn {
-      background: linear-gradient(135deg, #f59e0b, #d97706);
-    }
-
-    button.danger {
-      background: linear-gradient(135deg, #ef4444, #dc2626);
-    }
-
-    .flex {
-      display: flex;
-      gap: 8px;
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
       align-items: center;
     }
 
-    .flex > * {
-      flex: 1;
+    .triple {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
     }
 
-    .progress {
-      margin-top: 5px;
+    .progress-wrap {
+      margin-top: 6px;
       width: 100%;
       height: 10px;
       border-radius: 999px;
       overflow: hidden;
-      background: rgba(255, 255, 255, 0.14);
+      background: #ece7dc;
+      border: 1px solid #dfd8c9;
     }
 
-    .progress > span {
+    .progress {
       display: block;
       height: 100%;
       width: 0;
-      transition: width 0.2s ease;
-    }
-
-    .energy { background: linear-gradient(90deg, #ef4444, #f59e0b, #22c55e); }
-    .mood { background: linear-gradient(90deg, #f43f5e, #eab308, #22c55e); }
-
-    .chip {
-      display: inline-block;
-      padding: 2px 8px;
+      transition: width 0.22s ease;
       border-radius: 999px;
-      font-size: 11px;
-      margin-left: 6px;
-      border: 1px solid var(--line);
-      color: var(--muted);
     }
 
-    .inline-switch {
+    .energy {
+      background: linear-gradient(90deg, #e11d48, #f59e0b, #16a34a);
+    }
+
+    .kv-grid {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 6px 8px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+      padding: 8px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.64);
+    }
+
+    .list-box {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px;
+      max-height: 240px;
+      overflow: auto;
+      background: rgba(255, 255, 255, 0.78);
+    }
+
+    .list-item {
+      font-size: 12px;
+      padding: 7px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+      border: 1px solid transparent;
+    }
+
+    .list-item:hover {
+      background: var(--accent-soft);
+      border-color: color-mix(in srgb, var(--accent) 25%, white);
+    }
+
+    .list-item.active {
+      background: color-mix(in srgb, var(--accent) 16%, white);
+      border-color: color-mix(in srgb, var(--accent) 45%, white);
+      color: #0d5f58;
+      font-weight: 600;
+    }
+
+    .switch-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      font-size: 12px;
+    }
+
+    .switch-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .inline-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      font-size: 12px;
+    }
+
+    .inline-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .inline-row button {
+      width: auto;
+      min-width: 72px;
+      padding: 7px 9px;
+      font-size: 11px;
+      box-shadow: none;
+    }
+
+    .sticker-file-row {
+      align-items: flex-start;
+    }
+
+    .sticker-file-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .sticker-thumb {
+      width: 54px;
+      height: 54px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.9);
+      flex-shrink: 0;
+    }
+
+    .sticker-file-meta {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      line-height: 1.4;
+    }
+
+    .sticker-file-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .sticker-open-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 72px;
+      padding: 7px 9px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 11px;
+      color: #f3fffd;
+      background: linear-gradient(130deg, #4b5563, #374151);
+    }
+
+    .mono {
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 12px;
+    }
+
+    .switch-item input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--accent);
+      box-shadow: none;
+      border: none;
+      background: none;
+      padding: 0;
+    }
+
+    .dialog-panel {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.72);
+      padding: 8px;
+      min-height: 108px;
+      max-height: 220px;
+      overflow: auto;
+      font-size: 12px;
+      line-height: 1.42;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .dialog-turn {
+      margin-bottom: 6px;
+      border-left: 3px solid color-mix(in srgb, var(--accent) 35%, white);
+      padding-left: 7px;
+    }
+
+    .dialog-turn:last-child {
+      margin-bottom: 0;
+    }
+
+    .dialog-role {
+      color: var(--accent-2);
+      font-weight: 600;
+    }
+
+    .section-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 10px;
-      padding: 8px 10px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
+      flex-wrap: wrap;
       margin-bottom: 8px;
-      background: rgba(8, 14, 22, 0.5);
     }
 
-    .inline-switch input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
+    .section-head h2 {
       margin: 0;
     }
 
-    .list-box {
-      max-height: 220px;
-      overflow: auto;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 8px;
-      background: rgba(8, 14, 22, 0.45);
-    }
-
-    .list-item {
-      padding: 6px 7px;
-      border-radius: 7px;
-      cursor: pointer;
+    .section-head button {
+      width: auto;
+      min-width: 92px;
+      padding: 8px 12px;
       font-size: 12px;
-    }
-
-    .list-item:hover {
-      background: rgba(56, 189, 248, 0.12);
-    }
-
-    .list-item.active {
-      background: rgba(56, 189, 248, 0.22);
+      box-shadow: none;
     }
 
     .plugins {
@@ -215,23 +470,38 @@
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     }
 
+    .plugins-panel {
+      overflow: hidden;
+      max-height: 520px;
+      opacity: 1;
+      transition: max-height 0.25s ease, opacity 0.2s ease;
+    }
+
+    .plugins-panel.collapsed {
+      max-height: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
     .plugin-card {
       border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 10px;
-      background: rgba(8, 14, 22, 0.55);
+      border-radius: 11px;
+      background: rgba(255, 255, 255, 0.74);
+      padding: 9px;
     }
 
     .plugin-name {
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 700;
     }
 
     .plugin-meta {
-      font-size: 11px;
+      margin-top: 4px;
+      margin-bottom: 8px;
+      min-height: 32px;
       color: var(--muted);
-      margin: 4px 0 8px;
-      min-height: 30px;
+      font-size: 11px;
+      line-height: 1.4;
     }
 
     .plugin-actions {
@@ -241,188 +511,631 @@
     }
 
     .plugin-actions button {
-      padding: 7px 4px;
       font-size: 11px;
+      padding: 7px 4px;
     }
 
-    #logView {
+    .console {
       margin: 0;
-      height: 280px;
-      overflow: auto;
-      font-family: Consolas, "Courier New", monospace;
-      font-size: 12px;
-      line-height: 1.35;
-      background: rgba(5, 8, 14, 0.88);
-      border: 1px solid var(--line);
-      border-radius: 10px;
+      border-radius: 12px;
+      border: 1px solid #2f3745;
+      background: #151a24;
+      color: #d7e2f1;
       padding: 10px;
+      min-height: 280px;
+      max-height: 360px;
+      overflow: auto;
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 12px;
+      line-height: 1.36;
       white-space: pre-wrap;
       word-break: break-word;
     }
 
-    .status-ok { color: var(--ok); }
-    .status-warn { color: var(--warn); }
-    .status-error { color: var(--error); }
+    .console-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
 
-    @media (max-width: 768px) {
-      .wrap { padding: 12px 10px 28px; }
-      h1 { font-size: 20px; }
-      #logView { height: 220px; }
+    .console-tab-btn {
+      width: auto;
+      min-width: 108px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.85);
+      color: var(--muted);
+      box-shadow: none;
+    }
+
+    .console-tab-btn.active {
+      color: #f3fffd;
+      border-color: transparent;
+      background: linear-gradient(130deg, var(--accent), #0b8f7c);
+    }
+
+    .console-panels {
+      margin-top: 8px;
+    }
+
+    .console-panel {
+      display: none;
+    }
+
+    .console-panel.active {
+      display: block;
+    }
+
+    .span-2 {
+      grid-column: 1 / -1;
+    }
+
+    .card:nth-child(1) { animation-delay: 0.03s; }
+    .card:nth-child(2) { animation-delay: 0.06s; }
+    .card:nth-child(3) { animation-delay: 0.09s; }
+    .card:nth-child(4) { animation-delay: 0.12s; }
+    .card:nth-child(5) { animation-delay: 0.15s; }
+    .card:nth-child(6) { animation-delay: 0.18s; }
+    .card:nth-child(7) { animation-delay: 0.21s; }
+    .card:nth-child(8) { animation-delay: 0.24s; }
+
+    @keyframes lift-in {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 1060px) {
+      .toolbar-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        width: 94vw;
+        padding-top: 14px;
+      }
+
+      .hero {
+        padding: 14px;
+      }
+
+      .hero h1 {
+        font-size: 20px;
+      }
+
+      .toolbar-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .split,
+      .triple {
+        grid-template-columns: 1fr;
+      }
+
+      .console {
+        min-height: 230px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="title">
-      <div>
+  <main class="page">
+    <section class="hero">
+      <div class="hero-top">
         <h1>Zhiyue Unified Management Dashboard</h1>
-        <div class="muted">服务地址 {{ host }}:{{ port }} | 知识目录 {{ knowledge_dir }}</div>
-      </div>
-      <div class="chip" id="logSocketState">Logs: disconnected</div>
-    </div>
-
-    <div class="grid">
-      <section class="card">
-        <h2>认证与状态</h2>
-        <div class="row">
-          <label>Access Token</label>
-          <input id="tokenInput" placeholder="X-Access-Token / Bearer token" />
+        <div class="chips">
+          <span id="apiStateChip" class="chip">API 未连接</span>
+          <span id="logSocketState" class="chip">日志流未连接</span>
         </div>
-        <div class="row">
+      </div>
+      <div class="meta">服务地址 localhost:18002 | 知识目录 data/knowledge</div>
+    </section>
+
+    <section class="toolbar">
+      <div class="toolbar-grid">
+        <div class="control">
+          <label for="backendBaseUrlInput">Backend Base URL</label>
+          <input id="backendBaseUrlInput" readonly />
+        </div>
+        <div class="control">
+          <label>日志流</label>
           <button id="connectLogsBtn" class="secondary">连接日志流</button>
         </div>
-        <div class="row muted" id="statusLine">等待加载...</div>
+        <div class="control">
+          <label>数据同步</label>
+          <button id="refreshAllBtn">刷新全部面板</button>
+        </div>
+        <div class="control">
+          <label>运行状态</label>
+          <div id="statusLine" class="muted">等待初始化...</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cards">
+      <section class="card">
+        <h2>运行状态</h2>
+        <div class="row muted">Energy: <span id="energyText">-</span></div>
+        <div class="progress-wrap"><span id="energyBar" class="progress energy"></span></div>
+        <div class="kv-grid">
+          <div>精力分档</div><div id="energyTierText">-</div>
+          <div>运行时长</div><div id="uptimeText">-</div>
+          <div>启动时间</div><div id="startedAtText">-</div>
+          <div>疲劳模式</div><div id="fatigueText">-</div>
+          <div>强制休息</div><div id="forcedRestText">-</div>
+          <div>最后活跃</div><div id="lastActiveText">-</div>
+        </div>
+        <div class="row" style="margin-top: 10px;">
+          <label for="modelInfo">模型路由信息（来自 /api/status.models）</label>
+          <div id="modelInfo" class="dialog-panel"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>性格切换与 Prompt</h2>
         <div class="row">
-          <div class="muted">Energy: <span id="energyText">-</span></div>
-          <div class="progress"><span id="energyBar" class="energy"></span></div>
+          <label for="personaPresetSelect">预设性格（本地模板，提交至 /api/config/update）</label>
+          <div class="split">
+            <select id="personaPresetSelect"></select>
+            <button id="applyPresetBtn" class="secondary">套用预设</button>
+          </div>
         </div>
         <div class="row">
-          <div class="muted">Mood: <span id="moodText">-</span></div>
-          <div class="progress"><span id="moodBar" class="mood"></span></div>
+          <label for="promptInput">System Prompt</label>
+          <textarea id="promptInput" placeholder="输入新的 system_prompt"></textarea>
         </div>
-        <div class="row muted">Uptime: <span id="uptimeText">-</span></div>
+        <div class="row split">
+          <button id="savePromptBtn">更新 Prompt</button>
+          <button id="refreshStatusBtn" class="secondary">刷新状态</button>
+        </div>
       </section>
 
       <section class="card">
         <h2>Master 与群开关</h2>
         <div class="row">
-          <label>master_id (Integer)</label>
-          <div class="flex">
-            <input id="masterIdInput" placeholder="请输入整数 QQ 号" />
+          <label for="masterIdInput">master_id (Integer)</label>
+          <div class="split">
+            <input id="masterIdInput" placeholder="输入 QQ 数字 ID" />
             <button id="saveMasterBtn">保存</button>
           </div>
         </div>
         <div class="row">
-          <label>群聊启用状态（实时生效）</label>
+          <label for="addGroupIdInput">新增群 (group_id)</label>
+          <div class="split">
+            <input id="addGroupIdInput" placeholder="输入群号，例如 123456789" />
+            <button id="addGroupBtn" class="secondary">新增并启用</button>
+          </div>
+        </div>
+        <div class="row">
+          <label>群开关（/api/groups/{group_id}）</label>
           <div id="groupList" class="list-box"></div>
         </div>
       </section>
 
       <section class="card">
-        <h2>系统 Prompt 与重置</h2>
+        <h2>表情包收录设置</h2>
+        <div class="row split">
+          <div class="control">
+            <label for="stickerCollectionRateInput">收录概率 collection_rate (0-1)</label>
+            <input id="stickerCollectionRateInput" type="number" min="0" max="1" step="0.01" />
+          </div>
+          <div class="control">
+            <label for="stickerStorageModeSelect">存储模式 storage_mode</label>
+            <select id="stickerStorageModeSelect">
+              <option value="local">local（本地）</option>
+              <option value="cloud">cloud（QQ 收藏）</option>
+            </select>
+          </div>
+        </div>
+        <div class="row split">
+          <div class="switch-item">
+            <div>启用自动收录</div>
+            <input id="stickerEnabledToggle" type="checkbox" />
+          </div>
+          <div class="switch-item">
+            <div>启用人设过滤</div>
+            <input id="stickerPersonaFilterToggle" type="checkbox" />
+          </div>
+        </div>
+        <div class="row split">
+          <div class="switch-item">
+            <div>启用 LLM 复杂判定</div>
+            <input id="stickerLlmFilterToggle" type="checkbox" />
+          </div>
+          <div class="control">
+            <label for="stickerLlmProbabilityInput">LLM 判定概率 llm_filter_probability (0-1)</label>
+            <input id="stickerLlmProbabilityInput" type="number" min="0" max="1" step="0.01" />
+          </div>
+        </div>
         <div class="row">
-          <label>System Prompt</label>
-          <textarea id="promptInput" placeholder="输入新的 system_prompt"></textarea>
+          <div class="control">
+            <label for="stickerLlmMoodThresholdInput">LLM 触发心情阈值 llm_filter_mood_threshold</label>
+            <input id="stickerLlmMoodThresholdInput" type="number" step="0.1" />
+          </div>
         </div>
-        <div class="row flex">
-          <button id="savePromptBtn">更新 Prompt</button>
-          <button id="refreshStatusBtn" class="secondary">刷新状态</button>
+        <div class="row">
+          <label for="stickerFilterKeywordsInput">过滤关键词（逗号分隔）</label>
+          <textarea
+            id="stickerFilterKeywordsInput"
+            style="min-height: 82px;"
+            placeholder="浮夸, 低俗, 吵闹, 恶臭"
+          ></textarea>
         </div>
-        <div class="row flex">
-          <button id="resetEnergyBtn" class="warn">补满精力</button>
-          <button id="resetMoodBtn" class="warn">重置心情</button>
-          <button id="resetAllBtn" class="danger">同时重置</button>
+        <div class="row">
+          <button id="saveStickerSettingsBtn">保存收录设置</button>
         </div>
       </section>
 
       <section class="card">
-        <h2>知识库文件管理</h2>
+        <h2>用户权重与本地目录</h2>
+        <div class="row muted">
+          本地目录：<code id="stickerLocalDirText">-</code>
+        </div>
+        <div class="row split">
+          <button id="openStickerDirBtn" class="secondary">打开本地目录</button>
+          <button id="refreshStickerFilesBtn" class="secondary">刷新文件列表</button>
+        </div>
         <div class="row">
-          <div class="flex">
-            <button id="refreshKnowledgeBtn" class="secondary">刷新文件列表</button>
-            <button id="reindexBtn" class="warn">重新索引</button>
+          <label>新增或修改用户权重（0 = 黑名单）</label>
+          <div class="triple">
+            <input id="stickerWeightUserIdInput" placeholder="用户 ID" />
+            <input id="stickerWeightValueInput" placeholder="权重，例如 2.0" />
+            <button id="saveStickerWeightBtn">保存权重</button>
           </div>
         </div>
         <div class="row">
-          <label>文件列表</label>
+          <label>用户权重列表</label>
+          <div id="stickerUserWeightsList" class="list-box"></div>
+        </div>
+        <div class="row">
+          <label>本地表情包文件（支持预览）</label>
+          <div id="stickerFilesList" class="list-box"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>记忆管理与对话流</h2>
+        <div class="row muted">
+          数据来自 <code>/api/status.short_term_memory.memory_manager</code>。
+        </div>
+        <div class="row">
+          <label>会话列表（短期记忆）</label>
+          <div id="memorySessionList" class="list-box"></div>
+        </div>
+        <div class="row">
+          <label for="clearSessionInput">清理会话记忆 (session_id)</label>
+          <div class="split">
+            <input id="clearSessionInput" placeholder="例如 group:123456 或 private:10001" />
+            <button id="clearSessionBtn" class="danger">清理会话记忆</button>
+          </div>
+        </div>
+        <div class="row">
+          <label>会话对话流预览（recent_turns）</label>
+          <div id="sessionDialogPreview" class="dialog-panel"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>运行控制</h2>
+        <div class="row muted">通过 <code>/api/action/reset</code> 调整状态，并可调用 <code>/api/action/restart</code> 或 <code>/api/action/shutdown</code>。</div>
+        <div class="row">
+          <button id="resetEnergyBtn" class="warn">补满精力</button>
+        </div>
+        <div class="row split" style="margin-top: 8px;">
+          <button id="restartBotBtn" class="warn">一键重启纸月进程</button>
+          <button id="shutdownBotBtn" class="danger">一键关闭纸月进程</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>知识库管理</h2>
+        <div class="row split">
+          <button id="refreshKnowledgeBtn" class="secondary">刷新文件列表</button>
+          <button id="reindexBtn" class="warn">重建知识索引</button>
+        </div>
+        <div class="row">
+          <label>文本文件列表（/api/knowledge/files）</label>
           <div id="knowledgeList" class="list-box"></div>
         </div>
         <div class="row">
-          <label>当前文件路径</label>
+          <label for="knowledgePathInput">文件路径（相对知识目录）</label>
           <input id="knowledgePathInput" placeholder="例如 notes/faq.md" />
         </div>
         <div class="row">
-          <label>文件内容</label>
+          <label for="knowledgeContent">文件内容</label>
           <textarea id="knowledgeContent"></textarea>
         </div>
-        <div class="row flex">
+        <div class="row">
           <button id="saveKnowledgeBtn">保存文件</button>
         </div>
       </section>
 
       <section class="card">
-        <h2>插件管理（热加载）</h2>
+        <div class="section-head">
+          <h2>插件管理</h2>
+          <button id="togglePluginsBtn" class="secondary">展开</button>
+        </div>
         <div class="row">
           <button id="refreshPluginsBtn" class="secondary">刷新插件状态</button>
         </div>
-        <div id="pluginCards" class="plugins"></div>
+        <div id="pluginsPanel" class="plugins-panel collapsed">
+          <div id="pluginCards" class="plugins"></div>
+        </div>
       </section>
 
       <section class="card">
-        <h2>双路日志流 (bot / onebot)</h2>
-        <pre id="logView"></pre>
+        <h2>背景管理</h2>
+        <div class="row muted">
+          使用 <code>/api/ui/background</code>，支持 URL 或本地图片上传。
+        </div>
+        <div class="row">
+          <label for="backgroundUrlInput">背景 URL</label>
+          <div class="split">
+            <input id="backgroundUrlInput" placeholder="https://... 或 /assets/uploads/..." />
+            <button id="saveBackgroundBtn">保存 URL</button>
+          </div>
+        </div>
+        <div class="row">
+          <label for="backgroundFileInput">上传背景图</label>
+          <div class="split">
+            <input id="backgroundFileInput" type="file" accept=".png,.jpg,.jpeg,.gif,.webp" />
+            <button id="uploadBackgroundBtn" class="secondary">上传并应用</button>
+          </div>
+        </div>
       </section>
-    </div>
-  </div>
+
+      <section class="card span-2">
+        <div class="section-head">
+          <h2>三控制台日志</h2>
+          <div class="console-tabs">
+            <button id="systemTabBtn" class="console-tab-btn active">系统控制台</button>
+            <button id="napcatTabBtn" class="console-tab-btn">NapCat 日志</button>
+            <button id="actionTabBtn" class="console-tab-btn">行为日志</button>
+          </div>
+        </div>
+        <div class="console-panels">
+          <div id="systemConsolePanel" class="console-panel active">
+            <pre id="systemLogView" class="console"></pre>
+          </div>
+          <div id="napcatConsolePanel" class="console-panel">
+            <pre id="napcatLogView" class="console"></pre>
+          </div>
+          <div id="actionConsolePanel" class="console-panel">
+            <pre id="actionLogView" class="console"></pre>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
 
   <script>
-    const tokenInput = document.getElementById("tokenInput");
+    const backendBaseUrlInput = document.getElementById("backendBaseUrlInput");
+    const connectLogsBtn = document.getElementById("connectLogsBtn");
+    const refreshAllBtn = document.getElementById("refreshAllBtn");
+    const refreshStatusBtn = document.getElementById("refreshStatusBtn");
+    const savePromptBtn = document.getElementById("savePromptBtn");
+    const saveMasterBtn = document.getElementById("saveMasterBtn");
+    const addGroupBtn = document.getElementById("addGroupBtn");
+    const saveKnowledgeBtn = document.getElementById("saveKnowledgeBtn");
+    const refreshKnowledgeBtn = document.getElementById("refreshKnowledgeBtn");
+    const reindexBtn = document.getElementById("reindexBtn");
+    const refreshPluginsBtn = document.getElementById("refreshPluginsBtn");
+    const togglePluginsBtn = document.getElementById("togglePluginsBtn");
+    const applyPresetBtn = document.getElementById("applyPresetBtn");
+    const clearSessionBtn = document.getElementById("clearSessionBtn");
+    const saveBackgroundBtn = document.getElementById("saveBackgroundBtn");
+    const uploadBackgroundBtn = document.getElementById("uploadBackgroundBtn");
+    const saveStickerSettingsBtn = document.getElementById("saveStickerSettingsBtn");
+    const openStickerDirBtn = document.getElementById("openStickerDirBtn");
+    const refreshStickerFilesBtn = document.getElementById("refreshStickerFilesBtn");
+    const saveStickerWeightBtn = document.getElementById("saveStickerWeightBtn");
+    const restartBotBtn = document.getElementById("restartBotBtn");
+    const shutdownBotBtn = document.getElementById("shutdownBotBtn");
+
     const statusLine = document.getElementById("statusLine");
+    const apiStateChip = document.getElementById("apiStateChip");
+    const logSocketState = document.getElementById("logSocketState");
+    const systemLogView = document.getElementById("systemLogView");
+    const napcatLogView = document.getElementById("napcatLogView");
+    const actionLogView = document.getElementById("actionLogView");
+    const systemTabBtn = document.getElementById("systemTabBtn");
+    const napcatTabBtn = document.getElementById("napcatTabBtn");
+    const actionTabBtn = document.getElementById("actionTabBtn");
+    const systemConsolePanel = document.getElementById("systemConsolePanel");
+    const napcatConsolePanel = document.getElementById("napcatConsolePanel");
+    const actionConsolePanel = document.getElementById("actionConsolePanel");
+    const pluginsPanel = document.getElementById("pluginsPanel");
+
     const energyText = document.getElementById("energyText");
-    const moodText = document.getElementById("moodText");
+    const energyTierText = document.getElementById("energyTierText");
     const uptimeText = document.getElementById("uptimeText");
+    const startedAtText = document.getElementById("startedAtText");
+    const fatigueText = document.getElementById("fatigueText");
+    const forcedRestText = document.getElementById("forcedRestText");
+    const lastActiveText = document.getElementById("lastActiveText");
     const energyBar = document.getElementById("energyBar");
-    const moodBar = document.getElementById("moodBar");
-    const masterIdInput = document.getElementById("masterIdInput");
-    const groupList = document.getElementById("groupList");
+    const modelInfo = document.getElementById("modelInfo");
+
+    const personaPresetSelect = document.getElementById("personaPresetSelect");
     const promptInput = document.getElementById("promptInput");
+    const masterIdInput = document.getElementById("masterIdInput");
+    const addGroupIdInput = document.getElementById("addGroupIdInput");
+    const groupList = document.getElementById("groupList");
+    const stickerEnabledToggle = document.getElementById("stickerEnabledToggle");
+    const stickerCollectionRateInput = document.getElementById("stickerCollectionRateInput");
+    const stickerStorageModeSelect = document.getElementById("stickerStorageModeSelect");
+    const stickerFilterKeywordsInput = document.getElementById("stickerFilterKeywordsInput");
+    const stickerPersonaFilterToggle = document.getElementById("stickerPersonaFilterToggle");
+    const stickerLlmFilterToggle = document.getElementById("stickerLlmFilterToggle");
+    const stickerLlmProbabilityInput = document.getElementById("stickerLlmProbabilityInput");
+    const stickerLlmMoodThresholdInput = document.getElementById("stickerLlmMoodThresholdInput");
+    const stickerLocalDirText = document.getElementById("stickerLocalDirText");
+    const stickerWeightUserIdInput = document.getElementById("stickerWeightUserIdInput");
+    const stickerWeightValueInput = document.getElementById("stickerWeightValueInput");
+    const stickerUserWeightsList = document.getElementById("stickerUserWeightsList");
+    const stickerFilesList = document.getElementById("stickerFilesList");
+
+    const clearSessionInput = document.getElementById("clearSessionInput");
+    const memorySessionList = document.getElementById("memorySessionList");
+    const sessionDialogPreview = document.getElementById("sessionDialogPreview");
+
     const knowledgeList = document.getElementById("knowledgeList");
     const knowledgePathInput = document.getElementById("knowledgePathInput");
     const knowledgeContent = document.getElementById("knowledgeContent");
+
     const pluginCards = document.getElementById("pluginCards");
-    const logView = document.getElementById("logView");
-    const logSocketState = document.getElementById("logSocketState");
-    const connectLogsBtn = document.getElementById("connectLogsBtn");
+
+    const backgroundUrlInput = document.getElementById("backgroundUrlInput");
+    const backgroundFileInput = document.getElementById("backgroundFileInput");
 
     let ws = null;
+    let wsReconnectTimer = null;
+    let wsAutoReconnect = true;
+    let activeConsoleTab = "system";
     let selectedKnowledgePath = "";
     let knowledgeFiles = [];
+    let memorySessions = [];
+    let stickerFiles = [];
+    let selectedSessionId = "";
+    let statusRefreshTimer = null;
+    let runtimeRefreshTimer = null;
+    const API_BASE_URL = "http://localhost:18002/api";
+    const LOG_WS_URL = "ws://localhost:18002/ws";
+    backendBaseUrlInput.value = API_BASE_URL;
 
-    tokenInput.value = localStorage.getItem("zhiyue_admin_token") || "";
-    tokenInput.addEventListener("change", () => {
-      localStorage.setItem("zhiyue_admin_token", tokenInput.value.trim());
-    });
+    const personaPresets = {
+      "冷静理性": "你是一个冷静理性、结论优先的群友。回答尽量短，先给判断再给原因。",
+      "活跃聊天": "你是一个活跃但克制的群友。多用自然口语，保持简短，不说套话。",
+      "技术助手": "你擅长技术讨论。优先给可执行步骤和风险提示，避免空泛描述。",
+      "纸月默认风格": "保持自然、克制、像真实群友。默认短答，避免过度展开和重复。"
+    };
 
-    function authHeaders(base = {}) {
-      const token = tokenInput.value.trim();
-      const headers = Object.assign({}, base);
-      if (token) {
-        headers["X-Access-Token"] = token;
-      }
-      return headers;
+    function initPresetOptions() {
+      personaPresetSelect.innerHTML = "";
+      Object.keys(personaPresets).forEach((name) => {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        personaPresetSelect.appendChild(option);
+      });
+      personaPresetSelect.value = "纸月默认风格";
     }
 
-    async function requestJSON(url, options = {}) {
-      const init = Object.assign({ method: "GET" }, options);
-      init.headers = authHeaders(init.headers || {});
-      const response = await fetch(url, init);
-      const text = await response.text();
-      let data = {};
-      try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
-      if (!response.ok) {
-        throw new Error(data.detail || `HTTP ${response.status}`);
+    function setApiState(text, klass = "") {
+      apiStateChip.textContent = text;
+      apiStateChip.className = `chip ${klass}`.trim();
+    }
+
+    function setSocketState(text, klass = "") {
+      logSocketState.textContent = text;
+      logSocketState.className = `chip ${klass}`.trim();
+    }
+
+    function normalizeLogChannel(raw) {
+      const value = String(raw || "").trim().toLowerCase();
+      if (value === "action") {
+        return "action";
       }
-      return data;
+      if (value === "napcat") {
+        return "napcat";
+      }
+      return "system";
+    }
+
+    function inferLogChannel(source, message) {
+      const src = String(source || "").toLowerCase();
+      const msg = String(message || "").toLowerCase();
+      if (src.includes("napcat")) {
+        return "napcat";
+      }
+      if (src.includes("plugin") || src.includes("action") || src.includes("agent")) {
+        return "action";
+      }
+      const actionMarkers = [
+        "rx post_type",
+        "tx action",
+        "post_type=",
+        "message_type=",
+        "[plugins]",
+        "[groups]",
+        "[stickers]",
+        "[reset]",
+        "[memory]",
+      ];
+      if (actionMarkers.some((token) => msg.includes(token))) {
+        return "action";
+      }
+      return "system";
+    }
+
+    function setActiveConsoleTab(tab) {
+      const normalized = tab === "action" ? "action" : (tab === "napcat" ? "napcat" : "system");
+      activeConsoleTab = normalized;
+      const systemActive = normalized === "system";
+      const napcatActive = normalized === "napcat";
+      const actionActive = normalized === "action";
+      systemTabBtn.classList.toggle("active", systemActive);
+      napcatTabBtn.classList.toggle("active", napcatActive);
+      actionTabBtn.classList.toggle("active", actionActive);
+      systemConsolePanel.classList.toggle("active", systemActive);
+      napcatConsolePanel.classList.toggle("active", napcatActive);
+      actionConsolePanel.classList.toggle("active", actionActive);
+    }
+
+    function togglePluginsPanel(forceCollapsed) {
+      const collapsed = typeof forceCollapsed === "boolean"
+        ? forceCollapsed
+        : !pluginsPanel.classList.contains("collapsed");
+      pluginsPanel.classList.toggle("collapsed", collapsed);
+      togglePluginsBtn.textContent = collapsed ? "展开" : "收起";
+    }
+
+    function appendLineToView(view, line, klass = "") {
+      const el = document.createElement("div");
+      el.textContent = line;
+      if (klass) {
+        el.className = klass;
+      }
+      view.appendChild(el);
+      while (view.children.length > 1200) {
+        view.removeChild(view.firstChild);
+      }
+      view.scrollTop = view.scrollHeight;
+    }
+
+    function appendLog(line, klass = "", channel = "") {
+      const resolvedChannel = String(channel || "").trim()
+        ? normalizeLogChannel(channel)
+        : inferLogChannel("local", line);
+      if (resolvedChannel === "napcat") {
+        appendLineToView(napcatLogView, line, klass);
+        // Keep key NapCat runtime lines visible in system console as requested.
+        appendLineToView(systemLogView, line, klass);
+        return;
+      }
+      if (resolvedChannel === "action") {
+        appendLineToView(actionLogView, line, klass);
+        return;
+      }
+      appendLineToView(systemLogView, line, klass);
+    }
+
+    function formatLocalTime(value) {
+      if (!value) {
+        return "-";
+      }
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return String(value);
+      }
+      return date.toLocaleString();
     }
 
     function formatUptime(seconds) {
@@ -433,118 +1146,641 @@
       return `${h}h ${m}m ${s}s`;
     }
 
-    function appendLog(line, klass = "") {
-      const el = document.createElement("div");
-      if (klass) {
-        el.className = klass;
+    function normalizeErrorDetail(detail, fallback) {
+      if (!detail) {
+        return fallback;
       }
-      el.textContent = line;
-      logView.appendChild(el);
-      while (logView.children.length > 1200) {
-        logView.removeChild(logView.firstChild);
+      if (typeof detail === "string") {
+        return detail;
       }
-      logView.scrollTop = logView.scrollHeight;
+      try {
+        return JSON.stringify(detail);
+      } catch {
+        return fallback;
+      }
     }
 
-    function setSocketState(text, klass) {
-      logSocketState.textContent = text;
-      logSocketState.className = `chip ${klass || ""}`.trim();
+    function resolveApiUrl(path) {
+      if (!path) {
+        return API_BASE_URL;
+      }
+      if (/^https?:\/\//i.test(path)) {
+        return path;
+      }
+      const raw = String(path);
+      const withoutApiPrefix = raw.replace(/^\/?api(\/|$)/i, "/");
+      const normalized = withoutApiPrefix.startsWith("/") ? withoutApiPrefix : `/${withoutApiPrefix}`;
+      return `${API_BASE_URL}${normalized}`;
     }
 
-    function connectLogStream() {
-      if (ws) {
-        ws.close();
-        ws = null;
+    async function apiRequest(path, options = {}) {
+      const method = options.method || "GET";
+      const init = { method };
+
+      const incomingHeaders = options.headers || {};
+      const headers = Object.assign({}, incomingHeaders);
+
+      if (options.json !== undefined) {
+        headers["Content-Type"] = "application/json";
+        init.body = JSON.stringify(options.json);
+      } else if (options.body !== undefined) {
+        init.body = options.body;
       }
-      const token = tokenInput.value.trim();
-      if (!token) {
-        appendLog("[local] 请先输入 Access Token", "status-warn");
-        setSocketState("Logs: no token", "status-warn");
+
+      init.headers = headers;
+
+      const response = await fetch(resolveApiUrl(path), init);
+      const text = await response.text();
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = { raw: text };
+      }
+
+      if (!response.ok) {
+        throw new Error(normalizeErrorDetail(data.detail, `HTTP ${response.status}`));
+      }
+      return data;
+    }
+
+    function setStatusLine(text, type = "") {
+      statusLine.textContent = text;
+      statusLine.className = type ? type : "muted";
+    }
+
+    function stopAutoRefreshTimers() {
+      if (statusRefreshTimer) {
+        clearInterval(statusRefreshTimer);
+        statusRefreshTimer = null;
+      }
+      if (runtimeRefreshTimer) {
+        clearInterval(runtimeRefreshTimer);
+        runtimeRefreshTimer = null;
+      }
+    }
+
+    function renderModelInfo(models) {
+      modelInfo.innerHTML = "";
+      if (!models || typeof models !== "object") {
+        modelInfo.textContent = "暂无模型信息";
         return;
       }
-      const protocol = location.protocol === "https:" ? "wss" : "ws";
-      const url = `${protocol}://${location.host}/ws/logs?token=${encodeURIComponent(token)}`;
-      ws = new WebSocket(url);
-      setSocketState("Logs: connecting", "status-warn");
-      ws.onopen = () => {
-        setSocketState("Logs: connected", "status-ok");
-        appendLog("[local] 日志流已连接", "status-ok");
-      };
-      ws.onmessage = (event) => {
-        try {
-          const row = JSON.parse(event.data);
-          const timestamp = String(row.timestamp || "").replace("T", " ").replace("Z", " UTC");
-          const source = String(row.source || "bot");
-          const message = String(row.message || "");
-          appendLog(`[${timestamp}] [${source}] ${message}`);
-        } catch (err) {
-          appendLog(`[local] 日志解码失败: ${err.message}`, "status-error");
+
+      function formatModelEntry(entry) {
+        if (entry === null || entry === undefined) {
+          return "-";
         }
-      };
-      ws.onerror = () => {
-        setSocketState("Logs: error", "status-error");
-      };
-      ws.onclose = () => {
-        setSocketState("Logs: disconnected", "status-warn");
-      };
+        if (typeof entry === "string" || typeof entry === "number" || typeof entry === "boolean") {
+          return String(entry);
+        }
+        if (typeof entry === "object") {
+          const route = String(entry.route || "").trim();
+          const model = String(entry.model || "").trim();
+          const endpoint = String(entry.endpoint || "").trim();
+          const parts = [];
+          if (route) {
+            parts.push(`route=${route}`);
+          }
+          if (model) {
+            parts.push(`model=${model}`);
+          }
+          if (endpoint) {
+            parts.push(`endpoint=${endpoint}`);
+          }
+          if (parts.length) {
+            return parts.join(" | ");
+          }
+          try {
+            return JSON.stringify(entry);
+          } catch {
+            return String(entry);
+          }
+        }
+        return String(entry);
+      }
+
+      function formatModelField(value) {
+        if (Array.isArray(value)) {
+          if (!value.length) {
+            return "-";
+          }
+          return value.map((item, idx) => `${idx + 1}) ${formatModelEntry(item)}`).join("\n");
+        }
+        return formatModelEntry(value);
+      }
+
+      const lines = [];
+      lines.push(`chat:\n${formatModelField(models.chat)}`);
+      lines.push(`auxiliary:\n${formatModelField(models.auxiliary)}`);
+      lines.push(`embedding: ${formatModelField(models.embedding)}`);
+      lines.push(`vision: ${formatModelField(models.vision)}`);
+      modelInfo.textContent = lines.join("\n");
     }
 
-    async function refreshStatus() {
-      try {
-        const data = await requestJSON("/api/status");
-        const energy = Number(data.energy || 0);
-        const mood = Number(data.mood || 0);
-        energyText.textContent = `${energy.toFixed(1)} / 100`;
-        moodText.textContent = `${mood.toFixed(1)} / 100`;
-        uptimeText.textContent = formatUptime(data.uptime_seconds || 0);
-        energyBar.style.width = `${Math.max(0, Math.min(100, energy))}%`;
-        moodBar.style.width = `${Math.max(0, Math.min(100, mood))}%`;
-        statusLine.textContent = `connected, started at: ${data.runtime_started_at || "-"}`;
-      } catch (err) {
-        statusLine.textContent = `状态获取失败: ${err.message}`;
-      }
+    function renderRuntimeStatus(data) {
+      const energy = Number(data.energy || 0);
+
+      energyText.textContent = `${energy.toFixed(1)} / 100`;
+      energyTierText.textContent = String(data.energy_tier || "-");
+      energyBar.style.width = `${Math.max(0, Math.min(100, energy))}%`;
+
+      uptimeText.textContent = formatUptime(data.uptime_seconds || 0);
+      startedAtText.textContent = formatLocalTime(data.runtime_started_at || "");
+      fatigueText.textContent = data.fatigue_mode ? "是" : "否";
+      forcedRestText.textContent = data.forced_rest ? "是" : "否";
+      lastActiveText.textContent = formatLocalTime(data.last_active_at || "");
+
+      renderModelInfo(data.models || {});
+
+      const shortTerm = data.short_term_memory || {};
+      const sessions = Array.isArray(shortTerm.memory_manager) ? shortTerm.memory_manager : [];
+      renderMemorySessions(sessions);
     }
 
     function renderGroupSwitches(groups) {
       groupList.innerHTML = "";
       if (!Array.isArray(groups) || groups.length === 0) {
-        groupList.innerHTML = `<div class="muted">未配置群组</div>`;
+        groupList.innerHTML = `<div class="muted">未配置任何群</div>`;
         return;
       }
+
       groups.forEach((item) => {
-        const wrap = document.createElement("div");
-        wrap.className = "inline-switch";
+        const row = document.createElement("div");
+        row.className = "switch-item";
+
         const label = document.createElement("div");
-        label.textContent = `群 ${item.group_id}`;
-        const input = document.createElement("input");
-        input.type = "checkbox";
-        input.checked = Boolean(item.enabled);
-        input.addEventListener("change", async () => {
+        label.textContent = `群 ${item.group_id} | ${item.enabled ? "已启用" : "已禁用"}`;
+
+        const toggle = document.createElement("input");
+        toggle.type = "checkbox";
+        toggle.checked = Boolean(item.enabled);
+        toggle.addEventListener("change", async () => {
+          const wanted = toggle.checked;
           try {
-            await requestJSON(`/api/groups/${item.group_id}`, {
+            await apiRequest(`/api/groups/${item.group_id}`, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ enabled: input.checked }),
+              json: { enabled: wanted },
             });
-            appendLog(`[config] group ${item.group_id} => ${input.checked ? "enabled" : "disabled"}`, "status-ok");
+            label.textContent = `群 ${item.group_id} | ${wanted ? "已启用" : "已禁用"}`;
+            appendLog(`[groups] group=${item.group_id} enabled=${wanted}`, "status-ok");
           } catch (err) {
-            appendLog(`[config] 群开关失败: ${err.message}`, "status-error");
-            input.checked = !input.checked;
+            toggle.checked = !wanted;
+            appendLog(`[groups] 更新失败: ${err.message}`, "status-error");
           }
         });
-        wrap.appendChild(label);
-        wrap.appendChild(input);
-        groupList.appendChild(wrap);
+
+        row.appendChild(label);
+        row.appendChild(toggle);
+        groupList.appendChild(row);
       });
+    }
+
+    function parseStickerKeywords(rawValue) {
+      const source = String(rawValue || "");
+      return source
+        .split(/[,\n\r;|]/g)
+        .map((item) => item.trim())
+        .filter((item, index, arr) => item && arr.indexOf(item) === index);
+    }
+
+    function renderStickerSettings(sticker) {
+      if (!sticker || typeof sticker !== "object") {
+        return;
+      }
+      stickerEnabledToggle.checked = Boolean(sticker.enabled);
+      stickerCollectionRateInput.value = Number(sticker.collection_rate ?? 0.1).toFixed(2);
+      stickerStorageModeSelect.value = String(sticker.storage_mode || "local");
+      const keywords = Array.isArray(sticker.filter_keywords) ? sticker.filter_keywords : [];
+      stickerFilterKeywordsInput.value = keywords.join(", ");
+      stickerPersonaFilterToggle.checked = Boolean(sticker.enable_persona_filter);
+      stickerLlmFilterToggle.checked = Boolean(sticker.llm_filter_enabled);
+      stickerLlmProbabilityInput.value = Number(sticker.llm_filter_probability ?? 0.2).toFixed(2);
+      stickerLlmMoodThresholdInput.value = Number(sticker.llm_filter_mood_threshold ?? 50).toFixed(1);
+      stickerLocalDirText.textContent = String(sticker.local_dir || "-");
+      renderStickerUserWeights(sticker.user_weights || {});
+    }
+
+    function renderStickerUserWeights(weights) {
+      stickerUserWeightsList.innerHTML = "";
+      if (!weights || typeof weights !== "object" || Array.isArray(weights)) {
+        stickerUserWeightsList.innerHTML = `<div class="muted">暂无权重配置</div>`;
+        return;
+      }
+      const rows = Object.entries(weights)
+        .map(([userId, weight]) => ({ userId, weight: Number(weight) }))
+        .sort((left, right) => left.userId.localeCompare(right.userId));
+      if (!rows.length) {
+        stickerUserWeightsList.innerHTML = `<div class="muted">暂无权重配置</div>`;
+        return;
+      }
+
+      rows.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "inline-row";
+
+        const label = document.createElement("div");
+        label.innerHTML = `<span class="mono">${item.userId}</span> → <span class="mono">${item.weight.toFixed(3)}</span>`;
+
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "danger";
+        removeBtn.textContent = "删除";
+        removeBtn.addEventListener("click", () => deleteStickerUserWeight(item.userId));
+
+        row.appendChild(label);
+        row.appendChild(removeBtn);
+        stickerUserWeightsList.appendChild(row);
+      });
+    }
+
+    function renderStickerFiles(files) {
+      stickerFilesList.innerHTML = "";
+      const rows = Array.isArray(files) ? files : [];
+      if (!rows.length) {
+        stickerFilesList.innerHTML = `<div class="muted">暂无本地表情包文件</div>`;
+        return;
+      }
+
+      rows.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "inline-row sticker-file-row";
+
+        const updatedAt = Number(item.updated_at || 0) > 0
+          ? formatLocalTime(Number(item.updated_at) * 1000)
+          : "-";
+        const contentUrl = item.content_url ? resolveApiUrl(String(item.content_url)) : "";
+
+        const main = document.createElement("div");
+        main.className = "sticker-file-main";
+
+        const thumb = document.createElement("img");
+        thumb.className = "sticker-thumb";
+        thumb.alt = String(item.file_name || "sticker");
+        if (contentUrl) {
+          thumb.src = contentUrl;
+          thumb.loading = "lazy";
+        } else {
+          thumb.style.display = "none";
+        }
+
+        const text = document.createElement("div");
+        text.className = "sticker-file-meta";
+        const summary = String(item.summary || "").trim();
+        text.innerHTML = `<span class="mono">${item.file_name || "-"}</span> | ${item.size || 0}B | ${updatedAt}${summary ? `<br/>${summary}` : ""}`;
+
+        main.appendChild(thumb);
+        main.appendChild(text);
+
+        const actions = document.createElement("div");
+        actions.className = "sticker-file-actions";
+
+        if (contentUrl) {
+          const openLink = document.createElement("a");
+          openLink.className = "sticker-open-link";
+          openLink.textContent = "查看";
+          openLink.href = contentUrl;
+          openLink.target = "_blank";
+          openLink.rel = "noopener noreferrer";
+          actions.appendChild(openLink);
+        }
+
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "danger";
+        removeBtn.textContent = "删除";
+        removeBtn.addEventListener("click", () => deleteStickerFile(item.file_name));
+        actions.appendChild(removeBtn);
+
+        row.appendChild(main);
+        row.appendChild(actions);
+        stickerFilesList.appendChild(row);
+      });
+    }
+
+    function renderMemorySessions(sessions) {
+      memorySessions = Array.isArray(sessions) ? sessions : [];
+      memorySessionList.innerHTML = "";
+
+      if (!memorySessions.length) {
+        memorySessionList.innerHTML = `<div class="muted">暂无短期会话记忆</div>`;
+        sessionDialogPreview.textContent = "暂无 recent_turns 数据。";
+        return;
+      }
+
+      const hasSelected = memorySessions.some((item) => item.session_id === selectedSessionId);
+      if (!hasSelected) {
+        selectedSessionId = String(memorySessions[0].session_id || "");
+      }
+
+      memorySessions.forEach((session) => {
+        const el = document.createElement("div");
+        el.className = "list-item" + (session.session_id === selectedSessionId ? " active" : "");
+        const latest = formatLocalTime(session.latest_at || "");
+        el.textContent = `${session.session_id} | turns=${session.turn_count} | group=${session.group_id} | latest=${latest}`;
+        el.addEventListener("click", () => {
+          selectedSessionId = session.session_id;
+          clearSessionInput.value = session.session_id;
+          renderMemorySessions(memorySessions);
+        });
+        memorySessionList.appendChild(el);
+      });
+
+      const current = memorySessions.find((item) => item.session_id === selectedSessionId) || memorySessions[0];
+      renderSessionDialog(current);
+    }
+
+    function renderSessionDialog(session) {
+      sessionDialogPreview.innerHTML = "";
+      if (!session || !Array.isArray(session.recent_turns) || !session.recent_turns.length) {
+        sessionDialogPreview.textContent = "该会话暂无 recent_turns。";
+        return;
+      }
+
+      session.recent_turns.forEach((turn) => {
+        const row = document.createElement("div");
+        row.className = "dialog-turn";
+
+        const meta = document.createElement("div");
+        const role = String(turn.role || "unknown");
+        const speaker = String(turn.speaker || "unknown");
+        const created = formatLocalTime(turn.created_at || "");
+        meta.innerHTML = `<span class="dialog-role">${role}</span> | ${speaker} | ${created}`;
+
+        const content = document.createElement("div");
+        content.textContent = String(turn.content || "");
+
+        row.appendChild(meta);
+        row.appendChild(content);
+        sessionDialogPreview.appendChild(row);
+      });
+    }
+
+    function renderKnowledgeFiles(files) {
+      knowledgeList.innerHTML = "";
+      if (!Array.isArray(files) || files.length === 0) {
+        knowledgeList.innerHTML = `<div class="muted">暂无文本文件</div>`;
+        return;
+      }
+
+      files.forEach((file) => {
+        const row = document.createElement("div");
+        row.className = "list-item" + (selectedKnowledgePath === file.path ? " active" : "");
+        const updated = file.updated_at ? formatLocalTime(file.updated_at * 1000) : "-";
+        row.textContent = `${file.path} (${file.size}B, ${updated})`;
+        row.addEventListener("click", () => loadKnowledgeFile(file.path));
+        knowledgeList.appendChild(row);
+      });
+    }
+
+    function buildPluginCard(moduleInfo) {
+      const card = document.createElement("div");
+      card.className = "plugin-card";
+
+      const name = document.createElement("div");
+      name.className = "plugin-name";
+      name.textContent = moduleInfo.module || "unknown";
+
+      const meta = document.createElement("div");
+      meta.className = "plugin-meta";
+      const statusText = moduleInfo.loaded ? "loaded" : "unloaded";
+      const errText = moduleInfo.error ? ` | error=${moduleInfo.error}` : "";
+      meta.textContent = `status=${statusText} | enabled=${moduleInfo.enabled} | count=${moduleInfo.plugin_count}${errText}`;
+
+      const actions = document.createElement("div");
+      actions.className = "plugin-actions";
+
+      const loadBtn = document.createElement("button");
+      loadBtn.textContent = "Load";
+      loadBtn.addEventListener("click", () => pluginAction(moduleInfo.module, "load"));
+
+      const unloadBtn = document.createElement("button");
+      unloadBtn.className = "secondary";
+      unloadBtn.textContent = "Unload";
+      unloadBtn.addEventListener("click", () => pluginAction(moduleInfo.module, "unload"));
+
+      const reloadBtn = document.createElement("button");
+      reloadBtn.className = "warn";
+      reloadBtn.textContent = "Reload";
+      reloadBtn.addEventListener("click", () => pluginAction(moduleInfo.module, "reload"));
+
+      actions.appendChild(loadBtn);
+      actions.appendChild(unloadBtn);
+      actions.appendChild(reloadBtn);
+
+      card.appendChild(name);
+      card.appendChild(meta);
+      card.appendChild(actions);
+      return card;
+    }
+
+    function clearWsReconnectTimer() {
+      if (wsReconnectTimer) {
+        clearTimeout(wsReconnectTimer);
+        wsReconnectTimer = null;
+      }
+    }
+
+    function scheduleWsReconnect(delayMs = 3000) {
+      if (!wsAutoReconnect) {
+        return;
+      }
+      clearWsReconnectTimer();
+      wsReconnectTimer = setTimeout(() => {
+        wsReconnectTimer = null;
+        connectLogStream(false);
+      }, Math.max(1000, Number(delayMs || 3000)));
+    }
+
+    function connectLogStream(forceRestart = false) {
+      wsAutoReconnect = true;
+      clearWsReconnectTimer();
+
+      if (ws) {
+        const state = ws.readyState;
+        if (!forceRestart && (state === WebSocket.OPEN || state === WebSocket.CONNECTING)) {
+          return;
+        }
+        try {
+          ws.close();
+        } catch {
+        }
+        ws = null;
+      }
+
+      const currentWs = new WebSocket(LOG_WS_URL);
+      ws = currentWs;
+      setSocketState("日志流: 连接中", "status-warn");
+
+      currentWs.onopen = () => {
+        if (ws !== currentWs) {
+          return;
+        }
+        setSocketState("日志流: 已连接", "status-ok");
+        appendLog(`[logs] websocket connected: ${LOG_WS_URL}`, "status-ok", "system");
+      };
+
+      currentWs.onmessage = (event) => {
+        if (ws !== currentWs) {
+          return;
+        }
+        try {
+          const raw = String(event.data ?? "");
+          let payload = null;
+          try {
+            payload = JSON.parse(raw);
+          } catch {
+            payload = null;
+          }
+
+          if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+            const timestamp = String(payload.timestamp || payload.time || "").replace("T", " ").replace("Z", " UTC");
+            const source = String(payload.source || payload.level || payload.type || "ws");
+            const message = String(payload.message || payload.msg || payload.content || JSON.stringify(payload));
+            let channel = "";
+            if (payload.channel) {
+              channel = normalizeLogChannel(payload.channel);
+            } else if (String(payload.type || "").trim().toLowerCase() === "action") {
+              channel = "action";
+            } else {
+              channel = inferLogChannel(source, message);
+            }
+            const prefix = timestamp ? `[${timestamp}]` : "[ws]";
+            appendLog(`${prefix} [${source}] ${message}`, "", channel);
+            return;
+          }
+
+          appendLog(raw || "[ws] <empty>", "", "system");
+        } catch (err) {
+          appendLog(`[logs] 渲染失败: ${err.message}`, "status-error", "system");
+        }
+      };
+
+      currentWs.onerror = () => {
+        if (ws !== currentWs) {
+          return;
+        }
+        setSocketState("日志流: 错误", "status-error");
+      };
+
+      currentWs.onclose = () => {
+        if (ws !== currentWs) {
+          return;
+        }
+        ws = null;
+        setSocketState("日志流: 已断开", "status-warn");
+        scheduleWsReconnect(2500);
+      };
+    }
+
+    async function refreshStatus() {
+      try {
+        const data = await apiRequest("/api/status");
+        renderRuntimeStatus(data);
+        setStatusLine(`状态已更新: ${new Date().toLocaleTimeString()}`, "status-ok");
+        setApiState("API 已连接", "status-ok");
+      } catch (err) {
+        setStatusLine(`状态获取失败: ${err.message}`, "status-error");
+        setApiState("API 异常", "status-error");
+      }
     }
 
     async function refreshRuntimeConfig() {
       try {
-        const data = await requestJSON("/api/config/runtime");
-        masterIdInput.value = String(data.master_id || 0);
-        renderGroupSwitches(data.groups || []);
+        const [runtimeData, groupsData] = await Promise.all([
+          apiRequest("/api/config/runtime"),
+          apiRequest("/api/groups"),
+        ]);
+        masterIdInput.value = String(runtimeData.master_id || 0);
+        const groups = Array.isArray(groupsData.groups) ? groupsData.groups : runtimeData.groups || [];
+        renderGroupSwitches(groups);
+        renderStickerSettings(runtimeData.sticker || {});
       } catch (err) {
-        appendLog(`[config] 读取运行时配置失败: ${err.message}`, "status-error");
+        appendLog(`[config] 运行时配置读取失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function refreshKnowledgeFiles() {
+      try {
+        const data = await apiRequest("/api/knowledge/files");
+        knowledgeFiles = Array.isArray(data.files) ? data.files : [];
+        renderKnowledgeFiles(knowledgeFiles);
+      } catch (err) {
+        appendLog(`[knowledge] 刷新文件列表失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function loadKnowledgeFile(path) {
+      try {
+        const data = await apiRequest(`/api/knowledge/file?path=${encodeURIComponent(path)}`);
+        selectedKnowledgePath = String(data.path || "");
+        knowledgePathInput.value = selectedKnowledgePath;
+        knowledgeContent.value = String(data.content || "");
+        renderKnowledgeFiles(knowledgeFiles);
+      } catch (err) {
+        appendLog(`[knowledge] 打开文件失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function saveKnowledgeFile() {
+      const path = knowledgePathInput.value.trim();
+      if (!path) {
+        appendLog("[knowledge] 文件路径不能为空", "status-warn");
+        return;
+      }
+      try {
+        await apiRequest("/api/knowledge/file", {
+          method: "POST",
+          json: {
+            path,
+            content: knowledgeContent.value,
+          },
+        });
+        selectedKnowledgePath = path;
+        appendLog(`[knowledge] 已保存: ${path}`, "status-ok");
+        await refreshKnowledgeFiles();
+      } catch (err) {
+        appendLog(`[knowledge] 保存失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function reindexKnowledge() {
+      try {
+        const data = await apiRequest("/api/knowledge/reindex", { method: "POST" });
+        const result = data.result || {};
+        appendLog(
+          `[knowledge] reindex completed files=${result.files_indexed || 0}, chunks=${result.chunks_indexed || 0}`,
+          "status-ok",
+        );
+      } catch (err) {
+        appendLog(`[knowledge] 重建索引失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function refreshPlugins() {
+      try {
+        const data = await apiRequest("/api/plugins");
+        pluginCards.innerHTML = "";
+        const modules = Array.isArray(data.modules) ? data.modules : [];
+        if (!modules.length) {
+          pluginCards.innerHTML = `<div class="muted">未发现插件模块</div>`;
+          return;
+        }
+        modules.forEach((item) => {
+          pluginCards.appendChild(buildPluginCard(item));
+        });
+      } catch (err) {
+        appendLog(`[plugins] 刷新失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function pluginAction(moduleName, action) {
+      try {
+        await apiRequest(`/api/plugins/${encodeURIComponent(moduleName)}/${action}`, {
+          method: "POST",
+        });
+        appendLog(`[plugins] ${moduleName} ${action} success`, "status-ok");
+        await refreshPlugins();
+      } catch (err) {
+        appendLog(`[plugins] ${moduleName} ${action} failed: ${err.message}`, "status-error");
       }
     }
 
@@ -555,10 +1791,9 @@
         return;
       }
       try {
-        await requestJSON("/api/config/master", {
+        await apiRequest("/api/config/master", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ master_id: Number(raw) }),
+          json: { master_id: Number(raw) },
         });
         appendLog(`[config] master_id 已更新为 ${raw}`, "status-ok");
       } catch (err) {
@@ -566,214 +1801,388 @@
       }
     }
 
-    async function updatePrompt() {
-      try {
-        const payload = { system_prompt: promptInput.value.trim() };
-        await requestJSON("/api/config/update", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        appendLog("[config] system_prompt 已更新", "status-ok");
-      } catch (err) {
-        appendLog(`[config] system_prompt 更新失败: ${err.message}`, "status-error");
-      }
-    }
-
-    async function triggerReset(fillEnergy, resetMood) {
-      try {
-        await requestJSON("/api/action/reset", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            fill_energy: Boolean(fillEnergy),
-            reset_mood: Boolean(resetMood),
-            clear_session_id: "",
-          }),
-        });
-        appendLog(`[runtime] reset action success (energy=${fillEnergy}, mood=${resetMood})`, "status-ok");
-        await refreshStatus();
-      } catch (err) {
-        appendLog(`[runtime] reset action failed: ${err.message}`, "status-error");
-      }
-    }
-
-    function renderKnowledgeList(files) {
-      knowledgeList.innerHTML = "";
-      if (!Array.isArray(files) || files.length === 0) {
-        knowledgeList.innerHTML = `<div class="muted">暂无文本文件</div>`;
-        return;
-      }
-      files.forEach((item) => {
-        const el = document.createElement("div");
-        el.className = "list-item" + (selectedKnowledgePath === item.path ? " active" : "");
-        el.textContent = `${item.path} (${item.size}B)`;
-        el.addEventListener("click", () => loadKnowledgeFile(item.path));
-        knowledgeList.appendChild(el);
-      });
-    }
-
-    async function refreshKnowledgeFiles() {
-      try {
-        const data = await requestJSON("/api/knowledge/files");
-        knowledgeFiles = data.files || [];
-        renderKnowledgeList(knowledgeFiles);
-      } catch (err) {
-        appendLog(`[knowledge] 刷新列表失败: ${err.message}`, "status-error");
-      }
-    }
-
-    async function loadKnowledgeFile(path) {
-      try {
-        const data = await requestJSON(`/api/knowledge/file?path=${encodeURIComponent(path)}`);
-        selectedKnowledgePath = data.path;
-        knowledgePathInput.value = data.path;
-        knowledgeContent.value = data.content || "";
-        renderKnowledgeList(knowledgeFiles);
-      } catch (err) {
-        appendLog(`[knowledge] 打开文件失败: ${err.message}`, "status-error");
-      }
-    }
-
-    async function saveKnowledgeFile() {
-      const path = knowledgePathInput.value.trim();
-      if (!path) {
-        appendLog("[knowledge] 请填写文件路径", "status-warn");
+    async function addGroup() {
+      const raw = addGroupIdInput.value.trim();
+      if (!/^\d+$/.test(raw) || Number(raw) <= 0) {
+        appendLog("[groups] group_id 必须为正整数", "status-error");
         return;
       }
       try {
-        await requestJSON("/api/knowledge/file", {
+        const groupId = Number(raw);
+        const data = await apiRequest("/api/groups", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            path,
-            content: knowledgeContent.value,
-          }),
+          json: {
+            group_id: groupId,
+            enabled: true,
+          },
         });
-        selectedKnowledgePath = path;
-        appendLog(`[knowledge] 文件已保存: ${path}`, "status-ok");
-        await refreshKnowledgeFiles();
-      } catch (err) {
-        appendLog(`[knowledge] 保存失败: ${err.message}`, "status-error");
-      }
-    }
-
-    async function reindexKnowledge() {
-      try {
-        const data = await requestJSON("/api/knowledge/reindex", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: "{}",
-        });
-        const result = data.result || {};
         appendLog(
-          `[knowledge] reindex done files=${result.files_indexed || 0}, chunks=${result.chunks_indexed || 0}`,
+          `[groups] group=${groupId} enabled=true ${data.created ? "created" : "updated"}`,
+          "status-ok",
+        );
+        addGroupIdInput.value = "";
+        await refreshRuntimeConfig();
+      } catch (err) {
+        appendLog(`[groups] 新增失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function saveStickerSettings() {
+      const rate = Number(stickerCollectionRateInput.value);
+      if (Number.isNaN(rate) || rate < 0 || rate > 1) {
+        appendLog("[stickers] collection_rate 必须在 0~1 之间", "status-error");
+        return;
+      }
+      const llmProbability = Number(stickerLlmProbabilityInput.value);
+      if (Number.isNaN(llmProbability) || llmProbability < 0 || llmProbability > 1) {
+        appendLog("[stickers] llm_filter_probability 必须在 0~1 之间", "status-error");
+        return;
+      }
+      const llmMoodThreshold = Number(stickerLlmMoodThresholdInput.value);
+      if (!Number.isFinite(llmMoodThreshold)) {
+        appendLog("[stickers] llm_filter_mood_threshold 必须是数字", "status-error");
+        return;
+      }
+      const mode = String(stickerStorageModeSelect.value || "").trim().toLowerCase();
+      if (mode !== "local" && mode !== "cloud") {
+        appendLog("[stickers] storage_mode 仅支持 local 或 cloud", "status-error");
+        return;
+      }
+
+      try {
+        const data = await apiRequest("/api/stickers/settings", {
+          method: "POST",
+          json: {
+            enabled: Boolean(stickerEnabledToggle.checked),
+            collection_rate: rate,
+            storage_mode: mode,
+            filter_keywords: parseStickerKeywords(stickerFilterKeywordsInput.value),
+            enable_persona_filter: Boolean(stickerPersonaFilterToggle.checked),
+            llm_filter_enabled: Boolean(stickerLlmFilterToggle.checked),
+            llm_filter_probability: llmProbability,
+            llm_filter_mood_threshold: llmMoodThreshold,
+          },
+        });
+        renderStickerSettings(data);
+        appendLog(
+          `[stickers] 设置已更新 enabled=${Boolean(stickerEnabledToggle.checked)} rate=${rate.toFixed(2)} mode=${mode}`,
           "status-ok",
         );
       } catch (err) {
-        appendLog(`[knowledge] 重新索引失败: ${err.message}`, "status-error");
+        appendLog(`[stickers] 设置更新失败: ${err.message}`, "status-error");
       }
     }
 
-    function pluginCard(moduleInfo) {
-      const wrap = document.createElement("div");
-      wrap.className = "plugin-card";
-      const title = document.createElement("div");
-      title.className = "plugin-name";
-      title.textContent = moduleInfo.module || "unknown";
+    async function saveStickerUserWeight() {
+      const rawUserId = stickerWeightUserIdInput.value.trim();
+      const rawWeight = stickerWeightValueInput.value.trim();
+      if (!/^\d+$/.test(rawUserId) || Number(rawUserId) <= 0) {
+        appendLog("[stickers] 用户 ID 必须为正整数", "status-error");
+        return;
+      }
+      const weight = Number(rawWeight);
+      if (!Number.isFinite(weight)) {
+        appendLog("[stickers] 权重必须为数字", "status-error");
+        return;
+      }
 
-      const meta = document.createElement("div");
-      meta.className = "plugin-meta";
-      const statusText = moduleInfo.loaded ? "loaded" : "unloaded";
-      const errText = moduleInfo.error ? ` | error: ${moduleInfo.error}` : "";
-      meta.textContent = `status=${statusText} | enabled=${moduleInfo.enabled} | count=${moduleInfo.plugin_count}${errText}`;
-
-      const actions = document.createElement("div");
-      actions.className = "plugin-actions";
-      const loadBtn = document.createElement("button");
-      loadBtn.textContent = "Load";
-      const unloadBtn = document.createElement("button");
-      unloadBtn.textContent = "Unload";
-      unloadBtn.className = "secondary";
-      const reloadBtn = document.createElement("button");
-      reloadBtn.textContent = "Reload";
-      reloadBtn.className = "warn";
-
-      loadBtn.addEventListener("click", () => pluginAction(moduleInfo.module, "load"));
-      unloadBtn.addEventListener("click", () => pluginAction(moduleInfo.module, "unload"));
-      reloadBtn.addEventListener("click", () => pluginAction(moduleInfo.module, "reload"));
-
-      actions.appendChild(loadBtn);
-      actions.appendChild(unloadBtn);
-      actions.appendChild(reloadBtn);
-      wrap.appendChild(title);
-      wrap.appendChild(meta);
-      wrap.appendChild(actions);
-      return wrap;
+      try {
+        const data = await apiRequest("/api/stickers/user-weights", {
+          method: "POST",
+          json: {
+            user_id: Number(rawUserId),
+            weight,
+          },
+        });
+        renderStickerSettings(data);
+        appendLog(`[stickers] 用户 ${rawUserId} 权重已更新为 ${weight}`, "status-ok");
+      } catch (err) {
+        appendLog(`[stickers] 权重更新失败: ${err.message}`, "status-error");
+      }
     }
 
-    async function refreshPlugins() {
+    async function deleteStickerUserWeight(userId) {
       try {
-        const data = await requestJSON("/api/plugins");
-        pluginCards.innerHTML = "";
-        const modules = data.modules || [];
-        if (!modules.length) {
-          pluginCards.innerHTML = `<div class="muted">未发现插件模块</div>`;
+        const data = await apiRequest(`/api/stickers/user-weights/${encodeURIComponent(userId)}`, {
+          method: "DELETE",
+        });
+        renderStickerSettings(data);
+        appendLog(`[stickers] 用户 ${userId} 权重已删除`, "status-ok");
+      } catch (err) {
+        appendLog(`[stickers] 权重删除失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function refreshStickerFiles() {
+      try {
+        const data = await apiRequest("/api/stickers/files");
+        stickerFiles = Array.isArray(data.files) ? data.files : [];
+        if (data.root) {
+          stickerLocalDirText.textContent = String(data.root);
+        }
+        renderStickerFiles(stickerFiles);
+      } catch (err) {
+        appendLog(`[stickers] 文件列表刷新失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function deleteStickerFile(fileName) {
+      const cleanName = String(fileName || "").trim();
+      if (!cleanName) {
+        appendLog("[stickers] 文件名为空，无法删除", "status-warn");
+        return;
+      }
+      try {
+        await apiRequest(`/api/stickers/files/${encodeURIComponent(cleanName)}`, {
+          method: "DELETE",
+        });
+        appendLog(`[stickers] 已删除文件 ${cleanName}`, "status-ok");
+        await refreshStickerFiles();
+      } catch (err) {
+        appendLog(`[stickers] 删除失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function openStickerDir() {
+      try {
+        const data = await apiRequest("/api/stickers/open-dir", {
+          method: "POST",
+        });
+        appendLog(`[stickers] 已打开目录: ${data.path || "-"}`, "status-ok");
+      } catch (err) {
+        appendLog(`[stickers] 打开目录失败: ${err.message}`, "status-error");
+      }
+    }
+
+    function applyPromptPreset(silent = false) {
+      const key = personaPresetSelect.value;
+      if (!key || !personaPresets[key]) {
+        return;
+      }
+      promptInput.value = personaPresets[key];
+      if (!silent) {
+        appendLog(`[persona] 已应用预设: ${key}`, "status-ok");
+      }
+    }
+
+    async function updatePrompt() {
+      const clean = promptInput.value.trim();
+      if (!clean) {
+        appendLog("[persona] system_prompt 不能为空", "status-error");
+        return;
+      }
+      try {
+        await apiRequest("/api/config/update", {
+          method: "POST",
+          json: { system_prompt: clean },
+        });
+        appendLog(`[persona] system_prompt 已更新, length=${clean.length}`, "status-ok");
+      } catch (err) {
+        appendLog(`[persona] system_prompt 更新失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function triggerReset(fillEnergy, clearSessionId = "") {
+      try {
+        const data = await apiRequest("/api/action/reset", {
+          method: "POST",
+          json: {
+            fill_energy: Boolean(fillEnergy),
+            clear_session_id: String(clearSessionId || ""),
+          },
+        });
+        const status = data.status || {};
+        appendLog(
+          `[reset] success energy=${status.energy ?? "-"} tier=${status.energy_tier ?? "-"} cleared_session=${data.cleared_session || "-"}`,
+          "status-ok",
+        );
+        await refreshStatus();
+      } catch (err) {
+        appendLog(`[reset] failed: ${err.message}`, "status-error");
+      }
+    }
+
+    async function restartBotProcess() {
+      const confirmed = window.confirm("确定要重启纸月进程吗？");
+      if (!confirmed) {
+        return;
+      }
+
+      restartBotBtn.disabled = true;
+      shutdownBotBtn.disabled = true;
+      stopAutoRefreshTimers();
+      wsAutoReconnect = false;
+      clearWsReconnectTimer();
+      if (ws) {
+        try {
+          ws.close();
+        } catch {
+        }
+        ws = null;
+      }
+
+      setStatusLine("正在重启纸月进程...", "status-warn");
+      appendLog("[system] 正在请求重启纸月进程...", "status-warn", "system");
+
+      try {
+        const data = await apiRequest("/api/action/restart", {
+          method: "POST",
+        });
+        appendLog(`[system] ${data.message || "重启请求已发送"}`, "status-ok", "system");
+        setStatusLine("重启请求已发送，服务即将重连", "status-warn");
+      } catch (err) {
+        const message = String(err && err.message ? err.message : "");
+        if (message.toLowerCase().includes("failed to fetch")) {
+          appendLog("[system] 连接已断开，纸月进程正在重启", "status-warn", "system");
+          setStatusLine("连接已断开，纸月进程正在重启", "status-warn");
           return;
         }
-        modules.forEach((moduleInfo) => {
-          pluginCards.appendChild(pluginCard(moduleInfo));
-        });
-      } catch (err) {
-        appendLog(`[plugins] 刷新失败: ${err.message}`, "status-error");
+        restartBotBtn.disabled = false;
+        shutdownBotBtn.disabled = false;
+        setStatusLine(`重启失败: ${err.message}`, "status-error");
+        appendLog(`[system] 重启失败: ${err.message}`, "status-error", "system");
       }
     }
 
-    async function pluginAction(moduleName, action) {
+    async function shutdownBotProcess() {
+      const confirmed = window.confirm("确定要关闭纸月进程吗？执行后需要重新运行 start.bat 才能恢复。");
+      if (!confirmed) {
+        return;
+      }
+
+      shutdownBotBtn.disabled = true;
+      stopAutoRefreshTimers();
+      wsAutoReconnect = false;
+      clearWsReconnectTimer();
+      if (ws) {
+        try {
+          ws.close();
+        } catch {
+        }
+        ws = null;
+      }
+
+      setStatusLine("正在关闭纸月进程...", "status-warn");
+      appendLog("[system] 正在请求关闭纸月进程...", "status-warn", "system");
+
       try {
-        await requestJSON(`/api/plugins/${encodeURIComponent(moduleName)}/${action}`, {
+        const data = await apiRequest("/api/action/shutdown", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: "{}",
         });
-        appendLog(`[plugins] ${moduleName} ${action} success`, "status-ok");
-        await refreshPlugins();
+        appendLog(`[system] ${data.message || "关闭请求已发送"}`, "status-ok", "system");
+        setStatusLine("关闭请求已发送，服务即将停止", "status-warn");
       } catch (err) {
-        appendLog(`[plugins] ${moduleName} ${action} failed: ${err.message}`, "status-error");
+        const message = String(err && err.message ? err.message : "");
+        if (message.toLowerCase().includes("failed to fetch")) {
+          appendLog("[system] 连接已断开，纸月进程很可能已经关闭", "status-warn", "system");
+          setStatusLine("连接已断开，纸月进程很可能已经关闭", "status-warn");
+          return;
+        }
+        shutdownBotBtn.disabled = false;
+        setStatusLine(`关闭失败: ${err.message}`, "status-error");
+        appendLog(`[system] 关闭失败: ${err.message}`, "status-error", "system");
       }
     }
 
-    connectLogsBtn.addEventListener("click", connectLogStream);
-    document.getElementById("saveMasterBtn").addEventListener("click", saveMasterId);
-    document.getElementById("savePromptBtn").addEventListener("click", updatePrompt);
-    document.getElementById("refreshStatusBtn").addEventListener("click", refreshStatus);
-    document.getElementById("resetEnergyBtn").addEventListener("click", () => triggerReset(true, false));
-    document.getElementById("resetMoodBtn").addEventListener("click", () => triggerReset(false, true));
-    document.getElementById("resetAllBtn").addEventListener("click", () => triggerReset(true, true));
-    document.getElementById("refreshKnowledgeBtn").addEventListener("click", refreshKnowledgeFiles);
-    document.getElementById("saveKnowledgeBtn").addEventListener("click", saveKnowledgeFile);
-    document.getElementById("reindexBtn").addEventListener("click", reindexKnowledge);
-    document.getElementById("refreshPluginsBtn").addEventListener("click", refreshPlugins);
-
-    async function bootstrap() {
-      if (!tokenInput.value.trim()) {
-        {% if token_ready %}
-        appendLog("[local] 请输入 access token 后点击“连接日志流”", "status-warn");
-        {% else %}
-        appendLog("[local] 当前后端未配置 access token，API 会返回 503", "status-warn");
-        {% endif %}
+    async function clearSessionMemory() {
+      const sessionId = clearSessionInput.value.trim();
+      if (!sessionId) {
+        appendLog("[memory] 请填写 session_id", "status-warn");
+        return;
       }
+      await triggerReset(false, sessionId);
+    }
+
+    async function saveBackgroundUrl() {
+      const value = backgroundUrlInput.value.trim();
+      if (!value) {
+        appendLog("[ui] 背景 URL 不能为空", "status-warn");
+        return;
+      }
+      try {
+        const data = await apiRequest("/api/ui/background", {
+          method: "POST",
+          json: { background_url: value },
+        });
+        appendLog(`[ui] 背景已更新: ${data.background_url || value}`, "status-ok");
+      } catch (err) {
+        appendLog(`[ui] 背景 URL 更新失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function uploadBackgroundFile() {
+      const file = backgroundFileInput.files && backgroundFileInput.files[0];
+      if (!file) {
+        appendLog("[ui] 请选择要上传的图片", "status-warn");
+        return;
+      }
+      const form = new FormData();
+      form.append("file", file);
+
+      try {
+        const data = await apiRequest("/api/ui/background", {
+          method: "POST",
+          body: form,
+        });
+        appendLog(`[ui] 背景上传完成: ${data.background_url || "-"}`, "status-ok");
+      } catch (err) {
+        appendLog(`[ui] 背景上传失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function refreshAll() {
       await Promise.all([
         refreshStatus(),
         refreshRuntimeConfig(),
+        refreshStickerFiles(),
         refreshKnowledgeFiles(),
         refreshPlugins(),
       ]);
     }
 
+    connectLogsBtn.addEventListener("click", () => connectLogStream(true));
+    refreshAllBtn.addEventListener("click", refreshAll);
+    refreshStatusBtn.addEventListener("click", refreshStatus);
+    savePromptBtn.addEventListener("click", updatePrompt);
+    saveMasterBtn.addEventListener("click", saveMasterId);
+    addGroupBtn.addEventListener("click", addGroup);
+    saveStickerSettingsBtn.addEventListener("click", saveStickerSettings);
+    saveStickerWeightBtn.addEventListener("click", saveStickerUserWeight);
+    refreshStickerFilesBtn.addEventListener("click", refreshStickerFiles);
+    openStickerDirBtn.addEventListener("click", openStickerDir);
+    togglePluginsBtn.addEventListener("click", () => togglePluginsPanel());
+    systemTabBtn.addEventListener("click", () => setActiveConsoleTab("system"));
+    napcatTabBtn.addEventListener("click", () => setActiveConsoleTab("napcat"));
+    actionTabBtn.addEventListener("click", () => setActiveConsoleTab("action"));
+    applyPresetBtn.addEventListener("click", applyPromptPreset);
+    clearSessionBtn.addEventListener("click", clearSessionMemory);
+    restartBotBtn.addEventListener("click", restartBotProcess);
+    shutdownBotBtn.addEventListener("click", shutdownBotProcess);
+
+    document.getElementById("resetEnergyBtn").addEventListener("click", () => triggerReset(true));
+
+    refreshKnowledgeBtn.addEventListener("click", refreshKnowledgeFiles);
+    saveKnowledgeBtn.addEventListener("click", saveKnowledgeFile);
+    reindexBtn.addEventListener("click", reindexKnowledge);
+
+    refreshPluginsBtn.addEventListener("click", refreshPlugins);
+
+    saveBackgroundBtn.addEventListener("click", saveBackgroundUrl);
+    uploadBackgroundBtn.addEventListener("click", uploadBackgroundFile);
+
+    async function bootstrap() {
+      setActiveConsoleTab("system");
+      togglePluginsPanel(true);
+      initPresetOptions();
+      applyPromptPreset(true);
+      connectLogStream(false);
+
+      await refreshAll();
+    }
+
     bootstrap();
-    setInterval(refreshStatus, 5000);
-    setInterval(refreshRuntimeConfig, 10000);
+    statusRefreshTimer = setInterval(refreshStatus, 5000);
+    runtimeRefreshTimer = setInterval(refreshRuntimeConfig, 12000);
   </script>
 </body>
 </html>
