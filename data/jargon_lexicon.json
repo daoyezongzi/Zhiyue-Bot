@@ -1738,12 +1738,133 @@
         "jargon": "彳亍",
         "standard": "行",
         "meaning": "表示同意、认可或行动的指令，常见于网络用语",
-        "confidence": 0.9,
-        "weight": 1.9,
+        "confidence": 0.915,
+        "weight": 2.2975,
         "source_users": [
           2283003902
         ],
-        "updated_at": "2026-04-29T03:31:08.974154+00:00"
+        "updated_at": "2026-04-29T03:44:58.825944+00:00"
+      },
+      "绷不住\t难绷": {
+        "jargon": "难绷",
+        "standard": "绷不住",
+        "meaning": "难以忍受，忍不住笑或尴尬",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          1078066378
+        ],
+        "updated_at": "2026-04-29T04:17:14.873517+00:00"
+      },
+      "绷不住了\t绷": {
+        "jargon": "绷",
+        "standard": "绷不住了",
+        "meaning": "忍不住了，笑或尴尬到极点",
+        "confidence": 0.85,
+        "weight": 1.85,
+        "source_users": [
+          1078066378
+        ],
+        "updated_at": "2026-04-29T04:17:14.873520+00:00"
+      },
+      "麦当劳\tm记": {
+        "jargon": "m记",
+        "standard": "麦当劳",
+        "meaning": "麦当劳的昵称",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          1078066378
+        ],
+        "updated_at": "2026-04-29T04:17:14.873522+00:00"
+      },
+      "饿了\t饿饿": {
+        "jargon": "饿饿",
+        "standard": "饿了",
+        "meaning": "感到饥饿",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T04:20:58.136290+00:00"
+      },
+      "噗嗤\t噗": {
+        "jargon": "噗",
+        "standard": "噗嗤",
+        "meaning": "表示哭笑不得或无奈的笑声",
+        "confidence": 0.6,
+        "weight": 1.6,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T04:20:58.136292+00:00"
+      },
+      "诶，什么情况？\t诶什么情况": {
+        "jargon": "诶什么情况",
+        "standard": "诶，什么情况？",
+        "meaning": "表示惊讶或询问发生了什么",
+        "confidence": 0.5,
+        "weight": 1.5,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T04:20:58.136294+00:00"
+      },
+      "吓了一跳\t吓一跳": {
+        "jargon": "吓一跳",
+        "standard": "吓了一跳",
+        "meaning": "表示受到突然的惊吓",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T04:20:58.136295+00:00"
+      },
+      "嗯\t蒽": {
+        "jargon": "蒽",
+        "standard": "嗯",
+        "meaning": "表示同意或敷衍的叹词，非标准写法增添可爱感",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          1816359572
+        ],
+        "updated_at": "2026-04-29T04:24:42.850463+00:00"
+      },
+      "出现/刷新出来\t刷新": {
+        "jargon": "刷新",
+        "standard": "出现/刷新出来",
+        "meaning": "借用游戏术语，指实际中出现或刷新位置",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          1816359572
+        ],
+        "updated_at": "2026-04-29T04:24:42.850465+00:00"
+      },
+      "欢迎来找我/欢迎来抓我\t欢迎逮捕": {
+        "jargon": "欢迎逮捕",
+        "standard": "欢迎来找我/欢迎来抓我",
+        "meaning": "网络流行语，以调侃方式表示有恃无恐",
+        "confidence": 0.85,
+        "weight": 1.85,
+        "source_users": [
+          1816359572
+        ],
+        "updated_at": "2026-04-29T04:24:42.850467+00:00"
+      },
+      "应该是吧？/是不是？\t应该是(？": {
+        "jargon": "应该是(？",
+        "standard": "应该是吧？/是不是？",
+        "meaning": "用括号加问号表示不确定的语气，网络聊天常见",
+        "confidence": 0.65,
+        "weight": 1.65,
+        "source_users": [
+          1816359572
+        ],
+        "updated_at": "2026-04-29T04:24:42.850469+00:00"
       }
     },
     "group": {},

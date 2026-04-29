@@ -37,6 +37,8 @@ class OneBotClient:
         self._connected_event: asyncio.Event = asyncio.Event()
         self._send_lock: asyncio.Lock = asyncio.Lock()
         self._connection_lock: asyncio.Lock = asyncio.Lock()
+        self._pending_lock: asyncio.Lock = asyncio.Lock()
+        self._pending_action_responses: dict[str, asyncio.Future[dict[str, Any]]] = {}
 
         self._echo_seed: int = int(time.time() * 1000)
         self._reconnect_initial: float = reconnect_initial
@@ -79,6 +81,8 @@ class OneBotClient:
                 await ws.close()
             except Exception:
                 pass
+
+        await self._cancel_pending_action_responses("OneBot is stopped")
 
         if self._runner_task is not None:
             self._runner_task.cancel()
@@ -171,15 +175,25 @@ class OneBotClient:
             self._connected_event.set()
 
     async def _detach_connection(self, websocket: Any | None) -> None:
+        should_cancel = False
         async with self._connection_lock:
             if websocket is None or self._ws is websocket:
                 self._ws = None
                 self._connected_event.clear()
+                should_cancel = True
+        if should_cancel:
+            await self._cancel_pending_action_responses("OneBot connection closed")
 
     async def _receive_loop(self, websocket: Any) -> None:
         try:
             async for raw_message in websocket:
-                packet = self._parse_message(raw_message)
+                payload = self._decode_payload(raw_message)
+                if payload is None:
+                    continue
+                if await self._resolve_action_response(payload):
+                    continue
+
+                packet = self._build_event_packet(payload)
                 if packet is None:
                     continue
                 await self.message_queue.put(packet)
@@ -195,7 +209,7 @@ class OneBotClient:
             self._logger.warning("OneBot receive loop closed: %s", exc)
             raise
 
-    def _parse_message(self, raw_message: str) -> dict[str, Any] | None:
+    def _decode_payload(self, raw_message: str) -> dict[str, Any] | None:
         try:
             payload = json.loads(raw_message)
         except json.JSONDecodeError:
@@ -205,12 +219,17 @@ class OneBotClient:
         if not isinstance(payload, Mapping):
             self._logger.warning("Received non-dict OneBot payload: %s", payload)
             return None
+        return dict(payload)
 
-        data: dict[str, Any] = dict(payload)
+    def _build_event_packet(self, data: Mapping[str, Any]) -> dict[str, Any] | None:
+        post_type = str(data.get("post_type", "")).strip()
+        if not post_type:
+            return None
+
         text = self._extract_text(data)
 
         structured: dict[str, Any] = {
-            "post_type": str(data.get("post_type", "")),
+            "post_type": post_type,
             "message_type": str(data.get("message_type", "")),
             "sub_type": str(data.get("sub_type", "")),
             "time": data.get("time"),
@@ -224,9 +243,39 @@ class OneBotClient:
             "echo": data.get("echo"),
             "status": data.get("status"),
             "retcode": data.get("retcode"),
-            "raw": data,
+            "raw": dict(data),
         }
         return structured
+
+    def _parse_message(self, raw_message: str) -> dict[str, Any] | None:
+        payload = self._decode_payload(raw_message)
+        if payload is None:
+            return None
+        return self._build_event_packet(payload)
+
+    async def _resolve_action_response(self, payload: Mapping[str, Any]) -> bool:
+        if "echo" not in payload:
+            return False
+        echo = str(payload.get("echo", "")).strip()
+        if not echo:
+            return False
+
+        async with self._pending_lock:
+            future = self._pending_action_responses.pop(echo, None)
+        if future is None:
+            return False
+        if not future.done():
+            future.set_result(dict(payload))
+        return True
+
+    async def _cancel_pending_action_responses(self, reason: str) -> None:
+        async with self._pending_lock:
+            pending = list(self._pending_action_responses.values())
+            self._pending_action_responses.clear()
+        for future in pending:
+            if future.done():
+                continue
+            future.set_exception(RuntimeError(reason))
 
     @staticmethod
     def _extract_text(data: Mapping[str, Any]) -> str:
@@ -294,6 +343,70 @@ class OneBotClient:
             raise ValueError("action is empty")
         payload = dict(params or {})
         return await self._send_action(clean_action, payload)
+
+    async def call_action_with_response(
+        self,
+        action: str,
+        params: Mapping[str, Any] | None = None,
+        *,
+        timeout: float = 5.0,
+    ) -> dict[str, Any]:
+        clean_action = str(action or "").strip()
+        if not clean_action:
+            raise ValueError("action is empty")
+        payload = dict(params or {})
+        if not self.connected:
+            raise RuntimeError("OneBot is not connected")
+
+        echo = self._next_echo()
+        wire_payload: dict[str, Any] = {
+            "action": clean_action,
+            "params": payload,
+            "echo": echo,
+        }
+
+        loop = asyncio.get_running_loop()
+        future: asyncio.Future[dict[str, Any]] = loop.create_future()
+        async with self._pending_lock:
+            self._pending_action_responses[echo] = future
+
+        try:
+            async with self._send_lock:
+                websocket = self._ws
+                if websocket is None:
+                    raise RuntimeError("OneBot is not connected")
+                await websocket.send(json.dumps(wire_payload, ensure_ascii=False))
+            self._logger.info("TX action=%s echo=%s params=%s wait_response=true", clean_action, echo, payload)
+            return await asyncio.wait_for(future, timeout=max(0.5, float(timeout)))
+        except asyncio.TimeoutError as exc:
+            raise TimeoutError(f"OneBot action timeout: action={clean_action}") from exc
+        finally:
+            async with self._pending_lock:
+                pending_future = self._pending_action_responses.get(echo)
+                if pending_future is future:
+                    self._pending_action_responses.pop(echo, None)
+
+    async def get_group_member_info(
+        self,
+        *,
+        group_id: int,
+        user_id: int,
+        no_cache: bool = False,
+        timeout: float = 4.0,
+    ) -> dict[str, Any]:
+        response = await self.call_action_with_response(
+            "get_group_member_info",
+            {
+                "group_id": int(group_id),
+                "user_id": int(user_id),
+                "no_cache": bool(no_cache),
+            },
+            timeout=timeout,
+        )
+        payload = response.get("data")
+        if isinstance(payload, dict):
+            return dict(payload)
+        return {}
 
     async def _send_action(self, action: str, params: dict[str, Any]) -> str:
         if not self.connected:

@@ -3,6 +3,8 @@
   "spaces": {
     "user": {
       "3052304356": {
+        "nickname": "",
+        "name_records": [],
         "tags": [
           "学生",
           "考试相关",
@@ -30,6 +32,8 @@
         }
       },
       "2902336359": {
+        "nickname": "曾经是未来▆▆▆",
+        "name_records": [],
         "tags": [
           "competitive programmer",
           "frustrated",
@@ -37,7 +41,7 @@
         ],
         "affinity": -0.022000000000000002,
         "interaction_style": "Emotionally vents about technical setbacks with repeated emphasis and slang.、one-line interaction preference",
-        "updated_at": "2026-04-26T08:48:21.040829+00:00",
+        "updated_at": "2026-04-29T04:33:35.979221+00:00",
         "tag_scores": {
           "competitive programmer": 1.55236,
           "frustrated": 1.55236,
@@ -49,6 +53,15 @@
         }
       },
       "137566858": {
+        "nickname": "A Flower is not a Flower",
+        "name_records": [
+          {
+            "content": "蚊香",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-04-29T04:37:59.068660+00:00"
+          }
+        ],
         "tags": [
           "casual_chatter",
           "emoji_user",
@@ -65,95 +78,99 @@
         ],
         "affinity": 0.20900000000000002,
         "interaction_style": "Persistent and playful、emojis、using images",
-        "updated_at": "2026-04-29T02:57:05.159266+00:00",
+        "updated_at": "2026-04-29T04:37:59.068660+00:00",
         "tag_scores": {
-          "casual_chatter": 12.789639113884002,
-          "emoji_user": 11.892239666771378,
-          "gaming_enthusiast": 4.861142610634815,
-          "music_fan": 2.8745157394185754,
-          "ai_enthusiast": 4.364194691704418,
-          "social_seeker": 5.889112621660979,
-          "image_user": 11.771835645765924,
-          "bot_developer": 6.815144751326658,
-          "character_designer": 1.0756929690662878,
-          "stock_enthusiast": 2.3686820880971853,
-          "developer": 2.474060670558936,
-          "humorous": 3.953486214252972,
-          "bot_educator": 1.4120048259374998,
-          "developer_sharing": 1.4120048259374998,
-          "hardware_enthusiast": 1.55236
+          "casual_chatter": 12.597794527175742,
+          "emoji_user": 11.713856071769808,
+          "gaming_enthusiast": 4.788225471475292,
+          "music_fan": 2.8313980033272967,
+          "ai_enthusiast": 4.2987317713288515,
+          "social_seeker": 5.800775932336064,
+          "image_user": 11.595258111079435,
+          "bot_developer": 6.712917580056758,
+          "character_designer": 1.0595575745302934,
+          "stock_enthusiast": 2.3331518567757277,
+          "developer": 2.436949760500552,
+          "humorous": 3.8941839210391773,
+          "bot_educator": 1.3908247535484373,
+          "developer_sharing": 1.3908247535484373,
+          "hardware_enthusiast": 1.5290746
         },
         "style_scores": {
-          "none": 0.8526638727267505,
-          "Frequent use of images and casual": 1.0048227456375844,
-          "playful language.": 1.0048227456375844,
-          "Prefers sending images and emojis with short": 0.9424744367452091,
-          "casual replies.": 0.9424744367452091,
-          "Frequent use of images and emojis with short": 1.025224717516156,
-          "playful text.": 1.025224717516156,
-          "Persistent and playful": 6.658463981755177,
-          "using images": 3.2565463248286783,
-          "emojis": 4.726696324828678,
-          "and replies to engage others.": 1.035580522743592,
-          "Frequent use of images and emojis": 0.8966065131979154,
-          "with casual and playful replies.": 0.8966065131979154,
-          "and casual slang.": 1.0566070020850853,
-          "Playful and image-heavy": 1.0672798000859447,
-          "with casual banter and references to shared context.": 1.0672798000859447,
-          "Engages with images and references to bot development in a playful manner.": 1.0010560895467013,
-          "Technical and playful": 1.0889499031588048,
-          "using images and replies to discuss bot development.": 1.0889499031588048,
-          "Frequent image and emoji use": 0.9428137689686626,
-          "with short and playful replies.": 0.9428137689686626,
-          "User persistently shares images and emojis": 0.7936142836436553,
-          "often expressing casual or frustrated sentiments.": 0.7936142836436553,
-          "Proactive and descriptive": 1.122282825354664,
-          "using images and emojis to discuss bot design and character mechanics.": 1.122282825354664,
-          "Direct and technical": 1.0526462286876357,
-          "often uses images": 1.0526462286876357,
-          "sometimes critical": 1.0526462286876357,
-          "uses images and emojis": 0.8996976313569535,
-          "Playful and technically invested": 1.156636073369821,
-          "using images and code references.": 1.156636073369821,
-          "Communicates heavily with images and emojis": 1.293496330247635,
-          "mixing technical talk with casual banter.": 1.293496330247635,
-          "Playful banter with repeated catchphrases and image sharing": 0.758648874045534,
-          "Playful and technical": 1.2346137680875695,
-          "using images and emojis to discuss emoji features.": 1.2346137680875695,
-          "using images and emojis.": 1.032070025569546,
-          "日常闲聊": 1.042494975322774,
-          "偶尔使用图片和表情表达情绪": 1.042494975322774,
-          "使用图片": 1.140777329898658,
-          "表情和引用回复": 1.140777329898658,
-          "表达直率且带有技术抱怨的日常交流": 1.140777329898658,
-          "活泼幽默": 1.2409388204025804,
-          "频繁使用图片和表情": 1.2409388204025804,
-          "偶尔严肃处理敏感话题": 1.2409388204025804,
-          "喜欢@和口语化表达": 1.2409388204025804,
-          "Playful and image/emoji-heavy": 1.163939730536331,
-          "occasionally assertive about boundaries.": 1.163939730536331,
-          "急切重复地要求表情包": 1.0852584900105653,
-          "带撒娇语气": 1.0852584900105653,
-          "频繁使用图片和表情包": 1.3246000088512793,
-          "互动轻松简短": 1.3246000088512793,
-          "Brief and image-heavy": 0.830470224985128,
-          "with occasional technical references.": 0.830470224985128,
-          "热情幽默的表情包爱好者": 1.3048914870697856,
-          "喜欢分享生活趣事和股票话题": 1.3048914870697856,
-          "向助手发送图片": 0.9414801494009999,
-          "表情和简短指令": 0.9414801494009999,
-          "互动积极且带玩梗性质": 0.9414801494009999,
-          "Playful and technically inclined": 1.2362870648699997,
-          "uses images and replies in group chats.": 1.2362870648699997,
-          "Actively discusses bot development and shares progress": 1.3448344139999997,
-          "uses images and emojis.": 1.3448344139999997,
-          "uses images": 1.4701499999999998,
-          "and discusses technical details": 1.4701499999999998,
-          "Uses images and playful responses": 1.188,
-          "but no new strong signals.": 1.188
+          "none": 0.8441372339994829,
+          "Frequent use of images and casual": 0.9947745181812085,
+          "playful language.": 0.9947745181812085,
+          "Prefers sending images and emojis with short": 0.933049692377757,
+          "casual replies.": 0.933049692377757,
+          "Frequent use of images and emojis with short": 1.0149724703409944,
+          "playful text.": 1.0149724703409944,
+          "Persistent and playful": 6.591879341937625,
+          "using images": 3.2239808615803915,
+          "emojis": 4.679429361580391,
+          "and replies to engage others.": 1.025224717516156,
+          "Frequent use of images and emojis": 0.8876404480659362,
+          "with casual and playful replies.": 0.8876404480659362,
+          "and casual slang.": 1.0460409320642343,
+          "Playful and image-heavy": 1.0566070020850853,
+          "with casual banter and references to shared context.": 1.0566070020850853,
+          "Engages with images and references to bot development in a playful manner.": 0.9910455286512343,
+          "Technical and playful": 1.0780604041272168,
+          "using images and replies to discuss bot development.": 1.0780604041272168,
+          "Frequent image and emoji use": 0.933385631278976,
+          "with short and playful replies.": 0.933385631278976,
+          "User persistently shares images and emojis": 0.7856781408072188,
+          "often expressing casual or frustrated sentiments.": 0.7856781408072188,
+          "Proactive and descriptive": 1.1110599971011172,
+          "using images and emojis to discuss bot design and character mechanics.": 1.1110599971011172,
+          "Direct and technical": 1.0421197664007593,
+          "often uses images": 1.0421197664007593,
+          "sometimes critical": 1.0421197664007593,
+          "uses images and emojis": 0.8907006550433839,
+          "Playful and technically invested": 1.145069712636123,
+          "using images and code references.": 1.145069712636123,
+          "Communicates heavily with images and emojis": 1.2805613669451585,
+          "mixing technical talk with casual banter.": 1.2805613669451585,
+          "Playful banter with repeated catchphrases and image sharing": 0.7510623853050787,
+          "Playful and technical": 1.2222676304066937,
+          "using images and emojis to discuss emoji features.": 1.2222676304066937,
+          "using images and emojis.": 1.0217493253138505,
+          "日常闲聊": 1.032070025569546,
+          "偶尔使用图片和表情表达情绪": 1.032070025569546,
+          "使用图片": 1.1293695565996715,
+          "表情和引用回复": 1.1293695565996715,
+          "表达直率且带有技术抱怨的日常交流": 1.1293695565996715,
+          "活泼幽默": 1.2285294321985547,
+          "频繁使用图片和表情": 1.2285294321985547,
+          "偶尔严肃处理敏感话题": 1.2285294321985547,
+          "喜欢@和口语化表达": 1.2285294321985547,
+          "Playful and image/emoji-heavy": 1.1523003332309678,
+          "occasionally assertive about boundaries.": 1.1523003332309678,
+          "急切重复地要求表情包": 1.0744059051104595,
+          "带撒娇语气": 1.0744059051104595,
+          "频繁使用图片和表情包": 1.3113540087627664,
+          "互动轻松简短": 1.3113540087627664,
+          "Brief and image-heavy": 0.8221655227352768,
+          "with occasional technical references.": 0.8221655227352768,
+          "热情幽默的表情包爱好者": 1.2918425721990878,
+          "喜欢分享生活趣事和股票话题": 1.2918425721990878,
+          "向助手发送图片": 0.9320653479069899,
+          "表情和简短指令": 0.9320653479069899,
+          "互动积极且带玩梗性质": 0.9320653479069899,
+          "Playful and technically inclined": 1.2239241942212997,
+          "uses images and replies in group chats.": 1.2239241942212997,
+          "Actively discusses bot development and shares progress": 1.3313860698599997,
+          "uses images and emojis.": 1.3313860698599997,
+          "uses images": 1.4554485,
+          "and discusses technical details": 1.4554485,
+          "Uses images and playful responses": 1.1761199999999998,
+          "but no new strong signals.": 1.1761199999999998,
+          "Sends emoji images and short casual responses": 0.8909999999999999,
+          "often avoiding in-depth discussion.": 0.8909999999999999
         }
       },
       "2332876536": {
+        "nickname": "",
+        "name_records": [],
         "tags": [
           "seeks_emotional_support",
           "self_aware_about_habits",
@@ -173,6 +190,8 @@
         }
       },
       "2731616256": {
+        "nickname": "",
+        "name_records": [],
         "tags": [
           "frustrated",
           "impatient",
@@ -198,6 +217,15 @@
         }
       },
       "2693053350": {
+        "nickname": "一只满是氢离子的屑.",
+        "name_records": [
+          {
+            "content": "数学系ksh",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-04-29T04:34:59.008036+00:00"
+          }
+        ],
         "tags": [
           "student",
           "tech-savvy",
@@ -206,7 +234,7 @@
         ],
         "affinity": 0.022000000000000002,
         "interaction_style": "Uses informal、playful language with memes and emojis.",
-        "updated_at": "2026-04-26T13:10:58.186023+00:00",
+        "updated_at": "2026-04-29T04:34:59.008036+00:00",
         "tag_scores": {
           "student": 1.4775,
           "tech-savvy": 1.4775,
@@ -219,6 +247,8 @@
         }
       },
       "3440367913": {
+        "nickname": "",
+        "name_records": [],
         "tags": [
           "表情包爱好者",
           "活泼回应",
@@ -245,6 +275,15 @@
         }
       },
       "3571580399": {
+        "nickname": "Плутоний-鈈",
+        "name_records": [
+          {
+            "content": "Плутоний-鈈",
+            "source": "group_card",
+            "group_id": 1056532448,
+            "updated_at": "2026-04-29T04:37:41.348780+00:00"
+          }
+        ],
         "tags": [
           "群聊互动",
           "幽默调侃",
@@ -257,7 +296,7 @@
         ],
         "affinity": 0.0066,
         "interaction_style": "喜欢用惊恐和困惑表情表达情绪、继续使用引用、@和表情包进行调侃互动",
-        "updated_at": "2026-04-27T07:12:51.465046+00:00",
+        "updated_at": "2026-04-29T04:37:41.348780+00:00",
         "tag_scores": {
           "自然观察": 5.451728432438154,
           "幽默调侃": 6.657109885513467,
@@ -285,6 +324,8 @@
         }
       },
       "439612594": {
+        "nickname": "",
+        "name_records": [],
         "tags": [
           "英语学习者",
           "网络活跃",
@@ -306,6 +347,8 @@
         }
       },
       "1044973668": {
+        "nickname": "",
+        "name_records": [],
         "tags": [
           "鸟类摄影爱好者",
           "社交粘性高",
@@ -328,6 +371,15 @@
         }
       },
       "3557105149": {
+        "nickname": "Василий",
+        "name_records": [
+          {
+            "content": "无敌区区大王",
+            "source": "group_card",
+            "group_id": 1056532448,
+            "updated_at": "2026-04-29T04:38:13.176950+00:00"
+          }
+        ],
         "tags": [
           "中文使用者",
           "学生",
@@ -335,7 +387,7 @@
         ],
         "affinity": 0.022000000000000002,
         "interaction_style": "喜欢穿插图片、表情和引用进行随意幽默的交流",
-        "updated_at": "2026-04-27T03:43:52.452148+00:00",
+        "updated_at": "2026-04-29T04:38:13.176950+00:00",
         "tag_scores": {
           "中文使用者": 1.379,
           "学生": 1.379,
@@ -347,6 +399,8 @@
         }
       },
       "983392887": {
+        "nickname": "",
+        "name_records": [],
         "tags": [
           "playful",
           "instructive",
@@ -370,6 +424,15 @@
         }
       },
       "3469735163": {
+        "nickname": "战车",
+        "name_records": [
+          {
+            "content": "摸鱼恶魔Promax",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-04-29T04:37:47.615972+00:00"
+          }
+        ],
         "tags": [
           "表情包交流",
           "学业吐槽",
@@ -380,7 +443,7 @@
         ],
         "affinity": 0.0154,
         "interaction_style": "喜欢用表情包和网络用语进行情绪化学业吐槽",
-        "updated_at": "2026-04-27T06:33:45.187111+00:00",
+        "updated_at": "2026-04-29T04:37:47.615972+00:00",
         "tag_scores": {
           "表情包交流": 6.267141394436875,
           "学业吐槽": 6.267141394436875,
@@ -394,13 +457,22 @@
         }
       },
       "1917173927": {
+        "nickname": "EnderCrystal",
+        "name_records": [
+          {
+            "content": "⚡战⚡争⚡雷⚡霆⚡重⚡度⚡依⚡赖⚡",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-04-29T04:35:15.848383+00:00"
+          }
+        ],
         "tags": [
           "traveler",
           "fitness_conscious"
         ],
         "affinity": 0.0,
         "interaction_style": "用户倾向于使用图片和简短文字进行互动、表达方式包含具体日程和事件。、用户倾向于使用图片和回复功能进行交互",
-        "updated_at": "2026-04-27T05:54:23.482746+00:00",
+        "updated_at": "2026-04-29T04:35:15.848383+00:00",
         "tag_scores": {
           "traveler": 2.983565,
           "fitness_conscious": 2.983565
@@ -413,6 +485,8 @@
         }
       },
       "106715858": {
+        "nickname": "",
+        "name_records": [],
         "tags": [
           "学生",
           "关注考试",
@@ -438,6 +512,8 @@
         }
       },
       "2503601364": {
+        "nickname": "",
+        "name_records": [],
         "tags": [
           "二次元爱好者",
           "游戏玩家",
@@ -459,6 +535,8 @@
         }
       },
       "3511457481": {
+        "nickname": "",
+        "name_records": [],
         "tags": [
           "历史敏感话题兴趣",
           "评判性互动",
@@ -478,6 +556,8 @@
         }
       },
       "1575703183": {
+        "nickname": "",
+        "name_records": [],
         "tags": [
           "gamer",
           "emotional_expression",
@@ -497,6 +577,8 @@
         }
       },
       "2283003902": {
+        "nickname": "",
+        "name_records": [],
         "tags": [
           "爱用表情包",
           "调侃风格",
@@ -531,17 +613,31 @@
         }
       },
       "1578654702": {
-        "tags": [],
-        "affinity": 0.0,
-        "interaction_style": "仅发送图片、无文字交互",
-        "updated_at": "2026-04-27T14:31:53.293061+00:00",
-        "tag_scores": {},
+        "nickname": "",
+        "name_records": [],
+        "tags": [
+          "图片主导",
+          "角色图片爱好",
+          "低文字交互"
+        ],
+        "affinity": 0.011000000000000001,
+        "interaction_style": "仅发送图片、无文字交互、以图片为主",
+        "updated_at": "2026-04-29T03:53:04.217561+00:00",
+        "tag_scores": {
+          "图片主导": 1.576,
+          "角色图片爱好": 1.576,
+          "低文字交互": 1.576
+        },
         "style_scores": {
-          "仅发送图片": 4.0185288,
-          "无文字交互": 4.0185288
+          "仅发送图片": 3.9783435120000004,
+          "无文字交互": 3.9783435120000004,
+          "以图片为主": 1.4849999999999999,
+          "偶尔简短文字询问或提示": 1.4849999999999999
         }
       },
       "3144616920": {
+        "nickname": "",
+        "name_records": [],
         "tags": [
           "playful",
           "tech-savvy",
@@ -549,22 +645,27 @@
           "social",
           "expressive"
         ],
-        "affinity": 0.0,
-        "interaction_style": "Sends multiple short messages with frequent @mentions and internet slang.、Sends multiple short messages in rapid succession.",
-        "updated_at": "2026-04-27T14:28:09.030573+00:00",
+        "affinity": -0.011000000000000001,
+        "interaction_style": "Sends multiple short messages with frequent @mentions and internet slang.、Sends short、emotionally expressive messages with occasional @mentions and internet slang",
+        "updated_at": "2026-04-29T03:58:52.474725+00:00",
         "tag_scores": {
-          "playful": 1.0672475000000001,
-          "tech-savvy": 1.0672475000000001,
-          "complaining": 1.0672475000000001,
-          "social": 1.0672475000000001,
-          "expressive": 1.0672475000000001
+          "playful": 2.4302387875,
+          "tech-savvy": 2.4302387875,
+          "complaining": 2.4302387875,
+          "social": 2.4302387875,
+          "expressive": 2.4302387875
         },
         "style_scores": {
-          "Sends multiple short messages in rapid succession.": 0.9801,
-          "Sends multiple short messages with frequent @mentions and internet slang.": 1.386
+          "Sends multiple short messages in rapid succession.": 0.9702989999999999,
+          "Sends multiple short messages with frequent @mentions and internet slang.": 1.37214,
+          "Sends short": 1.287,
+          "emotionally expressive messages with occasional @mentions and internet slang": 1.287,
+          "showing frustration when not engaged.": 1.287
         }
       },
       "2569818408": {
+        "nickname": "",
+        "name_records": [],
         "tags": [],
         "affinity": 0.0,
         "interaction_style": "暂无明确长期互动风格",
@@ -573,6 +674,90 @@
         "style_scores": {
           "暂无明确长期互动风格": 0.7919999999999999
         }
+      },
+      "2658863642": {
+        "nickname": "",
+        "name_records": [],
+        "tags": [
+          "二次元爱好者",
+          "图片分享者",
+          "幽默感"
+        ],
+        "affinity": 0.0,
+        "interaction_style": "用户主动分享图片和幽默评论、不介意助手安静围观。",
+        "updated_at": "2026-04-29T04:14:11.543931+00:00",
+        "tag_scores": {
+          "二次元爱好者": 1.2805,
+          "图片分享者": 1.2805,
+          "幽默感": 1.2805
+        },
+        "style_scores": {
+          "用户主动分享图片和幽默评论": 1.188,
+          "不介意助手安静围观。": 1.188
+        }
+      },
+      "1078066378": {
+        "nickname": "",
+        "name_records": [],
+        "tags": [
+          "casual conversationalist",
+          "humorous internet slang user",
+          "visually expressive",
+          "socially interactive"
+        ],
+        "affinity": 0.0,
+        "interaction_style": "User engages in self-narrated、humorous commentary、sometimes addressing others directly.",
+        "updated_at": "2026-04-29T04:15:20.557738+00:00",
+        "tag_scores": {
+          "casual conversationalist": 1.379,
+          "humorous internet slang user": 1.379,
+          "visually expressive": 1.379,
+          "socially interactive": 1.379
+        },
+        "style_scores": {
+          "User engages in self-narrated": 1.287,
+          "humorous commentary": 1.287,
+          "sometimes addressing others directly.": 1.287
+        }
+      },
+      "1816359572": {
+        "nickname": "",
+        "name_records": [],
+        "tags": [
+          "分享图片",
+          "关注机器人对话",
+          "群聊活跃"
+        ],
+        "affinity": 0.0,
+        "interaction_style": "以图片和转发为主、文字简洁、偏好与机器人互动。",
+        "updated_at": "2026-04-29T04:17:28.365744+00:00",
+        "tag_scores": {
+          "分享图片": 1.1820000000000002,
+          "关注机器人对话": 1.1820000000000002,
+          "群聊活跃": 1.1820000000000002
+        },
+        "style_scores": {
+          "以图片和转发为主": 1.089,
+          "文字简洁": 1.089,
+          "偏好与机器人互动。": 1.089
+        }
+      },
+      "2528500553": {
+        "nickname": "纯棉白内酷",
+        "name_records": [
+          {
+            "content": "群妮芙，时不时构史给群友赤",
+            "source": "group_card",
+            "group_id": 827043738,
+            "updated_at": "2026-04-29T04:37:12.472901+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-29T04:37:12.472901+00:00",
+        "tag_scores": {},
+        "style_scores": {}
       }
     },
     "group": {},

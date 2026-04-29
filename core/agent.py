@@ -99,6 +99,12 @@ class DebounceEntry:
     timer_task: asyncio.Task[None]
 
 
+@dataclass(slots=True, frozen=True)
+class SenderIdentity:
+    nickname: str = ""
+    group_card: str = ""
+
+
 class ContextBuilder:
     def __init__(
         self,
@@ -181,7 +187,11 @@ class ContextBuilder:
         recent_people = _normalize_prompt_input(self._build_recent_people(session_id))
 
         # Keep system prompt as stable as possible for model-side prefix caching.
-        system_prompt = self._personality.get_system_prompt(is_master=is_master)
+        system_prompt = self._personality.get_system_prompt(
+            is_master=is_master,
+            model_name=str(getattr(self._cfg.llm, "model", "") or ""),
+            is_group_chat=(str(message.get("message_type", "")).strip() == "group"),
+        )
         think_prompt = self._personality.get_think_prompt(
             prompt_ctx,
             chat_context,
@@ -247,7 +257,11 @@ class ContextBuilder:
 
         names: list[str] = []
         seen: set[str] = set()
+        self_qq = int(getattr(self._cfg.persona, "qq", 0) or 0)
         for row in reversed(rows):
+            uid = int(row.user_id or 0) if row.user_id is not None else 0
+            if self_qq > 0 and uid == self_qq:
+                continue
             name = str(row.speaker).strip()
             if not name or name in seen:
                 continue
@@ -454,7 +468,10 @@ class ZhiyueAgent:
         knowledge_dir = Path(str(getattr(self.cfg.paths, "knowledge_dir", "data/knowledge") or "data/knowledge"))
         if not knowledge_dir.is_absolute():
             knowledge_dir = project_root / knowledge_dir
-        self._tarot_knowledge = TarotKnowledgeBase(knowledge_dir / "tarot_cards.json")
+        self._tarot_knowledge = TarotKnowledgeBase(
+            knowledge_dir / "tarot_cards.json",
+            image_dir=knowledge_dir / "tarot_images",
+        )
         self._config_path = Path(config_path).resolve() if config_path is not None else None
         self._config_lock = asyncio.Lock()
         self._shutdown_handler = shutdown_handler
@@ -494,9 +511,10 @@ class ZhiyueAgent:
             )
         else:
             self._logger.info(
-                "Tarot knowledge loaded: path=%s cards=%s",
+                "Tarot knowledge loaded: path=%s cards=%s image_dir=%s",
                 self._tarot_knowledge.file_path,
                 self._tarot_knowledge.card_count,
+                self._tarot_knowledge.image_dir,
             )
 
     async def stop(self) -> None:
@@ -606,7 +624,14 @@ class ZhiyueAgent:
                 "## 心跳请求(动态)\n这是缓存保温请求,无需真实对话。若必须回复,只输出 OK。",
             )
             messages = [
-                {"role": "system", "content": self.personality.get_system_prompt(is_master=False)},
+                {
+                    "role": "system",
+                    "content": self.personality.get_system_prompt(
+                        is_master=False,
+                        model_name=str(getattr(self.cfg.llm, "model", "") or ""),
+                        is_group_chat=False,
+                    ),
+                },
                 {"role": "user", "content": user_prompt},
             ]
             extra_fields: dict[str, Any] = dict(self.cfg.llm.extra_fields)
@@ -728,7 +753,19 @@ class ZhiyueAgent:
         if user_id is not None and self_id is not None and user_id == self_id:
             return
 
-        speaker = self._extract_speaker(message)
+        sender_identity = self._extract_sender_identity(message)
+        speaker = await self._resolve_chat_speaker(
+            message=message,
+            user_id=user_id,
+            group_id=group_id,
+            identity=sender_identity,
+        )
+        await self.user_profiler.sync_member_identity(
+            user_id=user_id,
+            nickname=sender_identity.nickname,
+            group_id=group_id,
+            group_card=sender_identity.group_card,
+        )
         is_master = self._is_master(user_id)
         is_admin_sender = self._is_admin_sender(user_id=user_id, speaker=speaker)
 
@@ -827,6 +864,8 @@ class ZhiyueAgent:
             self.user_profiler.observe_user_message(
                 user_id=user_id,
                 speaker=speaker,
+                nickname=sender_identity.nickname,
+                group_card=sender_identity.group_card,
                 text=text,
                 session_id=session_id,
                 group_id=group_id,
@@ -2172,17 +2211,61 @@ class ZhiyueAgent:
             },
         )
 
-    def _extract_speaker(self, message: dict[str, Any]) -> str:
+    async def _resolve_chat_speaker(
+        self,
+        *,
+        message: dict[str, Any],
+        user_id: int | None,
+        group_id: int | None,
+        identity: SenderIdentity,
+    ) -> str:
+        del message
+        current_group_card = str(identity.group_card or "").strip()
+        current_nickname = str(identity.nickname or "").strip()
+        if group_id is not None and group_id > 0 and current_group_card:
+            return current_group_card
+
+        profile = await self.user_profiler.get_user_profile(user_id)
+        display_name = self.user_profiler.display_name_for_group(
+            profile,
+            group_id=group_id,
+            current_group_card=current_group_card,
+            current_nickname=current_nickname,
+        )
+        if display_name:
+            return display_name
+
+        if current_group_card:
+            return current_group_card
+        if current_nickname:
+            return current_nickname
+        return str(user_id) if user_id is not None else "unknown"
+
+    @staticmethod
+    def _extract_sender_identity(message: dict[str, Any]) -> SenderIdentity:
         raw = message.get("raw", {})
-        if isinstance(raw, dict):
-            sender = raw.get("sender", {})
-            if isinstance(sender, dict):
-                nickname = str(sender.get("nickname", "")).strip()
-                if nickname:
-                    return nickname
-                card = str(sender.get("card", "")).strip()
-                if card:
-                    return card
+        if not isinstance(raw, dict):
+            return SenderIdentity(
+                nickname=str(message.get("nickname", "")).strip(),
+                group_card="",
+            )
+        sender = raw.get("sender", {})
+        if not isinstance(sender, dict):
+            return SenderIdentity(
+                nickname=str(message.get("nickname", "")).strip(),
+                group_card="",
+            )
+        return SenderIdentity(
+            nickname=str(sender.get("nickname", "")).strip(),
+            group_card=str(sender.get("card", "")).strip(),
+        )
+
+    def _extract_speaker(self, message: dict[str, Any]) -> str:
+        identity = self._extract_sender_identity(message)
+        if identity.group_card:
+            return identity.group_card
+        if identity.nickname:
+            return identity.nickname
         user_id = self._to_int(message.get("user_id"))
         return str(user_id) if user_id is not None else "unknown"
 
@@ -2280,17 +2363,21 @@ class ZhiyueAgent:
             self._logger.error("Tarot.Draw failed: err=%s", exc)
             return True
 
-        content = (
-            f"{mention_prefix}抽出了一张 {draw.card.display_name_cn}，{draw.orientation_label}，"
-            f"解释是“{draw.meaning}”。"
-        )
+        summary = f"抽出了一张 {draw.card.display_name_cn}，{draw.orientation_label}，解释是“{draw.meaning}”。"
+        image_path = self._tarot_knowledge.resolve_draw_image_path(draw)
+        if image_path is not None:
+            image_cq = self._build_local_image_cq(image_path)
+            content = f"{mention_prefix}{image_cq}\n{summary}"
+        else:
+            content = f"{mention_prefix}{summary}"
         await self._reply_single(message, content)
         if cooldown_key:
             self._tarot_last_draw_at[cooldown_key] = now
         self._logger.info(
-            "Tarot.Draw: card=%s orientation=%s user_id=%s group_id=%s",
+            "Tarot.Draw: card=%s orientation=%s image=%s user_id=%s group_id=%s",
             draw.card.display_name_cn,
             draw.orientation_label,
+            image_path if image_path is not None else "",
             message.get("user_id"),
             message.get("group_id"),
         )
@@ -2332,6 +2419,10 @@ class ZhiyueAgent:
         if speaker and speaker != "unknown":
             return f"@{speaker} "
         return ""
+
+    @staticmethod
+    def _build_local_image_cq(path: Path) -> str:
+        return f"[CQ:image,file=file:///{path.as_posix()}]"
 
     async def _reply_single(self, message: dict[str, Any], content: str) -> None:
         text = str(content or "").strip()

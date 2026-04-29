@@ -69,6 +69,7 @@ class MemoryManager:
         self._topic_shift_threshold = float(getattr(cfg.memory, "topic_shift_similarity_threshold", 0.35))
         self._topic_shift_min_messages = max(3, int(getattr(cfg.memory, "topic_shift_min_messages", 8)))
         self._rag_top_k = max(1, int(getattr(cfg.memory, "rag_top_k", 5)))
+        self._knowledge_exclude_dirs = self._normalize_exclude_dirs(getattr(cfg.paths, "knowledge_exclude_dirs", []))
 
         embedding = EmbeddingAdapter(cfg.embedding, target_dim=cfg.memory.vector_dim)
         self._vector_storage = ChromaVectorStorage(
@@ -214,6 +215,9 @@ class MemoryManager:
                 continue
             files_seen += 1
             relative_path = str(file_path.relative_to(root))
+            if self._should_skip_knowledge_file(root, file_path):
+                skipped_files.append(relative_path)
+                continue
             if file_path.suffix.lower() not in allowed_extensions:
                 skipped_files.append(relative_path)
                 continue
@@ -258,6 +262,27 @@ class MemoryManager:
             "chunks_indexed": chunks_indexed,
             "skipped_files": skipped_files,
         }
+
+    @staticmethod
+    def _normalize_exclude_dirs(values: Any) -> set[str]:
+        if not isinstance(values, list):
+            return set()
+        out: set[str] = set()
+        for item in values:
+            text = str(item).strip().replace("\\", "/").strip("/")
+            if not text:
+                continue
+            out.add(text.casefold())
+        return out
+
+    def _should_skip_knowledge_file(self, root: Path, file_path: Path) -> bool:
+        if not self._knowledge_exclude_dirs:
+            return False
+        relative = file_path.relative_to(root)
+        for part in relative.parts[:-1]:
+            if part.casefold() in self._knowledge_exclude_dirs:
+                return True
+        return False
 
     async def retrieve_for_prompt(
         self,

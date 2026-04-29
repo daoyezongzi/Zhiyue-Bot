@@ -225,6 +225,7 @@ class PathsConfig(BaseModel):
     napcat_path: str = ""
     napcat_args: List[str] = Field(default_factory=list)
     knowledge_dir: str = "data/knowledge"
+    knowledge_exclude_dirs: List[str] = Field(default_factory=list)
 
 
 class Config(BaseModel):

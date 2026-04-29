@@ -1,5 +1,6 @@
 ﻿from __future__ import annotations
 
+import hashlib
 import json
 import random
 from dataclasses import dataclass
@@ -41,6 +42,7 @@ class TarotCard:
     rank: str
     upright_meaning: str
     reversed_meaning: str
+    image_ref: str = ""
 
     @property
     def display_name_cn(self) -> str:
@@ -65,10 +67,19 @@ class TarotDraw:
 class TarotKnowledgeBase:
     """Local tarot deck repository backed by JSON file."""
 
-    def __init__(self, file_path: Path) -> None:
+    _SUPPORTED_IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp")
+
+    def __init__(self, file_path: Path, image_dir: Path | None = None) -> None:
         self._file_path = Path(file_path)
+        if image_dir is None:
+            raw_image_dir = self._file_path.parent / "tarot_images"
+        else:
+            raw_image_dir = Path(image_dir)
+        self._image_dir = raw_image_dir.resolve()
+        self._generated_dir = self._image_dir / "_generated"
         self._cards: list[TarotCard] = []
         self._load_error: str | None = None
+        self._prepare_image_dirs()
         try:
             self._cards = self._load_cards()
         except RuntimeError as exc:
@@ -85,6 +96,10 @@ class TarotKnowledgeBase:
     @property
     def load_error(self) -> str | None:
         return self._load_error
+
+    @property
+    def image_dir(self) -> Path:
+        return self._image_dir
 
     def draw(self, rng: random.Random | None = None) -> TarotDraw:
         if self._load_error:
@@ -109,6 +124,27 @@ class TarotKnowledgeBase:
             orientation_label=orientation_label,
             meaning=meaning,
         )
+
+    def resolve_draw_image_path(self, draw: TarotDraw) -> Path | None:
+        source = self.resolve_card_image_path(draw.card)
+        if source is None:
+            return None
+        if draw.orientation_key != "reversed":
+            return source
+        return self._build_reversed_image(source, draw.card.card_id)
+
+    def resolve_card_image_path(self, card: TarotCard) -> Path | None:
+        image_ref = str(card.image_ref or "").strip()
+        if image_ref:
+            resolved = self._resolve_image_ref(image_ref)
+            if resolved is not None:
+                return resolved
+
+        for suffix in self._SUPPORTED_IMAGE_SUFFIXES:
+            candidate = (self._image_dir / f"{card.card_id}{suffix}").resolve()
+            if candidate.is_file():
+                return candidate
+        return None
 
     def _load_cards(self) -> list[TarotCard]:
         if not self._file_path.exists():
@@ -140,6 +176,7 @@ class TarotKnowledgeBase:
             rank = str(item.get("rank") or "").strip()
             upright_meaning = str(item.get("upright") or "").strip()
             reversed_meaning = str(item.get("reversed") or "").strip()
+            image_ref = str(item.get("image") or item.get("image_file") or "").strip()
 
             if not card_id or not name_cn:
                 continue
@@ -156,9 +193,66 @@ class TarotKnowledgeBase:
                     rank=rank,
                     upright_meaning=upright_meaning,
                     reversed_meaning=reversed_meaning,
+                    image_ref=image_ref,
                 )
             )
 
         if not parsed:
             raise RuntimeError("塔罗知识库没有有效卡牌数据。")
         return parsed
+
+    def _prepare_image_dirs(self) -> None:
+        self._image_dir.mkdir(parents=True, exist_ok=True)
+        self._generated_dir.mkdir(parents=True, exist_ok=True)
+
+    def _resolve_image_ref(self, image_ref: str) -> Path | None:
+        candidate = Path(image_ref)
+        if candidate.is_absolute():
+            resolved = candidate.resolve()
+            if resolved.is_file():
+                return resolved
+            return None
+
+        resolved = (self._image_dir / candidate).resolve()
+        if not self._is_inside_dir(resolved, self._image_dir):
+            return None
+        if resolved.is_file():
+            return resolved
+        return None
+
+    def _build_reversed_image(self, source: Path, card_id: str) -> Path:
+        cache_path = self._reversed_cache_path(source, card_id)
+        try:
+            source_mtime = source.stat().st_mtime
+            if cache_path.is_file() and cache_path.stat().st_mtime >= source_mtime:
+                return cache_path
+        except OSError:
+            return source
+
+        try:
+            from PIL import Image  # type: ignore[import-not-found]
+        except Exception:
+            return source
+
+        try:
+            with Image.open(source) as image:
+                rotated = image.rotate(180, expand=True)
+                cache_path.parent.mkdir(parents=True, exist_ok=True)
+                rotated.save(cache_path, format="PNG")
+        except Exception:
+            return source
+        return cache_path
+
+    def _reversed_cache_path(self, source: Path, card_id: str) -> Path:
+        safe_card_id = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in str(card_id or "card"))
+        safe_card_id = safe_card_id.strip("_") or "card"
+        digest = hashlib.sha1(str(source.resolve()).encode("utf-8", errors="ignore")).hexdigest()[:12]
+        return self._generated_dir / f"{safe_card_id}_{digest}_r180.png"
+
+    @staticmethod
+    def _is_inside_dir(path: Path, root: Path) -> bool:
+        try:
+            path.relative_to(root)
+            return True
+        except ValueError:
+            return False

@@ -79,6 +79,9 @@ cp .env.example .env
 cp config/config.yaml.example config/config.yaml
 ```
 
+`config/persona.prompt` 为静态人格模板文件（已从 `config.yaml` 拆分）。  
+`config/persona.prompt` is the static persona template (moved out from `config.yaml`).
+
 3. 填写关键项 / Fill required fields
 - `LLM_API_KEY`（或 `LLM_PROVIDER + <PROVIDER>_API_KEY`）  
 `LLM_API_KEY` (or `LLM_PROVIDER + <PROVIDER>_API_KEY`)
@@ -86,6 +89,8 @@ cp config/config.yaml.example config/config.yaml
 `ONEBOT_WS_URL` and `ONEBOT_WS_MODE`
 - 至少一个启用群组（`config/config.yaml` 的 `groups`）  
 At least one enabled group in `config/config.yaml`.
+- 人格正文请直接编辑 `config/persona.prompt`（支持 `{{Name}}`、`{{QQ}}`、`{{Interests}}`、`{{AliasNames}}`、`{{StyleLine}}` 占位符）  
+Edit `config/persona.prompt` for persona text (supports placeholders above).
 
 4. 启动 / Run
 

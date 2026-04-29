@@ -6,12 +6,15 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Iterable, Literal
 
 from adapters.llm.chat import ChatLLMAdapter
 from internal.logger import get_logger
 
 ProfileScope = Literal["user", "group", "public"]
+MemberNameSource = Literal["group_card", "learned_alias"]
+MEMBER_NAME_SOURCE_GROUP_CARD: MemberNameSource = "group_card"
+MEMBER_NAME_SOURCE_LEARNED_ALIAS: MemberNameSource = "learned_alias"
 
 
 def _clamp(value: float, lower: float, upper: float) -> float:
@@ -68,9 +71,221 @@ def _split_style_items(style: str) -> list[str]:
     return result
 
 
+def _parse_iso_datetime(raw: str) -> datetime:
+    text = str(raw or "").strip()
+    if not text:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _normalize_alias_items(values: Iterable[str] | None, *, limit: int = 8) -> list[str]:
+    if values is None:
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = str(value or "").strip()
+        if not text:
+            continue
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(text)
+        if len(out) >= max(1, limit):
+            break
+    return out
+
+
+@dataclass(slots=True, frozen=True)
+class MemberNameRecord:
+    content: str
+    source: MemberNameSource
+    group_id: int = 0
+    updated_at: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "content": self.content,
+            "source": self.source,
+            "group_id": self.group_id,
+            "updated_at": self.updated_at,
+        }
+
+    @classmethod
+    def from_dict(cls, raw: dict[str, Any]) -> MemberNameRecord | None:
+        content = str(raw.get("content", "")).strip()
+        source = str(raw.get("source", "")).strip()
+        if not content:
+            return None
+        if source not in {MEMBER_NAME_SOURCE_GROUP_CARD, MEMBER_NAME_SOURCE_LEARNED_ALIAS}:
+            return None
+        group_id = 0
+        try:
+            group_id = int(raw.get("group_id", 0) or 0)
+        except (TypeError, ValueError):
+            group_id = 0
+        updated_at = str(raw.get("updated_at", "") or "").strip()
+        return cls(
+            content=content,
+            source=source,  # type: ignore[arg-type]
+            group_id=group_id,
+            updated_at=updated_at,
+        )
+
+
+def normalize_member_name_records(records: Iterable[MemberNameRecord] | None) -> list[MemberNameRecord]:
+    if not records:
+        return []
+
+    latest_by_key: dict[tuple[str, str, int], MemberNameRecord] = {}
+    for row in records:
+        content = str(row.content or "").strip()
+        source = str(row.source or "").strip()
+        group_id = int(row.group_id or 0)
+        if not content:
+            continue
+
+        if source == MEMBER_NAME_SOURCE_GROUP_CARD:
+            if group_id <= 0:
+                continue
+        elif source == MEMBER_NAME_SOURCE_LEARNED_ALIAS:
+            group_id = 0
+        else:
+            continue
+
+        clean = MemberNameRecord(
+            content=content,
+            source=source,  # type: ignore[arg-type]
+            group_id=group_id,
+            updated_at=str(row.updated_at or "").strip(),
+        )
+        key = (clean.content.lower(), clean.source, clean.group_id)
+        existing = latest_by_key.get(key)
+        if existing is None:
+            latest_by_key[key] = clean
+            continue
+        if _parse_iso_datetime(existing.updated_at) >= _parse_iso_datetime(clean.updated_at):
+            continue
+        latest_by_key[key] = clean
+
+    rows = list(latest_by_key.values())
+    rows.sort(
+        key=lambda item: (
+            _parse_iso_datetime(item.updated_at),
+            item.source,
+            item.group_id,
+            item.content.lower(),
+        ),
+        reverse=True,
+    )
+    return rows
+
+
+def upsert_member_group_card(
+    records: Iterable[MemberNameRecord] | None,
+    *,
+    group_id: int | None,
+    card: str,
+    updated_at: str,
+) -> list[MemberNameRecord]:
+    clean_card = str(card or "").strip()
+    clean_group = int(group_id or 0)
+    if clean_group <= 0 or not clean_card:
+        return normalize_member_name_records(records)
+    merged = list(records or [])
+    merged.append(
+        MemberNameRecord(
+            content=clean_card,
+            source=MEMBER_NAME_SOURCE_GROUP_CARD,
+            group_id=clean_group,
+            updated_at=str(updated_at or "").strip() or _now_iso(),
+        )
+    )
+    return normalize_member_name_records(merged)
+
+
+def upsert_member_learned_aliases(
+    records: Iterable[MemberNameRecord] | None,
+    aliases: Iterable[str] | None,
+    *,
+    updated_at: str,
+) -> list[MemberNameRecord]:
+    merged = list(records or [])
+    for alias in _normalize_alias_items(aliases):
+        merged.append(
+            MemberNameRecord(
+                content=alias,
+                source=MEMBER_NAME_SOURCE_LEARNED_ALIAS,
+                group_id=0,
+                updated_at=str(updated_at or "").strip() or _now_iso(),
+            )
+        )
+    return normalize_member_name_records(merged)
+
+
+def latest_member_group_card(records: Iterable[MemberNameRecord] | None, group_id: int | None) -> str:
+    clean_group = int(group_id or 0)
+    if clean_group <= 0:
+        return ""
+    for row in normalize_member_name_records(records):
+        if row.source == MEMBER_NAME_SOURCE_GROUP_CARD and int(row.group_id or 0) == clean_group:
+            return str(row.content or "").strip()
+    return ""
+
+
+def member_learned_aliases(records: Iterable[MemberNameRecord] | None) -> list[str]:
+    aliases: list[str] = []
+    seen: set[str] = set()
+    for row in normalize_member_name_records(records):
+        if row.source != MEMBER_NAME_SOURCE_LEARNED_ALIAS:
+            continue
+        alias = str(row.content or "").strip()
+        if not alias:
+            continue
+        key = alias.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        aliases.append(alias)
+    return aliases
+
+
+def member_names_for_admin(records: Iterable[MemberNameRecord] | None, nickname: str) -> list[str]:
+    names: list[str] = []
+    seen: set[str] = set()
+
+    def _push(value: str) -> None:
+        text = str(value or "").strip()
+        if not text:
+            return
+        key = text.lower()
+        if key in seen:
+            return
+        seen.add(key)
+        names.append(text)
+
+    _push(nickname)
+    for row in normalize_member_name_records(records):
+        _push(row.content)
+    return names
+
+
+def member_names_search_text(records: Iterable[MemberNameRecord] | None, nickname: str) -> str:
+    return " ".join(member_names_for_admin(records, nickname))
+
+
 @dataclass(slots=True, frozen=True)
 class UserProfile:
     user_id: int
+    nickname: str = ""
+    name_records: tuple[MemberNameRecord, ...] = ()
     tags: tuple[str, ...] = ()
     affinity: float = 0.0
     interaction_style: str = ""
@@ -80,6 +295,7 @@ class UserProfile:
 @dataclass(slots=True)
 class UserProfileDelta:
     tags: list[str] = field(default_factory=list)
+    aliases: list[str] = field(default_factory=list)
     affinity_delta: float = 0.0
     interaction_style: str = ""
     confidence: float = 0.5
@@ -93,6 +309,8 @@ class UserProfileDelta:
                 text = str(item).strip()
                 if text and text not in tags:
                     tags.append(text)
+
+        aliases = _normalize_alias_items(payload.get("aliases", []), limit=8)
 
         affinity_delta = 0.0
         try:
@@ -111,17 +329,20 @@ class UserProfileDelta:
 
         return cls(
             tags=tags[:8],
+            aliases=aliases,
             affinity_delta=affinity_delta,
             interaction_style=interaction_style[:160],
             confidence=confidence,
         )
 
     def is_effective(self) -> bool:
-        return bool(self.tags or self.interaction_style or abs(self.affinity_delta) > 1e-6)
+        return bool(self.tags or self.aliases or self.interaction_style or abs(self.affinity_delta) > 1e-6)
 
 
 @dataclass(slots=True)
 class _ProfileRecord:
+    nickname: str = ""
+    name_records: list[MemberNameRecord] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
     affinity: float = 0.0
     interaction_style: str = ""
@@ -131,6 +352,8 @@ class _ProfileRecord:
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "nickname": self.nickname,
+            "name_records": [item.to_dict() for item in normalize_member_name_records(self.name_records)],
             "tags": self.tags,
             "affinity": self.affinity,
             "interaction_style": self.interaction_style,
@@ -141,6 +364,19 @@ class _ProfileRecord:
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any]) -> _ProfileRecord:
+        nickname = str(raw.get("nickname", "") or "").strip()
+
+        name_records: list[MemberNameRecord] = []
+        raw_name_records = raw.get("name_records", [])
+        if isinstance(raw_name_records, list):
+            for item in raw_name_records:
+                if not isinstance(item, dict):
+                    continue
+                parsed = MemberNameRecord.from_dict(item)
+                if parsed is not None:
+                    name_records.append(parsed)
+        name_records = normalize_member_name_records(name_records)
+
         tags: list[str] = []
         raw_tags = raw.get("tags", [])
         if isinstance(raw_tags, list):
@@ -180,6 +416,8 @@ class _ProfileRecord:
                     continue
 
         return cls(
+            nickname=nickname,
+            name_records=name_records,
             tags=tags,
             affinity=_clamp(affinity, -1.0, 1.0),
             interaction_style=str(raw.get("interaction_style", "") or "").strip(),
@@ -191,6 +429,8 @@ class _ProfileRecord:
     def to_user_profile(self, user_id: int) -> UserProfile:
         return UserProfile(
             user_id=user_id,
+            nickname=self.nickname,
+            name_records=tuple(normalize_member_name_records(self.name_records)),
             tags=tuple(self.tags),
             affinity=self.affinity,
             interaction_style=self.interaction_style,
@@ -260,6 +500,112 @@ class UserProfileStore:
             uid = int(key) if key.isdigit() else 0
             return record.to_user_profile(uid)
 
+    async def upsert_member_identity(
+        self,
+        *,
+        user_id: int,
+        nickname: str = "",
+        group_id: int | None = None,
+        group_card: str = "",
+        updated_at: str = "",
+    ) -> UserProfile:
+        await self.load()
+        clean_uid = int(user_id or 0)
+        if clean_uid <= 0:
+            return UserProfile(user_id=0)
+
+        key = str(clean_uid)
+        ts = str(updated_at or "").strip() or _now_iso()
+        clean_nickname = str(nickname or "").strip()
+        clean_group_card = str(group_card or "").strip()
+        clean_group_id = int(group_id or 0)
+
+        async with self._lock:
+            bucket = self._spaces["user"]
+            record = bucket.get(key)
+            if record is None:
+                record = _ProfileRecord()
+                bucket[key] = record
+
+            changed = False
+            if clean_nickname and clean_nickname != record.nickname:
+                record.nickname = clean_nickname
+                changed = True
+
+            if clean_group_id > 0 and clean_group_card:
+                next_records = upsert_member_group_card(
+                    record.name_records,
+                    group_id=clean_group_id,
+                    card=clean_group_card,
+                    updated_at=ts,
+                )
+                if next_records != normalize_member_name_records(record.name_records):
+                    record.name_records = next_records
+                    changed = True
+
+            if changed:
+                record.updated_at = ts
+                await self._persist_locked()
+
+            return record.to_user_profile(clean_uid)
+
+    async def replace_user_nickname(self, user_id: int, nickname: str) -> bool:
+        await self.load()
+        clean_uid = int(user_id or 0)
+        if clean_uid <= 0:
+            return False
+        clean_name = str(nickname or "").strip()
+        if not clean_name:
+            return False
+
+        key = str(clean_uid)
+        async with self._lock:
+            bucket = self._spaces["user"]
+            record = bucket.get(key)
+            if record is None:
+                record = _ProfileRecord()
+                bucket[key] = record
+            if record.nickname == clean_name:
+                return False
+            record.nickname = clean_name
+            record.updated_at = _now_iso()
+            await self._persist_locked()
+            return True
+
+    async def list_user_profiles(self, *, keyword: str = "", limit: int = 200) -> list[UserProfile]:
+        await self.load()
+        clean_keyword = str(keyword or "").strip().lower()
+        max_limit = max(1, min(int(limit or 200), 1000))
+
+        async with self._lock:
+            rows = list(self._spaces["user"].items())
+
+        matched: list[tuple[int, UserProfile]] = []
+        for key, record in rows:
+            user_id = int(key) if key.isdigit() else 0
+            profile = record.to_user_profile(user_id)
+            if clean_keyword:
+                search_blocks = [
+                    str(user_id),
+                    profile.nickname,
+                    member_names_search_text(profile.name_records, profile.nickname),
+                    " ".join(profile.tags),
+                    profile.interaction_style,
+                ]
+                haystack = " ".join(item for item in search_blocks if item).lower()
+                if clean_keyword not in haystack:
+                    continue
+            matched.append((user_id, profile))
+
+        matched.sort(
+            key=lambda item: (
+                _parse_iso_datetime(item[1].updated_at),
+                item[0],
+            ),
+            reverse=True,
+        )
+        return [item[1] for item in matched[:max_limit]]
+
     async def merge_user_profile(
         self,
         user_id: int,
@@ -295,6 +641,8 @@ class UserProfileStore:
     @staticmethod
     def _merge_record(record: _ProfileRecord, delta: UserProfileDelta, *, max_tags: int) -> None:
         confidence = _clamp(delta.confidence, 0.0, 1.0)
+        now_iso = _now_iso()
+        record.name_records = normalize_member_name_records(record.name_records)
 
         for tag in record.tags:
             record.tag_scores.setdefault(tag, 1.0)
@@ -333,7 +681,15 @@ class UserProfileStore:
         ranked_styles = sorted(record.style_scores.items(), key=lambda item: item[1], reverse=True)
         top_styles = [item[0] for item in ranked_styles[:3]]
         record.interaction_style = "\u3001".join(top_styles)
-        record.updated_at = _now_iso()
+
+        if delta.aliases:
+            record.name_records = upsert_member_learned_aliases(
+                record.name_records,
+                delta.aliases,
+                updated_at=now_iso,
+            )
+
+        record.updated_at = now_iso
 
 
 class UserProfilingEngine:
@@ -377,6 +733,54 @@ class UserProfilingEngine:
             return None
         return await self._store.get_user_profile(user_id)
 
+    async def list_user_profiles(self, *, keyword: str = "", limit: int = 200) -> list[UserProfile]:
+        return await self._store.list_user_profiles(keyword=keyword, limit=limit)
+
+    async def sync_member_identity(
+        self,
+        *,
+        user_id: int | None,
+        nickname: str = "",
+        group_id: int | None = None,
+        group_card: str = "",
+        updated_at: str = "",
+    ) -> UserProfile | None:
+        uid = int(user_id or 0)
+        if uid <= 0:
+            return None
+        return await self._store.upsert_member_identity(
+            user_id=uid,
+            nickname=nickname,
+            group_id=group_id,
+            group_card=group_card,
+            updated_at=updated_at,
+        )
+
+    async def replace_profile_nickname(self, *, user_id: int | None, nickname: str) -> bool:
+        uid = int(user_id or 0)
+        if uid <= 0:
+            return False
+        return await self._store.replace_user_nickname(uid, nickname)
+
+    @staticmethod
+    def display_name_for_group(
+        profile: UserProfile | None,
+        *,
+        group_id: int | None,
+        current_group_card: str = "",
+        current_nickname: str = "",
+    ) -> str:
+        card = str(current_group_card or "").strip()
+        if card:
+            return card
+        if profile is not None:
+            history_group_card = latest_member_group_card(profile.name_records, group_id)
+            if history_group_card:
+                return history_group_card
+            if profile.nickname:
+                return profile.nickname
+        return str(current_nickname or "").strip()
+
     async def build_social_background(self, user_id: int | None, speaker: str) -> str:
         profile = await self.get_user_profile(user_id)
         if profile is None:
@@ -406,6 +810,8 @@ class UserProfilingEngine:
         *,
         user_id: int | None,
         speaker: str,
+        nickname: str,
+        group_card: str,
         text: str,
         session_id: str,
         group_id: int | None,
@@ -414,6 +820,8 @@ class UserProfilingEngine:
             user_id=user_id,
             role="user",
             speaker=speaker,
+            nickname=nickname,
+            group_card=group_card,
             text=text,
             session_id=session_id,
             group_id=group_id,
@@ -431,6 +839,8 @@ class UserProfilingEngine:
             user_id=user_id,
             role="assistant",
             speaker="Zhiyue",
+            nickname="",
+            group_card="",
             text=text,
             session_id=session_id,
             group_id=group_id,
@@ -442,16 +852,21 @@ class UserProfilingEngine:
         user_id: int | None,
         role: str,
         speaker: str,
+        nickname: str,
+        group_card: str,
         text: str,
         session_id: str,
         group_id: int | None,
     ) -> None:
+        uid = int(user_id or 0)
+        if uid <= 0:
+            return
+
         if not self._enabled:
             return
 
-        uid = int(user_id or 0)
         content = str(text).strip()
-        if uid <= 0 or not content:
+        if not content:
             return
 
         event = {
@@ -520,16 +935,19 @@ class UserProfilingEngine:
             "Output format:\n"
             "{\n"
             '  "tags": ["tag1", "tag2"],\n'
+            '  "aliases": ["stable alias 1"],\n'
             '  "affinity_delta": 0.0,\n'
             '  "interaction_style": "one-line interaction preference",\n'
             '  "confidence": 0.0\n'
             "}\n\n"
             "Rules:\n"
             "1. Keep only stable and evidence-backed tags (max 6).\n"
-            "2. affinity_delta must be in [-0.3, 0.3].\n"
-            "3. interaction_style should be one concise sentence.\n"
-            "4. If evidence is weak, return empty tags and affinity_delta=0.\n\n"
+            "2. aliases must be stable, repeatedly-used names backed by explicit evidence; avoid one-off jokes.\n"
+            "3. affinity_delta must be in [-0.3, 0.3].\n"
+            "4. interaction_style should be one concise sentence.\n"
+            "5. If evidence is weak, return empty tags/aliases and affinity_delta=0.\n\n"
             f"Current profile: tags={list(profile.tags)}, affinity={profile.affinity:.3f}, "
+            f"aliases={member_learned_aliases(profile.name_records)}, "
             f"interaction_style={profile.interaction_style or 'none'}\n\n"
             f"Dialogue transcript:\n{transcript}"
         )

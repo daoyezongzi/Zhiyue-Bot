@@ -20,6 +20,12 @@ from fastapi.websockets import WebSocketDisconnect
 from pydantic import BaseModel, Field
 
 from internal.config.schema import GroupConfig
+from internal.learning.user_profiling import (
+    MEMBER_NAME_SOURCE_GROUP_CARD,
+    latest_member_group_card,
+    member_learned_aliases,
+    member_names_for_admin,
+)
 from internal.management.log_stream import LogStreamHub
 from plugins import RuntimePluginManager
 
@@ -125,6 +131,9 @@ class AdminService:
         self._cfg = cfg
         self._agent = agent
         self._config_path = Path(config_path)
+        self._persona_prompt_path = self._config_path.parent / "persona.prompt"
+        if not self._persona_prompt_path.is_absolute():
+            self._persona_prompt_path = (Path(__file__).resolve().parents[2] / self._persona_prompt_path).resolve()
 
         self._host = str(cfg.web.host or "127.0.0.1").strip() or "127.0.0.1"
         self._port = int(cfg.web.port or 18002)
@@ -403,6 +412,65 @@ class AdminService:
                 "created": created,
             }
 
+        @self._app.get("/api/members")
+        async def api_members(
+            keyword: str = Query(default=""),
+            limit: int = Query(default=200, ge=1, le=1000),
+            group_id: int = Query(default=0),
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            profiles = await self._agent.user_profiler.list_user_profiles(
+                keyword=keyword,
+                limit=limit,
+            )
+            target_group_id = int(group_id) if int(group_id) > 0 else None
+            items = [self._member_profile_payload(item, target_group_id=target_group_id) for item in profiles]
+            return {
+                "keyword": str(keyword or ""),
+                "group_id": target_group_id or 0,
+                "count": len(items),
+                "items": items,
+            }
+
+        @self._app.get("/api/members/{user_id}")
+        async def api_member_detail(
+            user_id: int,
+            group_id: int = Query(default=0),
+            refresh_identity: bool = Query(default=True),
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            clean_user_id = int(user_id)
+            if clean_user_id <= 0:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="user_id must be > 0")
+            target_group_id = int(group_id) if int(group_id) > 0 else None
+
+            refreshed = False
+            if refresh_identity and target_group_id is not None:
+                refreshed = await self._refresh_member_identity_from_onebot(
+                    user_id=clean_user_id,
+                    group_id=target_group_id,
+                )
+
+            profile = await self._agent.user_profiler.get_user_profile(clean_user_id)
+            payload = self._member_profile_payload(profile, target_group_id=target_group_id) if profile else {
+                "user_id": clean_user_id,
+                "nickname": "",
+                "display_name": str(clean_user_id),
+                "current_group_card": "",
+                "group_cards": [],
+                "learned_aliases": [],
+                "names": [],
+                "tags": [],
+                "affinity": 0.0,
+                "interaction_style": "",
+                "updated_at": "",
+            }
+            return {
+                "ok": True,
+                "refreshed_identity": refreshed,
+                "item": payload,
+            }
+
         @self._app.get("/api/stickers/settings")
         async def api_sticker_settings(_: None = Depends(self._require_token),) -> dict[str, Any]:
             return await self._agent.sticker_collector.runtime_settings()
@@ -658,7 +726,7 @@ class AdminService:
 
             self._agent.update_system_prompt(clean)
             self._cfg.persona.system_prompt = clean
-            await self._persist_config(self._set_system_prompt, clean)
+            await self._save_persona_prompt_template(clean)
             return {"ok": True, "system_prompt_length": len(clean)}
 
         @self._app.post("/api/ui/background")
@@ -801,6 +869,7 @@ class AdminService:
     def _runtime_config_payload(self) -> dict[str, Any]:
         return {
             "master_id": int(self._cfg.persona.master_id or 0),
+            "persona_prompt": str(self._cfg.persona.system_prompt or ""),
             "groups": self._serialize_groups(),
             "sticker": {
                 "enabled": bool(self._cfg.sticker.enabled),
@@ -898,6 +967,84 @@ class AdminService:
             return ""
 
         return str(data.get("group_name", "") or "").strip()
+
+    def _member_profile_payload(self, profile: Any, *, target_group_id: int | None) -> dict[str, Any]:
+        if profile is None:
+            return {}
+
+        group_cards = [
+            {
+                "group_id": int(item.group_id or 0),
+                "card": str(item.content or "").strip(),
+                "updated_at": str(item.updated_at or "").strip(),
+            }
+            for item in getattr(profile, "name_records", ())
+            if str(getattr(item, "source", "")).strip() == MEMBER_NAME_SOURCE_GROUP_CARD
+            and str(getattr(item, "content", "")).strip()
+        ]
+        learned_aliases = member_learned_aliases(getattr(profile, "name_records", ()))
+        names = member_names_for_admin(getattr(profile, "name_records", ()), str(getattr(profile, "nickname", "") or ""))
+        current_group_card = (
+            latest_member_group_card(getattr(profile, "name_records", ()), target_group_id)
+            if target_group_id is not None
+            else ""
+        )
+        display_name = str(current_group_card or getattr(profile, "nickname", "") or "").strip()
+        if not display_name and learned_aliases:
+            display_name = learned_aliases[0]
+        if not display_name:
+            display_name = str(int(getattr(profile, "user_id", 0) or 0))
+
+        return {
+            "user_id": int(getattr(profile, "user_id", 0) or 0),
+            "nickname": str(getattr(profile, "nickname", "") or "").strip(),
+            "display_name": display_name,
+            "current_group_card": current_group_card,
+            "group_cards": group_cards,
+            "learned_aliases": learned_aliases,
+            "names": names,
+            "tags": list(getattr(profile, "tags", ()) or ()),
+            "affinity": float(getattr(profile, "affinity", 0.0) or 0.0),
+            "interaction_style": str(getattr(profile, "interaction_style", "") or "").strip(),
+            "updated_at": str(getattr(profile, "updated_at", "") or "").strip(),
+        }
+
+    async def _refresh_member_identity_from_onebot(self, *, user_id: int, group_id: int) -> bool:
+        if int(user_id) <= 0 or int(group_id) <= 0:
+            return False
+        bot_client = getattr(self._agent, "bot_client", None)
+        if bot_client is None:
+            return False
+
+        try:
+            info = await bot_client.get_group_member_info(
+                group_id=int(group_id),
+                user_id=int(user_id),
+                no_cache=False,
+                timeout=4.0,
+            )
+        except Exception:
+            return False
+
+        if not isinstance(info, dict):
+            return False
+        latest_nickname = str(info.get("nickname", "") or "").strip()
+        latest_group_card = str(info.get("card", "") or "").strip()
+        if not latest_nickname and not latest_group_card:
+            return False
+
+        if latest_nickname:
+            await self._agent.user_profiler.replace_profile_nickname(
+                user_id=int(user_id),
+                nickname=latest_nickname,
+            )
+        await self._agent.user_profiler.sync_member_identity(
+            user_id=int(user_id),
+            nickname=latest_nickname,
+            group_id=int(group_id),
+            group_card=latest_group_card,
+        )
+        return True
 
     @staticmethod
     def _clamp_probability(value: Any) -> float:
@@ -1113,6 +1260,13 @@ class AdminService:
             )
             temp_file.replace(self._config_path)
 
+    async def _save_persona_prompt_template(self, content: str) -> None:
+        async with self._config_lock:
+            self._persona_prompt_path.parent.mkdir(parents=True, exist_ok=True)
+            temp_file = self._persona_prompt_path.with_suffix(self._persona_prompt_path.suffix + ".tmp")
+            temp_file.write_text(str(content or "").strip() + "\n", encoding="utf-8")
+            temp_file.replace(self._persona_prompt_path)
+
     def _upsert_runtime_group(
         self,
         *,
@@ -1143,14 +1297,6 @@ class AdminService:
         if extra_prompt is not None:
             group.extra_prompt = str(extra_prompt)
         return False
-
-    @staticmethod
-    def _set_system_prompt(config_data: dict[str, Any], value: str) -> None:
-        persona = config_data.setdefault("persona", {})
-        if not isinstance(persona, dict):
-            persona = {}
-            config_data["persona"] = persona
-        persona["system_prompt"] = value
 
     @staticmethod
     def _set_background_url(config_data: dict[str, Any], value: str) -> None:

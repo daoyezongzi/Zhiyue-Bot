@@ -63,6 +63,7 @@ WEB_BACKGROUND_URL=
 NAPCAT_PATH=
 NAPCAT_ARGS=
 KNOWLEDGE_DIR=data/knowledge
+KNOWLEDGE_EXCLUDE_DIRS=workspace
 
 # Persona privacy overrides
 PERSONA_MASTER_NAME=
@@ -102,6 +103,15 @@ def _parse_env_bool(raw: str) -> bool | None:
     if normalized in {"0", "false", "no", "off"}:
         return False
     return None
+
+
+def _parse_env_list(raw: str) -> list[str]:
+    text = str(raw or "").strip()
+    if not text:
+        return []
+    normalized = text.replace(";", ",").replace("\n", ",")
+    parts = [item.strip() for item in normalized.split(",")]
+    return [item for item in parts if item]
 
 
 def _read_provider_api_key(provider: str | None) -> str | None:
@@ -274,6 +284,13 @@ def _apply_env_overrides(cfg: Config) -> None:
     if knowledge_dir:
         cfg.paths.knowledge_dir = knowledge_dir
 
+    knowledge_exclude_dirs = _read_first_env(
+        "KNOWLEDGE_EXCLUDE_DIRS",
+        "ZHIYUE_KNOWLEDGE_EXCLUDE_DIRS",
+    )
+    if knowledge_exclude_dirs:
+        cfg.paths.knowledge_exclude_dirs = _parse_env_list(knowledge_exclude_dirs)
+
     master_name = _read_first_env("PERSONA_MASTER_NAME", "MASTER_NAME", "ZHIYUE_MASTER_NAME")
     if master_name is not None:
         cfg.persona.master_name = master_name
@@ -284,6 +301,29 @@ def _apply_env_overrides(cfg: Config) -> None:
             cfg.persona.master_id = int(master_id)
         except ValueError:
             pass
+
+
+def _resolve_persona_prompt_path(config_path: Path) -> Path:
+    candidates = [
+        config_path.parent / "persona.prompt",
+        PROJECT_ROOT / "config" / "persona.prompt",
+    ]
+    for item in candidates:
+        if item.exists():
+            return item
+    # Keep the first candidate for clearer error path.
+    return candidates[0]
+
+
+def _load_persona_prompt(config_path: Path) -> str:
+    prompt_path = _resolve_persona_prompt_path(config_path)
+    if not prompt_path.exists():
+        raise FileNotFoundError(f"persona prompt file not found: {prompt_path}")
+    text = prompt_path.read_text(encoding="utf-8")
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n").strip()
+    if not normalized:
+        raise ValueError(f"persona prompt body is empty: {prompt_path}")
+    return normalized
 
 
 def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> Config:
@@ -298,6 +338,7 @@ def load_config(path: str | Path = DEFAULT_CONFIG_PATH) -> Config:
     with file_path.open("r", encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
     _config = Config(**data)
+    _config.persona.system_prompt = _load_persona_prompt(file_path)
     _apply_env_overrides(_config)
     return _config
 

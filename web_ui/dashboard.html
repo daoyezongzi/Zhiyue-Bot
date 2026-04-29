@@ -725,15 +725,15 @@
       <section class="card">
         <h2>性格切换与 Prompt</h2>
         <div class="row">
-          <label for="personaPresetSelect">预设性格（本地模板，提交至 /api/config/update）</label>
+          <label for="personaPresetSelect">预设性格（本地模板，写入 config/persona.prompt）</label>
           <div class="split">
             <select id="personaPresetSelect"></select>
             <button id="applyPresetBtn" class="secondary">套用预设</button>
           </div>
         </div>
         <div class="row">
-          <label for="promptInput">System Prompt</label>
-          <textarea id="promptInput" placeholder="输入新的 system_prompt"></textarea>
+          <label for="promptInput">Persona Prompt 模板</label>
+          <textarea id="promptInput" placeholder="输入新的 persona.prompt 正文"></textarea>
         </div>
         <div class="row split">
           <button id="savePromptBtn">更新 Prompt</button>
@@ -770,6 +770,22 @@
         <div class="row">
           <label>群开关（/api/groups/{group_id}）</label>
           <div id="groupList" class="list-box"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>成员画像</h2>
+        <div class="row split">
+          <input id="memberKeywordInput" placeholder="昵称、群名片、别称、QQ、标签" />
+          <button id="refreshMembersBtn" class="secondary">搜索成员</button>
+        </div>
+        <div class="row muted">点击成员可查看群名片历史、学习别称与标签，并自动尝试校正当前群昵称。</div>
+        <div class="row">
+          <div id="memberList" class="list-box"></div>
+        </div>
+        <div class="row">
+          <label>成员详情</label>
+          <div id="memberDetailView" class="dialog-panel"></div>
         </div>
       </section>
 
@@ -992,6 +1008,7 @@
     const saveStickerWeightBtn = document.getElementById("saveStickerWeightBtn");
     const restartBotBtn = document.getElementById("restartBotBtn");
     const shutdownBotBtn = document.getElementById("shutdownBotBtn");
+    const refreshMembersBtn = document.getElementById("refreshMembersBtn");
 
     const statusLine = document.getElementById("statusLine");
     const apiStateChip = document.getElementById("apiStateChip");
@@ -1024,6 +1041,9 @@
     const addGroupNameInput = document.getElementById("addGroupNameInput");
     const addGroupRemarkInput = document.getElementById("addGroupRemarkInput");
     const groupList = document.getElementById("groupList");
+    const memberKeywordInput = document.getElementById("memberKeywordInput");
+    const memberList = document.getElementById("memberList");
+    const memberDetailView = document.getElementById("memberDetailView");
     const stickerEnabledToggle = document.getElementById("stickerEnabledToggle");
     const stickerCollectionRateInput = document.getElementById("stickerCollectionRateInput");
     const stickerStorageModeSelect = document.getElementById("stickerStorageModeSelect");
@@ -1059,9 +1079,13 @@
     let knowledgeFiles = [];
     let memorySessions = [];
     let stickerFiles = [];
+    let runtimeGroups = [];
+    let memberProfiles = [];
+    let selectedMemberId = 0;
     let selectedSessionId = "";
     let statusRefreshTimer = null;
     let runtimeRefreshTimer = null;
+    let promptInitialized = false;
     const API_BASE_URL = "http://localhost:18002/api";
     const LOG_WS_URL = "ws://localhost:18002/ws";
     backendBaseUrlInput.value = API_BASE_URL;
@@ -1460,6 +1484,130 @@
         .filter((item, index, arr) => item && arr.indexOf(item) === index);
     }
 
+    function resolveMemberLookupGroupId() {
+      const enabled = runtimeGroups.find((item) => Boolean(item.enabled) && Number(item.group_id) > 0);
+      if (enabled) {
+        return Number(enabled.group_id);
+      }
+      const first = runtimeGroups.find((item) => Number(item.group_id) > 0);
+      if (first) {
+        return Number(first.group_id);
+      }
+      return 0;
+    }
+
+    function formatMemberTitle(item) {
+      const displayName = String(item.display_name || "").trim();
+      const nickname = String(item.nickname || "").trim();
+      const uid = Number(item.user_id || 0);
+      if (displayName && nickname && displayName !== nickname) {
+        return `${displayName}（${nickname}） #${uid}`;
+      }
+      if (displayName) {
+        return `${displayName} #${uid}`;
+      }
+      if (nickname) {
+        return `${nickname} #${uid}`;
+      }
+      return `用户 #${uid}`;
+    }
+
+    function renderMemberDetail(item) {
+      if (!item || typeof item !== "object") {
+        memberDetailView.textContent = "暂无成员详情";
+        return;
+      }
+      const lines = [];
+      lines.push(`UID: ${Number(item.user_id || 0)}`);
+      lines.push(`展示名: ${String(item.display_name || "-")}`);
+      lines.push(`QQ昵称: ${String(item.nickname || "-")}`);
+      lines.push(`当前群名片: ${String(item.current_group_card || "-")}`);
+      const aliases = Array.isArray(item.learned_aliases) ? item.learned_aliases : [];
+      lines.push(`学习别称: ${aliases.length ? aliases.join("、") : "-"}`);
+      const cards = Array.isArray(item.group_cards) ? item.group_cards : [];
+      if (cards.length) {
+        lines.push("群名片历史:");
+        cards.slice(0, 12).forEach((row) => {
+          const gid = Number(row.group_id || 0);
+          const card = String(row.card || "").trim() || "-";
+          lines.push(`- [群 ${gid}] ${card}`);
+        });
+      } else {
+        lines.push("群名片历史: -");
+      }
+      const tags = Array.isArray(item.tags) ? item.tags : [];
+      lines.push(`标签: ${tags.length ? tags.join(", ") : "-"}`);
+      lines.push(`互动风格: ${String(item.interaction_style || "-")}`);
+      lines.push(`亲和度: ${Number(item.affinity || 0).toFixed(2)}`);
+      lines.push(`更新时间: ${formatLocalTime(item.updated_at || "")}`);
+      memberDetailView.textContent = lines.join("\n");
+    }
+
+    function renderMembers(items) {
+      memberList.innerHTML = "";
+      if (!Array.isArray(items) || !items.length) {
+        memberList.innerHTML = `<div class="muted">暂无成员画像</div>`;
+        memberDetailView.textContent = "暂无成员详情";
+        return;
+      }
+      items.forEach((item) => {
+        const uid = Number(item.user_id || 0);
+        const row = document.createElement("div");
+        row.className = `list-item ${uid === selectedMemberId ? "active" : ""}`;
+        row.textContent = formatMemberTitle(item);
+        row.addEventListener("click", async () => {
+          selectedMemberId = uid;
+          renderMembers(memberProfiles);
+          await loadMemberDetail(uid);
+        });
+        memberList.appendChild(row);
+      });
+      const selected = items.find((item) => Number(item.user_id || 0) === selectedMemberId) || items[0];
+      if (selected) {
+        selectedMemberId = Number(selected.user_id || 0);
+        renderMemberDetail(selected);
+      }
+    }
+
+    async function refreshMembers() {
+      try {
+        const keyword = memberKeywordInput.value.trim();
+        const data = await apiRequest(`/api/members?keyword=${encodeURIComponent(keyword)}&limit=200`);
+        memberProfiles = Array.isArray(data.items) ? data.items : [];
+        renderMembers(memberProfiles);
+      } catch (err) {
+        appendLog(`[members] 刷新失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function loadMemberDetail(userId) {
+      const uid = Number(userId || 0);
+      if (!uid) {
+        return;
+      }
+      const groupId = resolveMemberLookupGroupId();
+      try {
+        const data = await apiRequest(
+          `/api/members/${encodeURIComponent(uid)}?group_id=${encodeURIComponent(groupId)}&refresh_identity=true`,
+        );
+        const item = data && data.item && typeof data.item === "object" ? data.item : null;
+        if (!item) {
+          memberDetailView.textContent = "暂无成员详情";
+          return;
+        }
+        const idx = memberProfiles.findIndex((row) => Number(row.user_id || 0) === uid);
+        if (idx >= 0) {
+          memberProfiles[idx] = item;
+        } else {
+          memberProfiles.unshift(item);
+        }
+        renderMembers(memberProfiles);
+        renderMemberDetail(item);
+      } catch (err) {
+        appendLog(`[members] 读取详情失败: ${err.message}`, "status-error");
+      }
+    }
+
     function renderStickerSettings(sticker) {
       if (!sticker || typeof sticker !== "object") {
         return;
@@ -1807,8 +1955,18 @@
         ]);
         masterIdInput.value = String(runtimeData.master_id || 0);
         const groups = Array.isArray(groupsData.groups) ? groupsData.groups : runtimeData.groups || [];
+        runtimeGroups = Array.isArray(groups) ? groups : [];
         renderGroupSwitches(groups);
         renderStickerSettings(runtimeData.sticker || {});
+        if (!promptInitialized) {
+          const remotePrompt = String(runtimeData.persona_prompt || "").trim();
+          if (remotePrompt) {
+            promptInput.value = remotePrompt;
+          } else {
+            applyPromptPreset(true);
+          }
+          promptInitialized = true;
+        }
       } catch (err) {
         appendLog(`[config] 运行时配置读取失败: ${err.message}`, "status-error");
       }
@@ -2123,7 +2281,7 @@
     async function updatePrompt() {
       const clean = promptInput.value.trim();
       if (!clean) {
-        appendLog("[persona] system_prompt 不能为空", "status-error");
+        appendLog("[persona] persona.prompt 不能为空", "status-error");
         return;
       }
       try {
@@ -2131,9 +2289,9 @@
           method: "POST",
           json: { system_prompt: clean },
         });
-        appendLog(`[persona] system_prompt 已更新, length=${clean.length}`, "status-ok");
+        appendLog(`[persona] persona.prompt 已更新, length=${clean.length}`, "status-ok");
       } catch (err) {
-        appendLog(`[persona] system_prompt 更新失败: ${err.message}`, "status-error");
+        appendLog(`[persona] persona.prompt 更新失败: ${err.message}`, "status-error");
       }
     }
 
@@ -2289,6 +2447,7 @@
       await Promise.all([
         refreshStatus(),
         refreshRuntimeConfig(),
+        refreshMembers(),
         refreshStickerFiles(),
         refreshKnowledgeFiles(),
         refreshPlugins(),
@@ -2301,6 +2460,12 @@
     savePromptBtn.addEventListener("click", updatePrompt);
     saveMasterBtn.addEventListener("click", saveMasterId);
     addGroupBtn.addEventListener("click", addGroup);
+    refreshMembersBtn.addEventListener("click", refreshMembers);
+    memberKeywordInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        refreshMembers();
+      }
+    });
     addGroupIdInput.addEventListener("blur", autoFillGroupNameById);
     addGroupIdInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
@@ -2335,7 +2500,6 @@
       setActiveConsoleTab("system");
       togglePluginsPanel(true);
       initPresetOptions();
-      applyPromptPreset(true);
       connectLogStream(false);
 
       await refreshAll();

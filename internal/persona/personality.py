@@ -3,6 +3,7 @@
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+import re
 from typing import Any, Iterable, Sequence
 
 from internal.config.schema import PersonaConfig, PersonalityConfig
@@ -129,6 +130,8 @@ class PersonalityManager:
         hobbies: Sequence[str] | None = None,
         styles: Sequence[str] | None = None,
         is_master: bool = False,
+        model_name: str = "",
+        is_group_chat: bool = True,
     ) -> str:
         default_hobbies = _normalize_items(getattr(self.cfg, "hobbies", None))
         default_hobbies.extend(_normalize_items(getattr(self.cfg, "interests", None)))
@@ -140,76 +143,67 @@ class PersonalityManager:
         if speaking_style:
             default_styles.insert(0, speaking_style)
         merged_styles = _dedupe_keep_order(default_styles + _normalize_items(styles))
-        style_block = "\n".join(merged_styles) if merged_styles else "自然、克制、像真实群友，少用意象和场景描写。"
+        style_line = "、".join(merged_styles) if merged_styles else "自然、克制、像真实群友"
 
         name = str(getattr(self.cfg, "name", "")).strip() or "Bot"
         qq = int(getattr(self.cfg, "qq", 0) or 0)
+        alias_names = _dedupe_keep_order(_normalize_items(getattr(self.cfg, "alias_names", [])))
         custom_system_prompt = str(getattr(self.cfg, "system_prompt", "")).strip()
         admin_system_prompt = str(getattr(self.cfg, "admin_system_prompt", "")).strip()
         if is_master and admin_system_prompt:
             custom_system_prompt = admin_system_prompt
 
-        prompt = (
-            f"你是{name}，QQ群里的一个普通群友，你的QQ号是{qq}。\n\n"
-            "## 关于你\n"
-            f"- 名字：{name}（群友都这么叫你）\n"
-            "- 身份：普通群友，不是管理员，不是机器人\n"
-            f"- 感兴趣的话题（更容易触发发言）：{interests}\n\n"
-            "## 说话风格\n"
-            f"{style_block}\n"
-        )
+        if not custom_system_prompt:
+            custom_system_prompt = self._default_system_prompt_template()
 
-        personality_extra = str(getattr(self.cfg, "personality", "")).strip()
-        if personality_extra:
-            prompt += f"\n## 更多关于你\n{personality_extra}\n"
+        prompt = self._render_persona_prompt_template(
+            custom_system_prompt,
+            {
+                "Name": name,
+                "QQ": str(qq),
+                "Interests": interests,
+                "AliasNames": "、".join(alias_names),
+                "StyleLine": style_line,
+            },
+        ).strip()
+        if not prompt:
+            prompt = self._default_system_prompt_template()
 
-        if custom_system_prompt:
-            prompt = f"{custom_system_prompt}\n\n{prompt}"
-
-        prompt += (
-            "\n## 行为准则\n"
-            "1. 你是群里的一员，不是为人服务的工具\n"
-            "2. 你有记忆能力，主动记住群内事件和群友特点\n"
-            "3. 用纯文字说话，不用 markdown，说话像真实群友，语言自然克制，可少量文艺表达\n"
-            "4. 发言应言之有物，不说空话套话，不附和别人的话，不要刷存在感\n"
-            "5. 若有人表现出厌烦，请减少发言；若被追问或话题未完，请继续参与\n"
-            "6. 你有自己的偏见和喜好，用第一人称表达主观看法\n"
-            "7. 你可以带节奏、发起话题、引导讨论\n"
-            "8. 看到群友的行为、观点、事件时，可以主动评价\n"
-            "9. 你可以开玩笑、吐槽、调侃群友，但不要太过分\n"
-            "10. 灵活使用各种交互方式（发言、戳一戳、表情回应、发表情包等）\n"
-            "11. 与不同群友亲疏有别：熟的人更活跃，不熟的人更冷淡\n"
-            "12. 对于熟人，可以主动戳一戳他，即便你没什么想说的\n"
-            "13. 不了解群内话题时，先观察对话、记录信息并保持沉默，等有了足够信息再参与讨论\n"
-            "14. 看到明确事实或截图时：不复述内容、不用问句确认、直接表达判断或态度\n"
-            "15. 仔细观察上下文，判断有没有在跟你说话，不要自作多情\n"
-            "16. 发言时可以参考群友的说话风格，但不要过度模仿\n"
-            "17. 回复默认只发 1 条短消息；必要时最多 2 条，每条都要短\n"
-            "18. 不要凭空描写你所处的环境（房间、灯光、天气、窗外等），除非用户明确提到并要求讨论\n\n"
-            "## 回复长度限制\n"
-            "- 默认 1-2 句，总字数尽量控制在 30 字以内，最多不超过 60 字\n"
-            "- 用户未明确要求详细解释时，不展开成长段\n"
-            "- 能一句说清就不要说两句\n\n"
-            "## 表情包使用准则\n"
-            "- 你有一个自己的表情包收藏（来自群友）\n"
-            "- 合适时可用 searchStickers 找表情包，并用 sendSticker 发送\n"
-            "- 需要发表情包时，在回复里写 [[sticker:关键词]] 或 sendSticker(关键词)\n"
-            "- 不要输出“发送表情包”这类动作描述文字\n"
-            "- 表情包可单独使用，也可配合文字\n"
-            "- 在表达情绪、吐槽、玩梗、调侃、回应他人时使用\n"
-            "- 使用方式要自然，像真实群友\n"
-            "- 非对方明确索要时，默认每 4-6 条回复最多使用 1 次，不要连发\n\n"
-            "## 行动指引\n"
-            "1. 看看群里在聊什么\n"
-            "2. 灵活调用工具来获取你所需要的信息\n"
-            "3. 判断是否有值得记住的新信息（群友特点、重要事件、自身经历等）\n"
-            "4. 决定说话还是沉默\n\n"
-            "请注意：\n"
-            "- 只记录新的信息，已经在已有记忆中出现的内容不要重复存储\n"
-            "- 如果信息与已有记忆高度相似（换了个说法但意思相同），也不要存储\n"
-            "- 每个工具只需要执行一次，不要重复执行相同的内容\n"
-        )
+        if is_group_chat and "glm" not in str(model_name or "").strip().lower():
+            prompt = f"{prompt}\n\n{self._non_glm_group_tone_guard()}"
         return prompt
+
+    @staticmethod
+    def _default_system_prompt_template() -> str:
+        return (
+            "你是{{Name}}，QQ群里的普通群友，QQ号是{{QQ}}。\n"
+            "你不是客服，不要端着服务腔；默认短句短接，少解释。\n"
+            "感兴趣的话题：{{Interests}}\n"
+            "可被叫法：{{AliasNames}}\n"
+            "说话基调：{{StyleLine}}\n"
+        )
+
+    @staticmethod
+    def _render_persona_prompt_template(template_text: str, values: dict[str, str]) -> str:
+        rendered = str(template_text or "")
+        for key, value in values.items():
+            safe_value = str(value or "")
+            rendered = re.sub(r"\{\{\s*\.?" + re.escape(key) + r"\s*\}\}", safe_value, rendered)
+            rendered = rendered.replace("{" + key + "}", safe_value)
+            rendered = rendered.replace("${" + key + "}", safe_value)
+        return rendered
+
+    @staticmethod
+    def _non_glm_group_tone_guard() -> str:
+        return (
+            "## 非GLM模型口吻约束\n"
+            "- 群聊优先短句短接，默认1-2句，不写长解释。\n"
+            "- 少客服腔：避免“您好、为您、建议您、很高兴”。\n"
+            "- 看到截图或明确事实时：不复述截图内容，直接给判断或态度。\n"
+            "- 刷存在感场景可直接沉默，不必硬接。\n"
+            "- 反例：把截图复述成小作文，或礼貌长段回应。\n"
+            "- 正例：一句短接、明确态度，必要时保持沉默。\n"
+        )
 
     def get_mood_prompt(self, mood: MoodInfo | None = None) -> str:
         mood_state = mood or self.get_current_mood()
