@@ -37,8 +37,6 @@ class OneBotClient:
         self._connected_event: asyncio.Event = asyncio.Event()
         self._send_lock: asyncio.Lock = asyncio.Lock()
         self._connection_lock: asyncio.Lock = asyncio.Lock()
-        self._pending_actions: dict[str, asyncio.Future[dict[str, Any]]] = {}
-        self._pending_actions_lock: asyncio.Lock = asyncio.Lock()
 
         self._echo_seed: int = int(time.time() * 1000)
         self._reconnect_initial: float = reconnect_initial
@@ -63,7 +61,6 @@ class OneBotClient:
 
     async def stop(self) -> None:
         self._stop_event.set()
-        await self._fail_pending_actions(RuntimeError("OneBot client is stopping"))
 
         if self._server is not None:
             self._server.close()
@@ -178,15 +175,12 @@ class OneBotClient:
             if websocket is None or self._ws is websocket:
                 self._ws = None
                 self._connected_event.clear()
-        await self._fail_pending_actions(RuntimeError("OneBot connection closed"))
 
     async def _receive_loop(self, websocket: Any) -> None:
         try:
             async for raw_message in websocket:
                 packet = self._parse_message(raw_message)
                 if packet is None:
-                    continue
-                if await self._consume_action_response(packet):
                     continue
                 await self.message_queue.put(packet)
                 self._logger.info(
@@ -301,44 +295,11 @@ class OneBotClient:
         payload = dict(params or {})
         return await self._send_action(clean_action, payload)
 
-    async def call_action_with_response(
-        self,
-        action: str,
-        params: Mapping[str, Any] | None = None,
-        *,
-        timeout: float = 6.0,
-    ) -> dict[str, Any]:
-        clean_action = str(action or "").strip()
-        if not clean_action:
-            raise ValueError("action is empty")
-
-        clean_timeout = max(0.1, float(timeout))
-        payload = dict(params or {})
-        echo = self._next_echo()
-        loop = asyncio.get_running_loop()
-        pending: asyncio.Future[dict[str, Any]] = loop.create_future()
-
-        async with self._pending_actions_lock:
-            self._pending_actions[echo] = pending
-
-        try:
-            await self._send_action_with_echo(clean_action, payload, echo)
-            return await asyncio.wait_for(pending, timeout=clean_timeout)
-        finally:
-            async with self._pending_actions_lock:
-                current = self._pending_actions.get(echo)
-                if current is pending:
-                    del self._pending_actions[echo]
-
     async def _send_action(self, action: str, params: dict[str, Any]) -> str:
-        echo = self._next_echo()
-        await self._send_action_with_echo(action, params, echo)
-        return echo
-
-    async def _send_action_with_echo(self, action: str, params: dict[str, Any], echo: str) -> None:
         if not self.connected:
             raise RuntimeError("OneBot is not connected")
 
+        echo = self._next_echo()
         payload: dict[str, Any] = {
             "action": action,
             "params": params,
@@ -352,36 +313,7 @@ class OneBotClient:
             await websocket.send(json.dumps(payload, ensure_ascii=False))
 
         self._logger.info("TX action=%s echo=%s params=%s", action, echo, params)
-
-    async def _consume_action_response(self, packet: dict[str, Any]) -> bool:
-        echo = str(packet.get("echo", "") or "").strip()
-        if not echo:
-            return False
-
-        async with self._pending_actions_lock:
-            pending = self._pending_actions.get(echo)
-        if pending is None:
-            return False
-
-        raw = packet.get("raw")
-        payload = raw if isinstance(raw, dict) else dict(packet)
-        if not pending.done():
-            pending.set_result(payload)
-        self._logger.info(
-            "RX action-response echo=%s status=%s retcode=%s",
-            echo,
-            payload.get("status"),
-            payload.get("retcode"),
-        )
-        return True
-
-    async def _fail_pending_actions(self, exc: Exception) -> None:
-        async with self._pending_actions_lock:
-            pendings = list(self._pending_actions.values())
-            self._pending_actions.clear()
-        for pending in pendings:
-            if not pending.done():
-                pending.set_exception(exc)
+        return echo
 
     def _is_authorized_reverse_connection(self, websocket: Any, raw_path: str) -> bool:
         expected = self.access_token.strip()
