@@ -414,6 +414,46 @@
       padding: 0;
     }
 
+    .group-item {
+      align-items: flex-start;
+    }
+
+    .group-item-main {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .group-item-title {
+      line-height: 1.4;
+    }
+
+    .group-meta-editor {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .group-meta-editor button {
+      width: auto;
+      min-width: 72px;
+      padding: 7px 9px;
+      font-size: 11px;
+      box-shadow: none;
+    }
+
+    .group-item-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      margin-left: 8px;
+      padding-top: 2px;
+    }
+
     .dialog-panel {
       border: 1px solid var(--line);
       border-radius: 10px;
@@ -619,6 +659,10 @@
         grid-template-columns: 1fr;
       }
 
+      .group-meta-editor {
+        grid-template-columns: 1fr;
+      }
+
       .console {
         min-height: 230px;
       }
@@ -711,6 +755,16 @@
           <div class="split">
             <input id="addGroupIdInput" placeholder="输入群号，例如 123456789" />
             <button id="addGroupBtn" class="secondary">新增并启用</button>
+          </div>
+        </div>
+        <div class="row split">
+          <div class="control">
+            <label for="addGroupNameInput">群聊名字（可选）</label>
+            <input id="addGroupNameInput" placeholder="例如 技术交流群" />
+          </div>
+          <div class="control">
+            <label for="addGroupRemarkInput">群聊备注（可自定义）</label>
+            <input id="addGroupRemarkInput" placeholder="例如 主要讨论插件开发" />
           </div>
         </div>
         <div class="row">
@@ -967,6 +1021,8 @@
     const promptInput = document.getElementById("promptInput");
     const masterIdInput = document.getElementById("masterIdInput");
     const addGroupIdInput = document.getElementById("addGroupIdInput");
+    const addGroupNameInput = document.getElementById("addGroupNameInput");
+    const addGroupRemarkInput = document.getElementById("addGroupRemarkInput");
     const groupList = document.getElementById("groupList");
     const stickerEnabledToggle = document.getElementById("stickerEnabledToggle");
     const stickerCollectionRateInput = document.getElementById("stickerCollectionRateInput");
@@ -1298,6 +1354,14 @@
       renderMemorySessions(sessions);
     }
 
+    function buildGroupDisplayLabel(item, enabledState) {
+      const cleanName = String(item.group_name || "").trim();
+      if (cleanName) {
+        return `${cleanName} | ${enabledState ? "已启用" : "已禁用"}`;
+      }
+      return `未命名群 | ${enabledState ? "已启用" : "已禁用"}`;
+    }
+
     function renderGroupSwitches(groups) {
       groupList.innerHTML = "";
       if (!Array.isArray(groups) || groups.length === 0) {
@@ -1307,10 +1371,61 @@
 
       groups.forEach((item) => {
         const row = document.createElement("div");
-        row.className = "switch-item";
+        row.className = "switch-item group-item";
+
+        const main = document.createElement("div");
+        main.className = "group-item-main";
 
         const label = document.createElement("div");
-        label.textContent = `群 ${item.group_id} | ${item.enabled ? "已启用" : "已禁用"}`;
+        label.className = "group-item-title";
+        label.textContent = buildGroupDisplayLabel(item, Boolean(item.enabled));
+
+        const metaEditor = document.createElement("div");
+        metaEditor.className = "group-meta-editor";
+
+        const groupNameInput = document.createElement("input");
+        groupNameInput.placeholder = "群聊名字（可选）";
+        groupNameInput.value = String(item.group_name || "");
+
+        const remarkInput = document.createElement("input");
+        remarkInput.placeholder = "群聊备注（可自定义）";
+        remarkInput.value = String(item.remark || "");
+
+        const saveMetaBtn = document.createElement("button");
+        saveMetaBtn.className = "secondary";
+        saveMetaBtn.textContent = "保存备注";
+        saveMetaBtn.addEventListener("click", async () => {
+          saveMetaBtn.disabled = true;
+          try {
+            const data = await apiRequest(`/api/groups/${item.group_id}/meta`, {
+              method: "POST",
+              json: {
+                group_name: groupNameInput.value.trim(),
+                remark: remarkInput.value.trim(),
+              },
+            });
+            item.group_name = String(data.group_name || "");
+            item.remark = String(data.remark || "");
+            groupNameInput.value = item.group_name;
+            remarkInput.value = item.remark;
+            label.textContent = buildGroupDisplayLabel(item, Boolean(toggle.checked));
+            appendLog(`[groups] group=${item.group_id} meta updated`, "status-ok");
+          } catch (err) {
+            appendLog(`[groups] 备注更新失败: ${err.message}`, "status-error");
+          } finally {
+            saveMetaBtn.disabled = false;
+          }
+        });
+
+        metaEditor.appendChild(groupNameInput);
+        metaEditor.appendChild(remarkInput);
+        metaEditor.appendChild(saveMetaBtn);
+
+        main.appendChild(label);
+        main.appendChild(metaEditor);
+
+        const actions = document.createElement("div");
+        actions.className = "group-item-actions";
 
         const toggle = document.createElement("input");
         toggle.type = "checkbox";
@@ -1322,7 +1437,7 @@
               method: "POST",
               json: { enabled: wanted },
             });
-            label.textContent = `群 ${item.group_id} | ${wanted ? "已启用" : "已禁用"}`;
+            label.textContent = buildGroupDisplayLabel(item, wanted);
             appendLog(`[groups] group=${item.group_id} enabled=${wanted}`, "status-ok");
           } catch (err) {
             toggle.checked = !wanted;
@@ -1330,8 +1445,9 @@
           }
         });
 
-        row.appendChild(label);
-        row.appendChild(toggle);
+        actions.appendChild(toggle);
+        row.appendChild(main);
+        row.appendChild(actions);
         groupList.appendChild(row);
       });
     }
@@ -1801,6 +1917,35 @@
       }
     }
 
+    async function autoFillGroupNameById() {
+      const raw = addGroupIdInput.value.trim();
+      if (!/^\d+$/.test(raw) || Number(raw) <= 0) {
+        return;
+      }
+      const groupId = Number(raw);
+      try {
+        const data = await apiRequest(`/api/groups/${groupId}/name`);
+        const fetchedName = String(data.group_name || "").trim();
+        if (!fetchedName) {
+          return;
+        }
+        const currentName = addGroupNameInput.value.trim();
+        if (!currentName) {
+          addGroupNameInput.value = fetchedName;
+          appendLog(`[groups] 已自动获取群名: ${fetchedName}`, "status-ok");
+          return;
+        }
+        if (currentName !== fetchedName) {
+          appendLog(
+            `[groups] 获取到群名 ${fetchedName}，当前输入为自定义值，未覆盖`,
+            "status-warn",
+          );
+        }
+      } catch (err) {
+        appendLog(`[groups] 群名自动获取失败: ${err.message}`, "status-warn");
+      }
+    }
+
     async function addGroup() {
       const raw = addGroupIdInput.value.trim();
       if (!/^\d+$/.test(raw) || Number(raw) <= 0) {
@@ -1809,18 +1954,28 @@
       }
       try {
         const groupId = Number(raw);
+        const groupName = addGroupNameInput.value.trim();
+        const remark = addGroupRemarkInput.value.trim();
+        const payload = {
+          group_id: groupId,
+          enabled: true,
+          remark,
+        };
+        if (groupName) {
+          payload.group_name = groupName;
+        }
         const data = await apiRequest("/api/groups", {
           method: "POST",
-          json: {
-            group_id: groupId,
-            enabled: true,
-          },
+          json: payload,
         });
+        const displayName = String(data.group_name || groupName || "").trim();
         appendLog(
-          `[groups] group=${groupId} enabled=true ${data.created ? "created" : "updated"}`,
+          `[groups] group=${groupId} ${displayName ? `name=${displayName} ` : ""}enabled=true ${data.created ? "created" : "updated"}`,
           "status-ok",
         );
         addGroupIdInput.value = "";
+        addGroupNameInput.value = "";
+        addGroupRemarkInput.value = "";
         await refreshRuntimeConfig();
       } catch (err) {
         appendLog(`[groups] 新增失败: ${err.message}`, "status-error");
@@ -2146,6 +2301,12 @@
     savePromptBtn.addEventListener("click", updatePrompt);
     saveMasterBtn.addEventListener("click", saveMasterId);
     addGroupBtn.addEventListener("click", addGroup);
+    addGroupIdInput.addEventListener("blur", autoFillGroupNameById);
+    addGroupIdInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        autoFillGroupNameById();
+      }
+    });
     saveStickerSettingsBtn.addEventListener("click", saveStickerSettings);
     saveStickerWeightBtn.addEventListener("click", saveStickerUserWeight);
     refreshStickerFilesBtn.addEventListener("click", refreshStickerFiles);

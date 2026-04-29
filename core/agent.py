@@ -14,6 +14,7 @@ import yaml
 from adapters.llm.chat import ChatLLMAdapter
 from adapters.onebot.client import OneBotClient
 from core.memory import ConversationMessage, MessageHistory
+from core.tarot import TarotKnowledgeBase
 from internal.config.schema import Config, GroupConfig
 from internal.jargon import JargonManager, StyleClassification
 from internal.jargon.jargon_engine import JargonEvolutionEngine, JargonLexiconStore
@@ -94,6 +95,7 @@ class DebounceEntry:
     generation: int
     merged_count: int
     mentioned: bool
+    explicit_at: bool
     timer_task: asyncio.Task[None]
 
 
@@ -291,9 +293,9 @@ class ZhiyueAgent:
     _SILENCE_PLACEHOLDER_PATTERN = re.compile(
         (
             r"^\s*[（(]?\s*"
-            r"(?:沉默观察|保持沉默|先观察|继续观察|无必要回应|无需回应|无需回复|暂不回应|不作回应)"
+            r"(?:沉默观察|保持沉默|保持安静即可|保持安静|安静即可|先观察|继续观察|无必要回应|无需回应|无需回复|暂不回应|不作回应|没有新内容需要回应|先潜水|先潜水了|先潜水啦)"
             r"(?:\s*[，,、；;]\s*"
-            r"(?:沉默观察|保持沉默|先观察|继续观察|无必要回应|无需回应|无需回复|暂不回应|不作回应))*"
+            r"(?:沉默观察|保持沉默|保持安静即可|保持安静|安静即可|先观察|继续观察|无必要回应|无需回应|无需回复|暂不回应|不作回应|没有新内容需要回应|先潜水|先潜水了|先潜水啦))*"
             r"\s*[）)]?\s*$"
         ),
         re.IGNORECASE,
@@ -301,11 +303,46 @@ class ZhiyueAgent:
     _STAY_QUIET_PLACEHOLDER_PATTERN = re.compile(
         (
             r"^\s*(?:"
-            r"stayQuiet|stay_quiet|保持沉默|不回复|无需回复|无必要回应|"
+            r"stayQuiet|stay_quiet|保持沉默|保持安静即可|保持安静|安静即可|不回复|无需回复|无必要回应|"
             r"\{.*?(?:stayQuiet|stay_quiet).*?\}"
             r")\s*$"
         ),
         re.IGNORECASE | re.DOTALL,
+    )
+    _BRACKETED_SILENCE_PLACEHOLDER_PATTERN = re.compile(
+        r"^\s*\[{1,2}\s*(?P<token>[^\[\]\r\n]{1,40})\s*\]{1,2}\s*$",
+        re.IGNORECASE,
+    )
+    _TRAILING_PLACEHOLDER_PUNCT_PATTERN = re.compile(r"[。.!！?？~～…]+\s*$")
+    _BRACKETED_SILENCE_TOKENS = {
+        "quiet",
+        "silence",
+        "silent",
+        "stayquiet",
+        "noreply",
+        "保持沉默",
+        "保持安静",
+        "保持安静即可",
+        "安静即可",
+        "沉默观察",
+        "不回复",
+        "无需回复",
+        "无必要回应",
+    }
+    _PASSIVE_GROUP_REPLY_CUE_PATTERN = re.compile(
+        r"[?？]|怎么|如何|为啥|为什么|是否|能不能|可不可以|有没有|要不要|谁|哪|几|啥|吗|呢|求|帮|请教|建议|怎么看",
+        re.IGNORECASE,
+    )
+    _LOW_SIGNAL_GROUP_TEXT_PATTERN = re.compile(
+        (
+            r"^(?:"
+            r"[哈呵嘿啊嗯哦呃诶欸]+|"
+            r"6{1,6}|"
+            r"ok+|kk+|emm+|hhh+|lol+|"
+            r"收到|好的?|行吧?|可以|可|知道了|懂了|确实|是的|对的?|支持|顶|\+1|1|nb|牛逼?|卧槽|草|笑死"
+            r")$"
+        ),
+        re.IGNORECASE,
     )
     _REPLY_LINE_SPLIT_PATTERN = re.compile(r"(?:\r?\n)+")
     _REPLY_SENTENCE_PATTERN = re.compile(r"[^。！？!?；;\n]+(?:[。！？!?；;]+|$)")
@@ -322,9 +359,11 @@ class ZhiyueAgent:
     _LOW_ENERGY_GROUP_COOLDOWN_SEC = 360
     _LOW_ENERGY_DIRECT_COOLDOWN_SEC = 120
     _LOW_ENERGY_REPLIES = ("嗯。", "收到。", "知道了。", "行。")
+    _LOW_ENERGY_AT_ONLY_REPLY = "我累了，先休息一下。"
     _AUTO_STICKER_SEND_PROBABILITY = 0.22
     _AUTO_STICKER_GROUP_COOLDOWN_SEC = 300
     _AUTO_STICKER_DIRECT_COOLDOWN_SEC = 180
+    _TAROT_DRAW_COOLDOWN_SEC = 60
     _SUPPORTED_ADMIN_ACTIONS = {"toggle_group_chat", "join_group_chat", "shutdown"}
     _ADMIN_HELP_SUBCOMMANDS = {"帮助", "列表", "list", "help", "帮助/list", "help/list"}
     _ADMIN_ACTION_LABELS = {
@@ -409,7 +448,13 @@ class ZhiyueAgent:
         self._low_energy_last_reply_at: dict[str, datetime] = {}
         self._low_energy_last_reply_text: dict[str, str] = {}
         self._sticker_last_sent_at: dict[str, datetime] = {}
+        self._tarot_last_draw_at: dict[str, datetime] = {}
         self._rng = random.Random()
+        project_root = Path(__file__).resolve().parents[1]
+        knowledge_dir = Path(str(getattr(self.cfg.paths, "knowledge_dir", "data/knowledge") or "data/knowledge"))
+        if not knowledge_dir.is_absolute():
+            knowledge_dir = project_root / knowledge_dir
+        self._tarot_knowledge = TarotKnowledgeBase(knowledge_dir / "tarot_cards.json")
         self._config_path = Path(config_path).resolve() if config_path is not None else None
         self._config_lock = asyncio.Lock()
         self._shutdown_handler = shutdown_handler
@@ -441,6 +486,18 @@ class ZhiyueAgent:
             restored_status.energy,
             restored_status.energy_tier,
         )
+        if self._tarot_knowledge.load_error:
+            self._logger.error(
+                "Tarot knowledge load failed: path=%s err=%s",
+                self._tarot_knowledge.file_path,
+                self._tarot_knowledge.load_error,
+            )
+        else:
+            self._logger.info(
+                "Tarot knowledge loaded: path=%s cards=%s",
+                self._tarot_knowledge.file_path,
+                self._tarot_knowledge.card_count,
+            )
 
     async def stop(self) -> None:
         self._started = False
@@ -564,6 +621,7 @@ class ZhiyueAgent:
     async def _debounce(self, packet: dict[str, Any]) -> None:
         key = self._build_debounce_key(packet)
         mentioned = self._is_packet_mentioned(packet)
+        explicit_at = self._is_packet_explicit_at(packet)
         async with self._debounce_lock:
             previous = self._debounce_entries.get(key)
             if previous is not None:
@@ -571,6 +629,7 @@ class ZhiyueAgent:
                 generation = previous.generation + 1
                 merged_count = previous.merged_count + 1
                 mentioned = mentioned or previous.mentioned
+                explicit_at = explicit_at or previous.explicit_at
                 timer_task = asyncio.create_task(
                     self._flush_debounce_after(key, generation),
                     name=f"debounce-{key}",
@@ -580,6 +639,7 @@ class ZhiyueAgent:
                     generation=generation,
                     merged_count=merged_count,
                     mentioned=mentioned,
+                    explicit_at=explicit_at,
                     timer_task=timer_task,
                 )
                 self._logger.info(
@@ -599,6 +659,7 @@ class ZhiyueAgent:
                 generation=1,
                 merged_count=1,
                 mentioned=mentioned,
+                explicit_at=explicit_at,
                 timer_task=timer_task,
             )
             self._logger.info(
@@ -618,6 +679,7 @@ class ZhiyueAgent:
         packet: dict[str, Any] | None = None
         merged_count = 1
         mentioned = False
+        explicit_at = False
         async with self._debounce_lock:
             entry = self._debounce_entries.get(key)
             if entry is None or entry.generation != generation:
@@ -625,10 +687,12 @@ class ZhiyueAgent:
             packet = dict(entry.packet)
             merged_count = entry.merged_count
             mentioned = entry.mentioned
+            explicit_at = entry.explicit_at
             del self._debounce_entries[key]
 
         assert packet is not None
         packet["_debounced_mention"] = mentioned
+        packet["_debounced_explicit_at"] = explicit_at
         packet["_debounced_count"] = merged_count
         await self._dispatch_queue.put(packet)
         self._logger.info(
@@ -658,6 +722,7 @@ class ZhiyueAgent:
                 return
 
         mentioned_in_window = bool(message.get("_debounced_mention"))
+        explicit_at_in_window = bool(message.get("_debounced_explicit_at"))
         user_id = self._to_int(message.get("user_id"))
         self_id = self._to_int(message.get("self_id"))
         if user_id is not None and self_id is not None and user_id == self_id:
@@ -683,6 +748,11 @@ class ZhiyueAgent:
         if message_type == "group" and group_id is not None and not self.cfg.is_group_enabled(group_id):
             self._logger.info("Skip group message: group not enabled group_id=%s", group_id)
             return
+
+        if raw_text:
+            tarot_handled = await self._try_handle_tarot_command(message=message, text=raw_text)
+            if tarot_handled:
+                return
 
         if message_type == "group":
             status_snapshot = await self.status_engine.get_snapshot()
@@ -790,27 +860,23 @@ class ZhiyueAgent:
         final_reply = ""
         forced_rest = False
 
-        if low_energy_mode and not prefer_llm_route:
-            if not self._allow_low_energy_reply(
-                session_id=session_id,
-                message_type=message_type,
-                mentioned_in_window=mentioned_in_window,
-                status_energy=status_after_user.energy,
-                forced_rest=status_after_user.forced_rest,
-            ):
+        if low_energy_mode:
+            if not explicit_at_in_window:
+                self._logger.info(
+                    "Queue.SkipReply: session=%s reason=low_energy_no_explicit_at status_energy=%.1f",
+                    session_id,
+                    status_after_user.energy,
+                )
                 return
 
-            final_reply = self._pick_low_energy_reply(session_id=session_id)
-            if not final_reply:
-                return
-
-            forced_rest = bool(status_after_user.forced_rest)
+            final_reply = self._LOW_ENERGY_AT_ONLY_REPLY
+            forced_rest = True
             self._logger.info(
-                "Queue.LowEnergyReply: session=%s status_energy=%.1f fatigue=%s forced_rest=%s mode=rule",
+                "Queue.LowEnergyReply: session=%s status_energy=%.1f fatigue=%s forced_rest=%s mode=explicit_at_only",
                 session_id,
                 status_after_user.energy,
                 status_after_user.fatigue_mode,
-                status_after_user.forced_rest,
+                forced_rest,
             )
 
         if not final_reply:
@@ -821,6 +887,7 @@ class ZhiyueAgent:
                 is_master=is_master,
                 is_admin_sender=is_admin_sender,
                 sticker_intent=sticker_intent,
+                source_text=text,
             )
             if llm_route_probability < 1.0:
                 roll = self._rng.random()
@@ -1393,12 +1460,27 @@ class ZhiyueAgent:
         clean = str(text or "").strip()
         if not clean:
             return False
-        if cls._STAY_QUIET_PLACEHOLDER_PATTERN.fullmatch(clean):
-            return True
-        if len(clean) > 48:
-            return False
-        if cls._SILENCE_PLACEHOLDER_PATTERN.fullmatch(clean):
-            return True
+        candidates = [clean]
+        trimmed = cls._TRAILING_PLACEHOLDER_PUNCT_PATTERN.sub("", clean).strip()
+        if trimmed and trimmed != clean:
+            candidates.append(trimmed)
+
+        for candidate in candidates:
+            if cls._STAY_QUIET_PLACEHOLDER_PATTERN.fullmatch(candidate):
+                return True
+            bracketed = cls._BRACKETED_SILENCE_PLACEHOLDER_PATTERN.fullmatch(candidate)
+            if bracketed is None:
+                continue
+            token = str(bracketed.group("token") or "").strip()
+            normalized_token = re.sub(r"[\s_\-]+", "", token).lower()
+            if normalized_token in cls._BRACKETED_SILENCE_TOKENS:
+                return True
+
+        for candidate in candidates:
+            if len(candidate) > 48:
+                continue
+            if cls._SILENCE_PLACEHOLDER_PATTERN.fullmatch(candidate):
+                return True
         return False
 
     async def _sync_learned_jargon(self, term: str, meaning: str) -> None:
@@ -1701,6 +1783,9 @@ class ZhiyueAgent:
         if text and self.personality.is_mentioned(text):
             return True
 
+        return self._is_packet_explicit_at(message)
+
+    def _is_packet_explicit_at(self, message: dict[str, Any]) -> bool:
         target_ids: set[int] = set()
         self_id = self._to_int(message.get("self_id"))
         if self_id is not None:
@@ -2152,6 +2237,124 @@ class ZhiyueAgent:
             return False
         return bool(cls._STICKER_INTENT_PATTERN.search(clean_text))
 
+    @classmethod
+    def _is_low_signal_passive_group_message(cls, text: str) -> bool:
+        clean_text = str(text or "").strip()
+        if not clean_text:
+            return True
+        if len(clean_text) > 24:
+            return False
+        if cls._PASSIVE_GROUP_REPLY_CUE_PATTERN.search(clean_text):
+            return False
+
+        compact = re.sub(r"[\s，,。.!！?？；;:：~～…·`'\"“”‘’\-_/\(\)（）\[\]{}<>]+", "", clean_text).lower()
+        if not compact:
+            return True
+        if len(compact) <= 1:
+            return True
+        return bool(cls._LOW_SIGNAL_GROUP_TEXT_PATTERN.fullmatch(compact))
+
+    @staticmethod
+    def _is_tarot_trigger(text: str) -> bool:
+        return str(text or "").strip().lower() == "tarot"
+
+    async def _try_handle_tarot_command(self, *, message: dict[str, Any], text: str) -> bool:
+        if not self._is_tarot_trigger(text):
+            return False
+
+        mention_prefix = self._build_tarot_mention_prefix(message)
+        cooldown_key = self._build_tarot_cooldown_key(message)
+        now = datetime.now(timezone.utc)
+        remaining_sec = self._tarot_cooldown_remaining(cooldown_key=cooldown_key, now=now)
+        if remaining_sec > 0:
+            await self._reply_single(
+                message,
+                f"{mention_prefix}抽牌冷却中，请在 {remaining_sec} 秒后再试。",
+            )
+            return True
+
+        try:
+            draw = self._tarot_knowledge.draw(self._rng)
+        except RuntimeError as exc:
+            await self._reply_single(message, f"{mention_prefix}塔罗知识库异常：{exc}")
+            self._logger.error("Tarot.Draw failed: err=%s", exc)
+            return True
+
+        content = (
+            f"{mention_prefix}抽出了一张 {draw.card.display_name_cn}，{draw.orientation_label}，"
+            f"解释是“{draw.meaning}”。"
+        )
+        await self._reply_single(message, content)
+        if cooldown_key:
+            self._tarot_last_draw_at[cooldown_key] = now
+        self._logger.info(
+            "Tarot.Draw: card=%s orientation=%s user_id=%s group_id=%s",
+            draw.card.display_name_cn,
+            draw.orientation_label,
+            message.get("user_id"),
+            message.get("group_id"),
+        )
+        return True
+
+    def _build_tarot_cooldown_key(self, message: dict[str, Any]) -> str:
+        user_id = self._to_int(message.get("user_id"))
+        if user_id is not None and user_id > 0:
+            return f"user:{user_id}"
+        speaker = self._extract_speaker(message).strip().lower()
+        if speaker and speaker != "unknown":
+            return f"speaker:{speaker}"
+        return ""
+
+    def _tarot_cooldown_remaining(self, *, cooldown_key: str, now: datetime) -> int:
+        if not cooldown_key:
+            return 0
+        previous = self._tarot_last_draw_at.get(cooldown_key)
+        if previous is None:
+            return 0
+        elapsed = (now - previous).total_seconds()
+        if elapsed >= float(self._TAROT_DRAW_COOLDOWN_SEC):
+            return 0
+        remaining = int(self._TAROT_DRAW_COOLDOWN_SEC - elapsed + 0.999)
+        if remaining <= 0:
+            return 1
+        return remaining
+
+    def _build_tarot_mention_prefix(self, message: dict[str, Any]) -> str:
+        message_type = str(message.get("message_type", "")).strip() or "private"
+        if message_type != "group":
+            return ""
+
+        user_id = self._to_int(message.get("user_id"))
+        if user_id is not None and user_id > 0:
+            return f"[CQ:at,qq={user_id}] "
+
+        speaker = self._extract_speaker(message)
+        if speaker and speaker != "unknown":
+            return f"@{speaker} "
+        return ""
+
+    async def _reply_single(self, message: dict[str, Any], content: str) -> None:
+        text = str(content or "").strip()
+        if not text:
+            return
+
+        message_type = str(message.get("message_type", "")).strip() or "private"
+        if message_type == "group":
+            group_id = self._to_int(message.get("group_id"))
+            if group_id is None:
+                self._logger.warning("Skip group single reply: missing group_id")
+                return
+            await self.bot_client.send_group_msg(group_id=group_id, message=text)
+            self._logger.info("Queue.ReplySingle: target=group group_id=%s", group_id)
+            return
+
+        user_id = self._to_int(message.get("user_id"))
+        if user_id is None:
+            self._logger.warning("Skip private single reply: missing user_id")
+            return
+        await self.bot_client.send_private_msg(user_id=user_id, message=text)
+        self._logger.info("Queue.ReplySingle: target=private user_id=%s", user_id)
+
     def _allow_auto_sticker_send(self, *, ctx: ThinkContext) -> bool:
         now = datetime.now(timezone.utc)
         is_direct = ctx.message_type != "group"
@@ -2212,6 +2415,7 @@ class ZhiyueAgent:
         is_master: bool,
         is_admin_sender: bool,
         sticker_intent: bool = False,
+        source_text: str = "",
     ) -> float:
         if is_master or is_admin_sender:
             return 1.0
@@ -2220,6 +2424,8 @@ class ZhiyueAgent:
             return 1.0
         if mentioned_in_window or sticker_intent:
             return 1.0
+        if self._is_low_signal_passive_group_message(source_text):
+            return 0.0
 
         base = self._active_reply_probability(status_energy)
         return base

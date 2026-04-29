@@ -1,0 +1,792 @@
+{
+  "deck": "Rider-Waite-Smith Tarot",
+  "language": "zh-CN",
+  "version": "2026-04-28",
+  "description": "本地塔罗知识库：78张牌，包含正位与逆位解释。",
+  "sources": [
+    "https://biddytarot.com/tarot-card-meanings/",
+    "https://en.wikipedia.org/wiki/Tarot"
+  ],
+  "cards": [
+    {
+      "id": "major_00_the_fool",
+      "name_cn": "愚者",
+      "name_en": "The Fool",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "新的开始、自由冒险与信任直觉，适合带着好奇心踏出第一步。",
+      "reversed": "鲁莽冲动、准备不足或逃避责任，提醒先补足计划再出发。"
+    },
+    {
+      "id": "major_01_the_magician",
+      "name_cn": "魔术师",
+      "name_en": "The Magician",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "意志清晰、资源到位、行动力强，能把想法转成现实。",
+      "reversed": "操控、分心或能力滥用，先聚焦目标并校准动机。"
+    },
+    {
+      "id": "major_02_the_high_priestess",
+      "name_cn": "女祭司",
+      "name_en": "The High Priestess",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "直觉敏锐、内在智慧浮现，适合沉静观察与保留判断。",
+      "reversed": "忽视直觉、秘密过多或情绪封闭，需要面对真实感受。"
+    },
+    {
+      "id": "major_03_the_empress",
+      "name_cn": "女皇",
+      "name_en": "The Empress",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "丰盛、创造力与照料能量增强，关系和项目都在孕育成长。",
+      "reversed": "过度依赖、放纵或照顾失衡，先把精力收回到自我滋养。"
+    },
+    {
+      "id": "major_04_the_emperor",
+      "name_cn": "皇帝",
+      "name_en": "The Emperor",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "结构、秩序与领导力上升，适合立规矩、定边界、稳推进。",
+      "reversed": "控制欲过强、僵化或权威失衡，需要柔性调整与倾听。"
+    },
+    {
+      "id": "major_05_the_hierophant",
+      "name_cn": "教皇",
+      "name_en": "The Hierophant",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "传统、学习与价值体系支持你，适合请教导师与走正统路径。",
+      "reversed": "教条束缚、盲从或价值冲突，尝试建立自己的信念框架。"
+    },
+    {
+      "id": "major_06_the_lovers",
+      "name_cn": "恋人",
+      "name_en": "The Lovers",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "关系连结、价值一致与真诚选择，是对齐内心的重要时刻。",
+      "reversed": "关系失衡、诱惑干扰或选择摇摆，先厘清底层价值。"
+    },
+    {
+      "id": "major_07_the_chariot",
+      "name_cn": "战车",
+      "name_en": "The Chariot",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "意志驱动、方向明确，靠自律与执行可快速突破。",
+      "reversed": "失控、分裂或推进受阻，先整合情绪与行动节奏。"
+    },
+    {
+      "id": "major_08_strength",
+      "name_cn": "力量",
+      "name_en": "Strength",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "温柔而坚定的自控力，能以耐心驯服焦虑和冲动。",
+      "reversed": "自我怀疑、情绪压抑或脾气失衡，练习稳定而非硬撑。"
+    },
+    {
+      "id": "major_09_the_hermit",
+      "name_cn": "隐者",
+      "name_en": "The Hermit",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "独处反思、寻找真相，适合放慢节奏做深度整理。",
+      "reversed": "过度封闭、逃避连接或方向迷失，适度回到现实互动。"
+    },
+    {
+      "id": "major_10_wheel_of_fortune",
+      "name_cn": "命运之轮",
+      "name_en": "Wheel of Fortune",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "周期转换、机会转动，顺势而为会迎来新窗口。",
+      "reversed": "阻力、延迟或对变化抗拒，提醒你保持弹性与耐心。"
+    },
+    {
+      "id": "major_11_justice",
+      "name_cn": "正义",
+      "name_en": "Justice",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "因果、公平与理性判断，需要基于事实做平衡选择。",
+      "reversed": "偏见、不公或责任回避，先补齐信息再做决定。"
+    },
+    {
+      "id": "major_12_the_hanged_man",
+      "name_cn": "倒吊人",
+      "name_en": "The Hanged Man",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "暂停、换位思考与新视角，通过放下执念获得突破。",
+      "reversed": "拖延、无谓牺牲或卡住不动，区别等待与逃避。"
+    },
+    {
+      "id": "major_13_death",
+      "name_cn": "死神",
+      "name_en": "Death",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "阶段结束与重生启动，放下旧模式才能进入新周期。",
+      "reversed": "抗拒结束、停滞不前或旧伤反复，主动完成必要告别。"
+    },
+    {
+      "id": "major_14_temperance",
+      "name_cn": "节制",
+      "name_en": "Temperance",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "调和、节奏与中道，适合整合资源并持续微调。",
+      "reversed": "失衡、极端或急躁，提醒你回到适度与长期主义。"
+    },
+    {
+      "id": "major_15_the_devil",
+      "name_cn": "恶魔",
+      "name_en": "The Devil",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "欲望、依附与限制浮现，看见束缚才能重新夺回主导权。",
+      "reversed": "松绑、觉醒或打破成瘾链条，逐步恢复自律。"
+    },
+    {
+      "id": "major_16_the_tower",
+      "name_cn": "高塔",
+      "name_en": "The Tower",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "突发变化击碎旧结构，虽然震荡但有助于真相显现。",
+      "reversed": "避免更大崩塌、延迟爆发或危机后重建，先稳住基本盘。"
+    },
+    {
+      "id": "major_17_the_star",
+      "name_cn": "星星",
+      "name_en": "The Star",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "希望、疗愈与信念回流，适合恢复愿景和长期目标。",
+      "reversed": "失望、信心不足或精神疲惫，先照顾自己再谈远方。"
+    },
+    {
+      "id": "major_18_the_moon",
+      "name_cn": "月亮",
+      "name_en": "The Moon",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "潜意识与情绪波动增强，需分辨直觉与恐惧。",
+      "reversed": "迷雾消散、真相浮现或焦虑缓解，逐步恢复清晰。"
+    },
+    {
+      "id": "major_19_the_sun",
+      "name_cn": "太阳",
+      "name_en": "The Sun",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "清晰、活力与成功感提升，适合公开表达与积极推进。",
+      "reversed": "短暂低迷、过度乐观或精力透支，成功也要节制。"
+    },
+    {
+      "id": "major_20_judgement",
+      "name_cn": "审判",
+      "name_en": "Judgement",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "觉醒、复盘与召唤，适合做关键决定并承担新使命。",
+      "reversed": "自我否定、旧账牵制或决断困难，先完成内在和解。"
+    },
+    {
+      "id": "major_21_the_world",
+      "name_cn": "世界",
+      "name_en": "The World",
+      "arcana": "major",
+      "suit": "",
+      "rank": "",
+      "upright": "圆满完成、整合升级，准备进入更高阶段。",
+      "reversed": "收尾未竟、闭环不足或拖延庆功，先把最后一步做完。"
+    },
+    {
+      "id": "minor_wands_ace",
+      "name_cn": "权杖Ace",
+      "name_en": "Ace of Wands",
+      "arcana": "minor",
+      "suit": "wands",
+      "rank": "ace",
+      "upright": "灵感点燃、创造力启动、行动意愿增强，适合大胆开局。",
+      "reversed": "拖延、动力不足或被压力压住，先重建最小行动。"
+    },
+    {
+      "id": "minor_wands_02",
+      "name_cn": "权杖2",
+      "name_en": "Two of Wands",
+      "arcana": "minor",
+      "suit": "wands",
+      "rank": "2",
+      "upright": "远景规划、策略选择与试探边界，正在走向更大舞台。",
+      "reversed": "缺乏前瞻、计划摇摆或对未知犹豫，先收敛选项。"
+    },
+    {
+      "id": "minor_wands_03",
+      "name_cn": "权杖3",
+      "name_en": "Three of Wands",
+      "arcana": "minor",
+      "suit": "wands",
+      "rank": "3",
+      "upright": "扩张与前瞻并进，合作和远程机会开始显现。",
+      "reversed": "长期目标受阻、外部延迟增多，调整节奏再推进。"
+    },
+    {
+      "id": "minor_wands_04",
+      "name_cn": "权杖4",
+      "name_en": "Four of Wands",
+      "arcana": "minor",
+      "suit": "wands",
+      "rank": "4",
+      "upright": "庆祝、归属与阶段稳定，团队关系更和谐。",
+      "reversed": "沟通断层或关系紧张，先修复协作再谈扩张。"
+    },
+    {
+      "id": "minor_wands_05",
+      "name_cn": "权杖5",
+      "name_en": "Five of Wands",
+      "arcana": "minor",
+      "suit": "wands",
+      "rank": "5",
+      "upright": "竞争与分歧升温，但也能在碰撞中提升实力。",
+      "reversed": "冲突回避或内耗反复，问题需要被明确摆上台面。"
+    },
+    {
+      "id": "minor_wands_06",
+      "name_cn": "权杖6",
+      "name_en": "Six of Wands",
+      "arcana": "minor",
+      "suit": "wands",
+      "rank": "6",
+      "upright": "胜利、认可与自信上升，努力得到公开回报。",
+      "reversed": "名誉波动、自信受挫或过度自我，回到事实和能力建设。"
+    },
+    {
+      "id": "minor_wands_07",
+      "name_cn": "权杖7",
+      "name_en": "Seven of Wands",
+      "arcana": "minor",
+      "suit": "wands",
+      "rank": "7",
+      "upright": "面对挑战仍能守住立场，靠坚持赢得主动。",
+      "reversed": "防御过度、压力超载，适度求助比硬扛更有效。"
+    },
+    {
+      "id": "minor_wands_08",
+      "name_cn": "权杖8",
+      "name_en": "Eight of Wands",
+      "arcana": "minor",
+      "suit": "wands",
+      "rank": "8",
+      "upright": "进展加速、消息频繁、变化迅猛，适合快节奏执行。",
+      "reversed": "受阻、反复等待或焦躁，先处理关键瓶颈。"
+    },
+    {
+      "id": "minor_wands_09",
+      "name_cn": "权杖9",
+      "name_en": "Nine of Wands",
+      "arcana": "minor",
+      "suit": "wands",
+      "rank": "9",
+      "upright": "韧性与耐力被考验，坚持到底会看到转机。",
+      "reversed": "神经紧绷、过度警戒或疑心重，先稳住安全感。"
+    },
+    {
+      "id": "minor_wands_10",
+      "name_cn": "权杖10",
+      "name_en": "Ten of Wands",
+      "arcana": "minor",
+      "suit": "wands",
+      "rank": "10",
+      "upright": "责任沉重、压力累积，提醒你优化分工与负担。",
+      "reversed": "扛得太多或逃避责任，两端都需要重新平衡。"
+    },
+    {
+      "id": "minor_wands_page",
+      "name_cn": "权杖侍从",
+      "name_en": "Page of Wands",
+      "arcana": "minor",
+      "suit": "wands",
+      "rank": "page",
+      "upright": "热情探索、想法新鲜，适合试水新方向。",
+      "reversed": "新想法受挫、方向感不足，先缩小试验范围。"
+    },
+    {
+      "id": "minor_wands_knight",
+      "name_cn": "权杖骑士",
+      "name_en": "Knight of Wands",
+      "arcana": "minor",
+      "suit": "wands",
+      "rank": "knight",
+      "upright": "冲劲十足、冒险精神强，行动力是当前优势。",
+      "reversed": "急躁冒进、能量分散或草率决策，避免只凭冲动。"
+    },
+    {
+      "id": "minor_wands_queen",
+      "name_cn": "权杖皇后",
+      "name_en": "Queen of Wands",
+      "arcana": "minor",
+      "suit": "wands",
+      "rank": "queen",
+      "upright": "魅力与领导感增强，能以热情感染团队。",
+      "reversed": "不自信或过度强势并存，先回到稳定表达。"
+    },
+    {
+      "id": "minor_wands_king",
+      "name_cn": "权杖国王",
+      "name_en": "King of Wands",
+      "arcana": "minor",
+      "suit": "wands",
+      "rank": "king",
+      "upright": "远见与号召力突出，适合担任项目主导者。",
+      "reversed": "独断、急功近利或要求过高，领导方式需降噪。"
+    },
+    {
+      "id": "minor_cups_ace",
+      "name_cn": "圣杯Ace",
+      "name_en": "Ace of Cups",
+      "arcana": "minor",
+      "suit": "cups",
+      "rank": "ace",
+      "upright": "情感新开端、爱与同理流动，内心更愿意接纳。",
+      "reversed": "情绪封闭、创意阻塞或关系冷却，先处理内在空缺。"
+    },
+    {
+      "id": "minor_cups_02",
+      "name_cn": "圣杯2",
+      "name_en": "Two of Cups",
+      "arcana": "minor",
+      "suit": "cups",
+      "rank": "2",
+      "upright": "关系互信、合作默契、价值对齐，适合缔结承诺。",
+      "reversed": "误解、失衡或边界模糊，先修复沟通规则。"
+    },
+    {
+      "id": "minor_cups_03",
+      "name_cn": "圣杯3",
+      "name_en": "Three of Cups",
+      "arcana": "minor",
+      "suit": "cups",
+      "rank": "3",
+      "upright": "友谊庆祝、社交支持与快乐共享，情绪获得滋养。",
+      "reversed": "过度应酬、八卦或情绪耗散，减少无效社交。"
+    },
+    {
+      "id": "minor_cups_04",
+      "name_cn": "圣杯4",
+      "name_en": "Four of Cups",
+      "arcana": "minor",
+      "suit": "cups",
+      "rank": "4",
+      "upright": "沉思与停顿期，促使你重新感受真正想要的。",
+      "reversed": "退缩、厌倦或错失机会，试着小步恢复感受力。"
+    },
+    {
+      "id": "minor_cups_05",
+      "name_cn": "圣杯5",
+      "name_en": "Five of Cups",
+      "arcana": "minor",
+      "suit": "cups",
+      "rank": "5",
+      "upright": "失落与哀伤浮现，但仍有可用资源值得看见。",
+      "reversed": "逐步走出遗憾、开始接纳现实，疗愈进程正在推进。"
+    },
+    {
+      "id": "minor_cups_06",
+      "name_cn": "圣杯6",
+      "name_en": "Six of Cups",
+      "arcana": "minor",
+      "suit": "cups",
+      "rank": "6",
+      "upright": "怀旧、善意与纯真情感，适合修复温柔连接。",
+      "reversed": "沉溺过去或理想化童年，提醒你回到当下关系。"
+    },
+    {
+      "id": "minor_cups_07",
+      "name_cn": "圣杯7",
+      "name_en": "Seven of Cups",
+      "arcana": "minor",
+      "suit": "cups",
+      "rank": "7",
+      "upright": "想象力丰富、机会并列，需要从幻想回到选择。",
+      "reversed": "选择焦虑、幻想过度或诱惑太多，需要优先级。"
+    },
+    {
+      "id": "minor_cups_08",
+      "name_cn": "圣杯8",
+      "name_en": "Eight of Cups",
+      "arcana": "minor",
+      "suit": "cups",
+      "rank": "8",
+      "upright": "主动离开旧情境，寻找更深层的意义与满足。",
+      "reversed": "害怕放手、徘徊原地或目标空转，直面改变成本。"
+    },
+    {
+      "id": "minor_cups_09",
+      "name_cn": "圣杯9",
+      "name_en": "Nine of Cups",
+      "arcana": "minor",
+      "suit": "cups",
+      "rank": "9",
+      "upright": "愿望实现、满意与舒适感提升，阶段性回报显著。",
+      "reversed": "空虚、物质化享乐或满足感下降，重新定义幸福。"
+    },
+    {
+      "id": "minor_cups_10",
+      "name_cn": "圣杯10",
+      "name_en": "Ten of Cups",
+      "arcana": "minor",
+      "suit": "cups",
+      "rank": "10",
+      "upright": "情感圆满、家庭和谐与共同幸福，关系进入稳定期。",
+      "reversed": "关系失联、价值失配或家庭摩擦，先做诚实对话。"
+    },
+    {
+      "id": "minor_cups_page",
+      "name_cn": "圣杯侍从",
+      "name_en": "Page of Cups",
+      "arcana": "minor",
+      "suit": "cups",
+      "rank": "page",
+      "upright": "灵感细腻、直觉讯号明显，适合创作与表达感受。",
+      "reversed": "情绪不稳、直觉怀疑或表达幼态，先练习情绪命名。"
+    },
+    {
+      "id": "minor_cups_knight",
+      "name_cn": "圣杯骑士",
+      "name_en": "Knight of Cups",
+      "arcana": "minor",
+      "suit": "cups",
+      "rank": "knight",
+      "upright": "浪漫、温柔与理想主义增强，愿意主动靠近关系。",
+      "reversed": "理想破灭、暧昧反复或情绪逃避，先确认现实边界。"
+    },
+    {
+      "id": "minor_cups_queen",
+      "name_cn": "圣杯皇后",
+      "name_en": "Queen of Cups",
+      "arcana": "minor",
+      "suit": "cups",
+      "rank": "queen",
+      "upright": "同理心与包容力高，能稳定照顾自己与他人。",
+      "reversed": "共依赖、过度牺牲或情绪泛滥，先做自我照顾。"
+    },
+    {
+      "id": "minor_cups_king",
+      "name_cn": "圣杯国王",
+      "name_en": "King of Cups",
+      "arcana": "minor",
+      "suit": "cups",
+      "rank": "king",
+      "upright": "情绪成熟、沟通圆融，适合做关系中的定海针。",
+      "reversed": "情感操控、压抑或冷处理，沟通需要回到真诚与清晰。"
+    },
+    {
+      "id": "minor_swords_ace",
+      "name_cn": "宝剑Ace",
+      "name_en": "Ace of Swords",
+      "arcana": "minor",
+      "suit": "swords",
+      "rank": "ace",
+      "upright": "思路突破、判断清晰、沟通有力，适合做关键决策。",
+      "reversed": "判断混乱、想法受阻或表达失真，先厘清事实链路。"
+    },
+    {
+      "id": "minor_swords_02",
+      "name_cn": "宝剑2",
+      "name_en": "Two of Swords",
+      "arcana": "minor",
+      "suit": "swords",
+      "rank": "2",
+      "upright": "两难抉择与信息权衡，需要冷静面对核心问题。",
+      "reversed": "优柔寡断、信息过载或僵局持续，减少噪音输入。"
+    },
+    {
+      "id": "minor_swords_03",
+      "name_cn": "宝剑3",
+      "name_en": "Three of Swords",
+      "arcana": "minor",
+      "suit": "swords",
+      "rank": "3",
+      "upright": "心碎、悲伤与失落被看见，承认疼痛才有修复空间。",
+      "reversed": "走向和解、释放旧痛或重新乐观，疗愈开始发生。"
+    },
+    {
+      "id": "minor_swords_04",
+      "name_cn": "宝剑4",
+      "name_en": "Four of Swords",
+      "arcana": "minor",
+      "suit": "swords",
+      "rank": "4",
+      "upright": "休整、恢复与沉淀阶段，暂停是为了下一次出发。",
+      "reversed": "精疲力尽、停滞或过度封闭，休息后要重新行动。"
+    },
+    {
+      "id": "minor_swords_05",
+      "name_cn": "宝剑5",
+      "name_en": "Five of Swords",
+      "arcana": "minor",
+      "suit": "swords",
+      "rank": "5",
+      "upright": "冲突与胜负心升温，赢面背后也要考虑关系成本。",
+      "reversed": "旧怨、报复心或沟通破裂，修复比争胜更重要。"
+    },
+    {
+      "id": "minor_swords_06",
+      "name_cn": "宝剑6",
+      "name_en": "Six of Swords",
+      "arcana": "minor",
+      "suit": "swords",
+      "rank": "6",
+      "upright": "过渡与迁移，正在离开沉重局面走向更平静区域。",
+      "reversed": "抗拒改变、行程反复或遗留问题未清，先完成收尾。"
+    },
+    {
+      "id": "minor_swords_07",
+      "name_cn": "宝剑7",
+      "name_en": "Seven of Swords",
+      "arcana": "minor",
+      "suit": "swords",
+      "rank": "7",
+      "upright": "策略、试探与隐性行动增强，需辨别诚实与算计。",
+      "reversed": "自欺、秘密或策略失衡，短期技巧不能替代长期诚信。"
+    },
+    {
+      "id": "minor_swords_08",
+      "name_cn": "宝剑8",
+      "name_en": "Eight of Swords",
+      "arcana": "minor",
+      "suit": "swords",
+      "rank": "8",
+      "upright": "自我设限与负面想法困住行动，先拆解内在枷锁。",
+      "reversed": "松绑自我限制、换新视角，逐步恢复行动自由。"
+    },
+    {
+      "id": "minor_swords_09",
+      "name_cn": "宝剑9",
+      "name_en": "Nine of Swords",
+      "arcana": "minor",
+      "suit": "swords",
+      "rank": "9",
+      "upright": "焦虑、失眠与担忧放大，现实问题需要被具体处理。",
+      "reversed": "内在恐惧被放大或开始释放，适合系统减压。"
+    },
+    {
+      "id": "minor_swords_10",
+      "name_cn": "宝剑10",
+      "name_en": "Ten of Swords",
+      "arcana": "minor",
+      "suit": "swords",
+      "rank": "10",
+      "upright": "终局性打击或彻底收尾，痛点之后是重置机会。",
+      "reversed": "复原重建、拒绝结束或拖延止损，先接受现实。"
+    },
+    {
+      "id": "minor_swords_page",
+      "name_cn": "宝剑侍从",
+      "name_en": "Page of Swords",
+      "arcana": "minor",
+      "suit": "swords",
+      "rank": "page",
+      "upright": "好奇、求知与表达欲上升，适合快速学习和提问。",
+      "reversed": "只说不做、表达急躁或行动零散，把想法落地。"
+    },
+    {
+      "id": "minor_swords_knight",
+      "name_cn": "宝剑骑士",
+      "name_en": "Knight of Swords",
+      "arcana": "minor",
+      "suit": "swords",
+      "rank": "knight",
+      "upright": "果断推进、目标导向强，执行速度很高。",
+      "reversed": "冲动冒进、专注不足或过劳，速度需要配合方向。"
+    },
+    {
+      "id": "minor_swords_queen",
+      "name_cn": "宝剑皇后",
+      "name_en": "Queen of Swords",
+      "arcana": "minor",
+      "suit": "swords",
+      "rank": "queen",
+      "upright": "理性独立、边界清晰，能客观切割复杂问题。",
+      "reversed": "情绪化判断、边界过冷或被他人影响，回到独立思考。"
+    },
+    {
+      "id": "minor_swords_king",
+      "name_cn": "宝剑国王",
+      "name_en": "King of Swords",
+      "arcana": "minor",
+      "suit": "swords",
+      "rank": "king",
+      "upright": "逻辑与权威并重，适合制定规则与做终局判断。",
+      "reversed": "权力误用、操控或固执，理性也要服务于公正。"
+    },
+    {
+      "id": "minor_pentacles_ace",
+      "name_cn": "星币Ace",
+      "name_en": "Ace of Pentacles",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "rank": "ace",
+      "upright": "新的财务与事业机会出现，适合把想法落地为成果。",
+      "reversed": "机会错过、落地不足或计划不完整，先补执行细节。"
+    },
+    {
+      "id": "minor_pentacles_02",
+      "name_cn": "星币2",
+      "name_en": "Two of Pentacles",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "rank": "2",
+      "upright": "多线程任务并行，时间管理与优先级成为关键。",
+      "reversed": "失衡、超负荷或组织混乱，重新排期比硬撑重要。"
+    },
+    {
+      "id": "minor_pentacles_03",
+      "name_cn": "星币3",
+      "name_en": "Three of Pentacles",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "rank": "3",
+      "upright": "协作、学习与执行并进，团队能产出更稳定结果。",
+      "reversed": "协作失调、各自为战或标准不一，先统一流程。"
+    },
+    {
+      "id": "minor_pentacles_04",
+      "name_cn": "星币4",
+      "name_en": "Four of Pentacles",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "rank": "4",
+      "upright": "储蓄、安全感与资源控制增强，基础盘更稳。",
+      "reversed": "过度保守、贪执控制或匮乏感放大，适度流动资源。"
+    },
+    {
+      "id": "minor_pentacles_05",
+      "name_cn": "星币5",
+      "name_en": "Five of Pentacles",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "rank": "5",
+      "upright": "财务困难、贫穷、疾病和内在寂寞。它暗示需要深度的心灵改变，否则即使有外在助力，问题也可能无法解决。这张牌代表心灵空虚所反映出的身体征兆，可能意味着对工作不感兴趣或缺乏改变的态度。建议审视自己的人生观和信念，寻找更适合的工作或改变现有状态，以避免陷入毫无选择的困境。",
+      "reversed": "援助与恢复正在出现，先承认困境并主动求助，状况会逐步回暖。"
+    },
+    {
+      "id": "minor_pentacles_06",
+      "name_cn": "星币6",
+      "name_en": "Six of Pentacles",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "rank": "6",
+      "upright": "给予与接收的循环活跃，金钱与资源分配需要公平。",
+      "reversed": "收支失衡、关系单向付出或债务压力，先建立清晰边界。"
+    },
+    {
+      "id": "minor_pentacles_07",
+      "name_cn": "星币7",
+      "name_en": "Seven of Pentacles",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "rank": "7",
+      "upright": "长期投入、耐心耕耘与复利思维，会带来可持续回报。",
+      "reversed": "缺乏长线视角、回报延迟或急于求成，稳住耐心。"
+    },
+    {
+      "id": "minor_pentacles_08",
+      "name_cn": "星币8",
+      "name_en": "Eight of Pentacles",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "rank": "8",
+      "upright": "专注训练、重复打磨与技能进阶，专业度显著提升。",
+      "reversed": "完美主义、无效忙碌或进展停滞，聚焦真正产出。"
+    },
+    {
+      "id": "minor_pentacles_09",
+      "name_cn": "星币9",
+      "name_en": "Nine of Pentacles",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "rank": "9",
+      "upright": "自给自足、独立与品质生活，成果开始被你稳定享用。",
+      "reversed": "自我价值焦虑、过度工作或享乐失衡，回到健康节奏。"
+    },
+    {
+      "id": "minor_pentacles_10",
+      "name_cn": "星币10",
+      "name_en": "Ten of Pentacles",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "rank": "10",
+      "upright": "家族资产、长期安全与传承主题增强，适合布局长线。",
+      "reversed": "财富风险、家庭价值冲突或传承压力，需要审慎管理。"
+    },
+    {
+      "id": "minor_pentacles_page",
+      "name_cn": "星币侍从",
+      "name_en": "Page of Pentacles",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "rank": "page",
+      "upright": "学习务实、机会萌芽，适合建立新技能与理财习惯。",
+      "reversed": "学习松散、拖延或机会未落地，先完成最小闭环。"
+    },
+    {
+      "id": "minor_pentacles_knight",
+      "name_cn": "星币骑士",
+      "name_en": "Knight of Pentacles",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "rank": "knight",
+      "upright": "踏实、可靠与高执行力，靠日常纪律推进目标。",
+      "reversed": "僵化、无聊与停滞感增强，改变日常结构可破局。"
+    },
+    {
+      "id": "minor_pentacles_queen",
+      "name_cn": "星币皇后",
+      "name_en": "Queen of Pentacles",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "rank": "queen",
+      "upright": "照料现实、务实经营与生活平衡，能稳住家庭与工作。",
+      "reversed": "过度付出、工作家庭冲突或财务不安，先照顾自己。"
+    },
+    {
+      "id": "minor_pentacles_king",
+      "name_cn": "星币国王",
+      "name_en": "King of Pentacles",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "rank": "king",
+      "upright": "财富管理与事业领导力提升，适合做长期经营决策。",
+      "reversed": "拜金、控制欲或管理失衡，领导力需要回到责任与诚信。"
+    }
+  ]
+}

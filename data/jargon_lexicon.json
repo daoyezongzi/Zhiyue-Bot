@@ -1612,6 +1612,138 @@
           3144616920
         ],
         "updated_at": "2026-04-27T14:29:35.383211+00:00"
+      },
+      "哈哈\t草": {
+        "jargon": "草",
+        "standard": "哈哈",
+        "meaning": "表达好笑或无奈",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          2283003902
+        ],
+        "updated_at": "2026-04-28T05:41:21.457955+00:00"
+      },
+      "社交恐惧症\t社恐": {
+        "jargon": "社恐",
+        "standard": "社交恐惧症",
+        "meaning": "社交恐惧",
+        "confidence": 0.95,
+        "weight": 1.95,
+        "source_users": [
+          2283003902
+        ],
+        "updated_at": "2026-04-28T05:41:21.457964+00:00"
+      },
+      "高傲冷漠\t高冷": {
+        "jargon": "高冷",
+        "standard": "高傲冷漠",
+        "meaning": "冷漠高傲",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          2283003902
+        ],
+        "updated_at": "2026-04-28T05:41:21.457966+00:00"
+      },
+      "靠\t草": {
+        "jargon": "草",
+        "standard": "靠",
+        "meaning": "表示无语、无奈或好笑，网络通用感叹词",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          2283003902
+        ],
+        "updated_at": "2026-04-28T05:50:10.913859+00:00"
+      },
+      "同意\t111": {
+        "jargon": "111",
+        "standard": "同意",
+        "meaning": "表示赞同或快速确认，源于数字谐音“要要要”",
+        "confidence": 0.85,
+        "weight": 1.85,
+        "source_users": [
+          2283003902
+        ],
+        "updated_at": "2026-04-28T05:50:10.913861+00:00"
+      },
+      "哎呀\t诶哟我": {
+        "jargon": "诶哟我",
+        "standard": "哎呀",
+        "meaning": "表示惊讶、抱怨或无奈的感叹词",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          2283003902
+        ],
+        "updated_at": "2026-04-28T05:50:10.913863+00:00"
+      },
+      "命运的齿轮开始转动\t命运的齿轮开始瞎转": {
+        "jargon": "命运的齿轮开始瞎转",
+        "standard": "命运的齿轮开始转动",
+        "meaning": "戏仿流行语，调侃事情发展变得混乱或搞笑",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          2283003902
+        ],
+        "updated_at": "2026-04-28T05:50:10.913865+00:00"
+      },
+      "哭泣/委屈的表情\tqwq": {
+        "jargon": "qwq",
+        "standard": "哭泣/委屈的表情",
+        "meaning": "颜文字表情，表示委屈、哭或卖萌",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-28T05:50:26.150568+00:00"
+      },
+      "教坏\t带坏": {
+        "jargon": "带坏",
+        "standard": "教坏",
+        "meaning": "引导他人学习不良行为或内容",
+        "confidence": 0.85,
+        "weight": 1.85,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-28T07:35:02.726279+00:00"
+      },
+      "非常惊讶或无语\t人都傻了": {
+        "jargon": "人都傻了",
+        "standard": "非常惊讶或无语",
+        "meaning": "形容震惊到无法反应",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-28T07:35:02.726282+00:00"
+      },
+      "呜呜呜\t(((": {
+        "jargon": "(((",
+        "standard": "呜呜呜",
+        "meaning": "表示哭泣或无奈的网络表情符号",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-28T12:36:28.090794+00:00"
+      },
+      "行\t彳亍": {
+        "jargon": "彳亍",
+        "standard": "行",
+        "meaning": "表示同意、认可或行动的指令，常见于网络用语",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          2283003902
+        ],
+        "updated_at": "2026-04-29T03:31:08.974154+00:00"
       }
     },
     "group": {},

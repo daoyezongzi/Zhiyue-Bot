@@ -62,7 +62,14 @@ class GroupSwitchRequest(BaseModel):
 class GroupUpsertRequest(BaseModel):
     group_id: int = Field(...)
     enabled: bool = Field(default=True)
+    group_name: str | None = Field(default=None)
+    remark: str | None = Field(default=None)
     extra_prompt: str | None = Field(default=None)
+
+
+class GroupMetaUpdateRequest(BaseModel):
+    group_name: str | None = Field(default=None)
+    remark: str | None = Field(default=None)
 
 
 class KnowledgeSaveRequest(BaseModel):
@@ -260,7 +267,28 @@ class AdminService:
 
         @self._app.get("/api/groups")
         async def api_groups(_: None = Depends(self._require_token),) -> dict[str, Any]:
-            return {"groups": self._serialize_groups()}
+            groups = await self._hydrate_group_names(self._serialize_groups())
+            return {"groups": groups}
+
+        @self._app.get("/api/groups/{group_id}/name")
+        async def api_group_name(
+            group_id: int,
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            clean_group_id = int(group_id)
+            if clean_group_id <= 0:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="group_id must be > 0")
+
+            configured = self._cfg.get_group(clean_group_id)
+            configured_name = str(configured.group_name if configured is not None else "").strip()
+            fetched_name = await self._fetch_group_name_from_onebot(clean_group_id)
+            final_name = fetched_name or configured_name
+            return {
+                "group_id": clean_group_id,
+                "group_name": final_name,
+                "configured_name": configured_name,
+                "fetched": bool(fetched_name),
+            }
 
         @self._app.post("/api/groups")
         async def api_groups_upsert(
@@ -272,10 +300,17 @@ class AdminService:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="group_id must be > 0")
 
             enabled = bool(payload.enabled)
+            group_name_raw = payload.group_name.strip() if isinstance(payload.group_name, str) else ""
+            group_name = group_name_raw if group_name_raw else None
+            if group_name is None:
+                group_name = await self._fetch_group_name_from_onebot(clean_group_id) or None
+            remark = payload.remark.strip() if isinstance(payload.remark, str) else None
             extra_prompt = payload.extra_prompt.strip() if isinstance(payload.extra_prompt, str) else None
             created = self._upsert_runtime_group(
                 group_id=clean_group_id,
                 enabled=enabled,
+                group_name=group_name,
+                remark=remark,
                 extra_prompt=extra_prompt,
             )
             await self._persist_config(
@@ -283,13 +318,18 @@ class AdminService:
                 {
                     "group_id": clean_group_id,
                     "enabled": enabled,
+                    "group_name": group_name,
+                    "remark": remark,
                     "extra_prompt": extra_prompt,
                 },
             )
+            group = self._cfg.get_group(clean_group_id)
             return {
                 "ok": True,
                 "group_id": clean_group_id,
                 "enabled": enabled,
+                "group_name": str(group.group_name if group is not None else group_name or ""),
+                "remark": str(group.remark if group is not None else remark or ""),
                 "created": created,
             }
 
@@ -306,6 +346,8 @@ class AdminService:
             created = self._upsert_runtime_group(
                 group_id=clean_group_id,
                 enabled=enabled,
+                group_name=None,
+                remark=None,
                 extra_prompt=None,
             )
             await self._persist_config(
@@ -313,10 +355,53 @@ class AdminService:
                 {
                     "group_id": clean_group_id,
                     "enabled": enabled,
+                    "group_name": None,
+                    "remark": None,
                     "extra_prompt": None,
                 },
             )
             return {"ok": True, "group_id": clean_group_id, "enabled": enabled, "created": created}
+
+        @self._app.post("/api/groups/{group_id}/meta")
+        async def api_groups_meta_update(
+            group_id: int,
+            payload: GroupMetaUpdateRequest,
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            clean_group_id = int(group_id)
+            if clean_group_id <= 0:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="group_id must be > 0")
+
+            group_name = payload.group_name.strip() if isinstance(payload.group_name, str) else None
+            remark = payload.remark.strip() if isinstance(payload.remark, str) else None
+            existing = self._cfg.get_group(clean_group_id)
+            enabled = bool(existing.enabled) if existing is not None else True
+            created = self._upsert_runtime_group(
+                group_id=clean_group_id,
+                enabled=enabled,
+                group_name=group_name,
+                remark=remark,
+                extra_prompt=None,
+            )
+            await self._persist_config(
+                self._upsert_group_config,
+                {
+                    "group_id": clean_group_id,
+                    "enabled": enabled,
+                    "group_name": group_name,
+                    "remark": remark,
+                    "extra_prompt": None,
+                },
+            )
+            group = self._cfg.get_group(clean_group_id)
+            return {
+                "ok": True,
+                "group_id": clean_group_id,
+                "enabled": enabled,
+                "group_name": str(group.group_name if group is not None else group_name or ""),
+                "remark": str(group.remark if group is not None else remark or ""),
+                "created": created,
+            }
 
         @self._app.get("/api/stickers/settings")
         async def api_sticker_settings(_: None = Depends(self._require_token),) -> dict[str, Any]:
@@ -738,11 +823,81 @@ class AdminService:
                 {
                     "group_id": int(item.group_id),
                     "enabled": bool(item.enabled),
+                    "group_name": str(item.group_name or ""),
+                    "remark": str(item.remark or ""),
                     "extra_prompt": str(item.extra_prompt or ""),
                 },
             )
         out.sort(key=lambda row: int(row["group_id"]))
         return out
+
+    async def _hydrate_group_names(self, groups: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        hydrated: list[dict[str, Any]] = []
+        changed_rows: list[dict[str, Any]] = []
+
+        for row in groups:
+            item = dict(row)
+            group_id = int(item.get("group_id", 0) or 0)
+            if group_id <= 0:
+                hydrated.append(item)
+                continue
+
+            fetched_name = await self._fetch_group_name_from_onebot(group_id)
+            if fetched_name:
+                item["group_name"] = fetched_name
+                current = self._cfg.get_group(group_id)
+                if current is not None and str(current.group_name or "").strip() != fetched_name:
+                    current.group_name = fetched_name
+                    changed_rows.append(item)
+
+            hydrated.append(item)
+
+        for item in changed_rows:
+            await self._persist_config(
+                self._upsert_group_config,
+                {
+                    "group_id": int(item.get("group_id", 0) or 0),
+                    "enabled": bool(item.get("enabled", True)),
+                    "group_name": str(item.get("group_name", "") or ""),
+                    "remark": None,
+                    "extra_prompt": None,
+                },
+            )
+
+        return hydrated
+
+    async def _fetch_group_name_from_onebot(self, group_id: int) -> str:
+        if int(group_id) <= 0:
+            return ""
+        bot_client = getattr(self._agent, "bot_client", None)
+        if bot_client is None:
+            return ""
+
+        try:
+            response = await bot_client.call_action_with_response(
+                "get_group_info",
+                {"group_id": int(group_id), "no_cache": False},
+                timeout=4.0,
+            )
+        except Exception:
+            return ""
+
+        if not isinstance(response, dict):
+            return ""
+
+        status_raw = str(response.get("status", "") or "").strip().lower()
+        if status_raw and status_raw != "ok":
+            return ""
+
+        retcode_raw = response.get("retcode")
+        if isinstance(retcode_raw, int) and retcode_raw != 0:
+            return ""
+
+        data = response.get("data")
+        if not isinstance(data, dict):
+            return ""
+
+        return str(data.get("group_name", "") or "").strip()
 
     @staticmethod
     def _clamp_probability(value: Any) -> float:
@@ -963,6 +1118,8 @@ class AdminService:
         *,
         group_id: int,
         enabled: bool,
+        group_name: str | None,
+        remark: str | None,
         extra_prompt: str | None,
     ) -> bool:
         group = self._cfg.get_group(int(group_id))
@@ -971,12 +1128,18 @@ class AdminService:
                 GroupConfig(
                     group_id=int(group_id),
                     enabled=bool(enabled),
+                    group_name=str(group_name or ""),
+                    remark=str(remark or ""),
                     extra_prompt=str(extra_prompt or ""),
                 )
             )
             return True
 
         group.enabled = bool(enabled)
+        if group_name is not None:
+            group.group_name = str(group_name)
+        if remark is not None:
+            group.remark = str(remark)
         if extra_prompt is not None:
             group.extra_prompt = str(extra_prompt)
         return False
@@ -1063,6 +1226,10 @@ class AdminService:
     def _upsert_group_config(config_data: dict[str, Any], value: dict[str, Any]) -> None:
         group_id = int(value.get("group_id"))
         enabled = bool(value.get("enabled"))
+        group_name_raw = value.get("group_name")
+        group_name = str(group_name_raw) if group_name_raw is not None else None
+        remark_raw = value.get("remark")
+        remark = str(remark_raw) if remark_raw is not None else None
         extra_prompt_raw = value.get("extra_prompt")
         extra_prompt = str(extra_prompt_raw) if extra_prompt_raw is not None else None
 
@@ -1081,6 +1248,10 @@ class AdminService:
             except (TypeError, ValueError):
                 continue
             row["enabled"] = enabled
+            if group_name is not None:
+                row["group_name"] = group_name
+            if remark is not None:
+                row["remark"] = remark
             if extra_prompt is not None:
                 row["extra_prompt"] = extra_prompt
             return
@@ -1089,6 +1260,8 @@ class AdminService:
             {
                 "group_id": group_id,
                 "enabled": enabled,
+                "group_name": group_name or "",
+                "remark": remark or "",
                 "extra_prompt": extra_prompt or "",
             },
         )

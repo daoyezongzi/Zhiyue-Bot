@@ -86,6 +86,8 @@ class OneBotConfig(BaseModel):
 class GroupConfig(BaseModel):
     group_id: int
     enabled: bool = True
+    group_name: str = ""
+    remark: str = ""
     extra_prompt: str = ""
 
 
