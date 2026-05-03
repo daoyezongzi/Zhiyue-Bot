@@ -12,8 +12,9 @@ async def speak(ctx: ToolContext, content: str, reply_to: int | None = None, men
     return {"ok": True, "message_id": msg_id}
 
 
-async def stay_quiet(ctx: ToolContext) -> dict:
-    return {"ok": True, "action": "stayQuiet"}
+async def stay_quiet(ctx: ToolContext, reason: str = "") -> dict:
+    del ctx
+    return {"ok": True, "action": "stayQuiet", "reason": str(reason or "").strip()}
 
 
 async def poke(ctx: ToolContext, user_id: int) -> dict:

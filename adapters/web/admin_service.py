@@ -78,6 +78,18 @@ class GroupMetaUpdateRequest(BaseModel):
     remark: str | None = Field(default=None)
 
 
+class MemoryCreateRequest(BaseModel):
+    group_id: int = Field(...)
+    content: str = Field(..., min_length=1)
+    mem_type: str = Field(default="conversation")
+    canonical_type: str = Field(default="fact")
+    status: str = Field(default="candidate")
+    source_kind: str = Field(default="manual")
+    source_ref: str = Field(default="")
+    user_id: int = Field(default=0)
+    importance: float = Field(default=0.0)
+
+
 class KnowledgeSaveRequest(BaseModel):
     path: str = Field(..., min_length=1)
     content: str = Field(default="")
@@ -104,6 +116,13 @@ class StickerUserWeightRequest(BaseModel):
 class StickerAuditRequest(BaseModel):
     force_llm: bool = Field(default=False)
     limit: int = Field(default=0, ge=0, le=5000)
+
+
+class ToolCallClearRequest(BaseModel):
+    tool_name: str = Field(default="")
+    session_id: str = Field(default="")
+    group_id: int = Field(default=0)
+    success: bool | None = Field(default=None)
 
 
 class UTF8JSONResponse(JSONResponse):
@@ -262,6 +281,240 @@ class AdminService:
         @self._app.get("/api/config/runtime")
         async def api_runtime_config(_: None = Depends(self._require_token),) -> dict[str, Any]:
             return self._runtime_config_payload()
+
+        @self._app.get("/api/tool-calls")
+        async def api_tool_calls(
+            keyword: str = Query(default=""),
+            tool_name: str = Query(default=""),
+            session_id: str = Query(default=""),
+            group_id: int = Query(default=0),
+            success: bool | None = Query(default=None),
+            page: int = Query(default=1, ge=1),
+            page_size: int = Query(default=50, ge=1, le=200),
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            data = await self._agent.memory_mgr.list_tool_calls(
+                keyword=str(keyword or ""),
+                tool_name=str(tool_name or ""),
+                session_id=str(session_id or ""),
+                group_id=int(group_id or 0),
+                success=success,
+                page=int(page),
+                page_size=int(page_size),
+            )
+            data["query"] = {
+                "keyword": str(keyword or ""),
+                "tool_name": str(tool_name or ""),
+                "session_id": str(session_id or ""),
+                "group_id": int(group_id or 0),
+                "success": success,
+            }
+            return data
+
+        @self._app.get("/api/tool-calls/{tool_call_id}")
+        async def api_tool_call_detail(
+            tool_call_id: int,
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            detail = await self._agent.memory_mgr.get_tool_call_detail(int(tool_call_id))
+            if detail is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="tool call log not found")
+            return {"ok": True, "item": detail}
+
+        @self._app.delete("/api/tool-calls/{tool_call_id}")
+        async def api_tool_call_delete(
+            tool_call_id: int,
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            ok = await self._agent.memory_mgr.delete_tool_call(int(tool_call_id))
+            if not ok:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="tool call log not found")
+            return {"ok": True, "deleted_id": int(tool_call_id)}
+
+        @self._app.post("/api/tool-calls/clear")
+        async def api_tool_call_clear(
+            payload: ToolCallClearRequest,
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            removed = await self._agent.memory_mgr.clear_tool_calls(
+                tool_name=str(payload.tool_name or ""),
+                session_id=str(payload.session_id or ""),
+                group_id=int(payload.group_id or 0),
+                success=payload.success,
+            )
+            return {
+                "ok": True,
+                "removed": int(removed),
+                "filters": {
+                    "tool_name": str(payload.tool_name or ""),
+                    "session_id": str(payload.session_id or ""),
+                    "group_id": int(payload.group_id or 0),
+                    "success": payload.success,
+                },
+            }
+
+        @self._app.get("/api/topics")
+        async def api_topics(
+            group_id: int = Query(default=0),
+            status: str = Query(default=""),
+            keyword: str = Query(default=""),
+            page: int = Query(default=1, ge=1),
+            page_size: int = Query(default=20, ge=1, le=200),
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            data = await self._agent.topic_mgr.list_topics(
+                group_id=int(group_id),
+                status=str(status or ""),
+                keyword=str(keyword or ""),
+                page=int(page),
+                page_size=int(page_size),
+            )
+            data["query"] = {
+                "group_id": int(group_id),
+                "status": str(status or ""),
+                "keyword": str(keyword or ""),
+            }
+            return data
+
+        @self._app.get("/api/topics/{topic_id}")
+        async def api_topic_detail(
+            topic_id: int,
+            message_limit: int = Query(default=80, ge=1, le=500),
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            detail = await self._agent.topic_mgr.get_topic_detail(
+                topic_id=int(topic_id),
+                message_limit=int(message_limit),
+            )
+            if detail is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="topic not found")
+            return {"ok": True, "item": detail}
+
+        @self._app.post("/api/topics/{topic_id}/archive")
+        async def api_topic_archive(topic_id: int, _: None = Depends(self._require_token),) -> dict[str, Any]:
+            ok = await self._agent.topic_mgr.set_topic_status(topic_id=int(topic_id), status="archived")
+            if not ok:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="topic not found")
+            return {"ok": True, "topic_id": int(topic_id), "status": "archived"}
+
+        @self._app.post("/api/topics/{topic_id}/activate")
+        async def api_topic_activate(topic_id: int, _: None = Depends(self._require_token),) -> dict[str, Any]:
+            ok = await self._agent.topic_mgr.set_topic_status(topic_id=int(topic_id), status="active")
+            if not ok:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="topic not found")
+            return {"ok": True, "topic_id": int(topic_id), "status": "active"}
+
+        @self._app.post("/api/topics/{topic_id}/summary/refresh")
+        async def api_topic_refresh_summary(topic_id: int, _: None = Depends(self._require_token),) -> dict[str, Any]:
+            ok = await self._agent.topic_mgr.refresh_topic_summary(topic_id=int(topic_id), reason="manual")
+            if not ok:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="topic not found")
+            detail = await self._agent.topic_mgr.get_topic_detail(topic_id=int(topic_id), message_limit=40)
+            return {"ok": True, "topic_id": int(topic_id), "item": detail}
+
+        @self._app.get("/api/memories")
+        async def api_memories(
+            group_id: int = Query(default=0),
+            mem_type: str = Query(default=""),
+            status_filter: str = Query(default="", alias="status"),
+            canonical_type: str = Query(default=""),
+            source_kind: str = Query(default=""),
+            keyword: str = Query(default=""),
+            sort: str = Query(default="updated"),
+            order: str = Query(default="desc"),
+            page: int = Query(default=1, ge=1),
+            page_size: int = Query(default=20, ge=1, le=200),
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            data = await self._agent.memory_mgr.list_memories(
+                group_id=int(group_id),
+                mem_type=str(mem_type or ""),
+                status=str(status_filter or ""),
+                canonical_type=str(canonical_type or ""),
+                source_kind=str(source_kind or ""),
+                keyword=str(keyword or ""),
+                page=int(page),
+                page_size=int(page_size),
+                sort=str(sort or "updated"),
+                order=str(order or "desc"),
+            )
+            data["query"] = {
+                "group_id": int(group_id),
+                "mem_type": str(mem_type or ""),
+                "status": str(status_filter or ""),
+                "canonical_type": str(canonical_type or ""),
+                "source_kind": str(source_kind or ""),
+                "keyword": str(keyword or ""),
+                "sort": str(sort or "updated"),
+                "order": str(order or "desc"),
+            }
+            return data
+
+        @self._app.post("/api/memories")
+        async def api_memory_create(
+            payload: MemoryCreateRequest,
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            try:
+                item = await self._agent.memory_mgr.save_governed_memory(
+                    group_id=int(payload.group_id),
+                    user_id=int(payload.user_id),
+                    content=str(payload.content or ""),
+                    mem_type=str(payload.mem_type or "conversation"),  # type: ignore[arg-type]
+                    canonical_type=str(payload.canonical_type or "fact"),  # type: ignore[arg-type]
+                    status=str(payload.status or "candidate"),  # type: ignore[arg-type]
+                    source_kind=str(payload.source_kind or "manual"),  # type: ignore[arg-type]
+                    source_ref=str(payload.source_ref or ""),
+                    importance=float(payload.importance or 0.0),
+                )
+            except ValueError as exc:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+            detail = await self._agent.memory_mgr.get_memory_detail(int(item.id))
+            return {"ok": True, "item": detail}
+
+        @self._app.post("/api/memories/convergence")
+        async def api_memory_convergence(_: None = Depends(self._require_token),) -> dict[str, Any]:
+            stats = await self._agent.memory_mgr.run_memory_convergence(reason="api")
+            snapshot = await self._agent.memory_mgr.get_runtime_snapshot()
+            return {"ok": True, "stats": stats, "snapshot": snapshot}
+
+        @self._app.get("/api/memories/{memory_id}")
+        async def api_memory_detail(memory_id: int, _: None = Depends(self._require_token),) -> dict[str, Any]:
+            detail = await self._agent.memory_mgr.get_memory_detail(int(memory_id))
+            if detail is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="memory not found")
+            return {"ok": True, "item": detail}
+
+        @self._app.post("/api/memories/{memory_id}/archive")
+        async def api_memory_archive(memory_id: int, _: None = Depends(self._require_token),) -> dict[str, Any]:
+            ok = await self._agent.memory_mgr.set_memory_status(memory_id=int(memory_id), status="archived")
+            if not ok:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="memory not found")
+            detail = await self._agent.memory_mgr.get_memory_detail(int(memory_id))
+            return {"ok": True, "memory_id": int(memory_id), "item": detail}
+
+        @self._app.post("/api/memories/{memory_id}/activate")
+        async def api_memory_activate(memory_id: int, _: None = Depends(self._require_token),) -> dict[str, Any]:
+            ok = await self._agent.memory_mgr.set_memory_status(memory_id=int(memory_id), status="active")
+            if not ok:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="memory not found")
+            detail = await self._agent.memory_mgr.get_memory_detail(int(memory_id))
+            return {"ok": True, "memory_id": int(memory_id), "item": detail}
+
+        @self._app.post("/api/memories/{memory_id}/candidate")
+        async def api_memory_candidate(memory_id: int, _: None = Depends(self._require_token),) -> dict[str, Any]:
+            ok = await self._agent.memory_mgr.set_memory_status(memory_id=int(memory_id), status="candidate")
+            if not ok:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="memory not found")
+            detail = await self._agent.memory_mgr.get_memory_detail(int(memory_id))
+            return {"ok": True, "memory_id": int(memory_id), "item": detail}
+
+        @self._app.delete("/api/memories/{memory_id}")
+        async def api_memory_delete(memory_id: int, _: None = Depends(self._require_token),) -> dict[str, Any]:
+            ok = await self._agent.memory_mgr.delete_memory(int(memory_id))
+            if not ok:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="memory not found")
+            return {"ok": True, "memory_id": int(memory_id)}
 
         @self._app.post("/api/config/master")
         async def api_config_master(
@@ -961,6 +1214,15 @@ class AdminService:
                 "llm_filter_enabled": bool(self._cfg.sticker.llm_filter_enabled),
                 "llm_filter_probability": self._clamp_probability(self._cfg.sticker.llm_filter_probability),
                 "llm_filter_mood_threshold": float(self._cfg.sticker.llm_filter_mood_threshold),
+            },
+            "memory": {
+                "memory_store_path": str(self._cfg.memory.memory_store_path),
+                "tool_call_store_path": str(self._cfg.memory.tool_call_store_path),
+                "tool_call_max_entries": int(self._cfg.memory.tool_call_max_entries),
+                "memory_auto_ingest_enabled": bool(self._cfg.memory.memory_auto_ingest_enabled),
+                "memory_convergence_interval_minutes": int(self._cfg.memory.memory_convergence_interval_minutes),
+                "memory_candidate_grace_hours": int(self._cfg.memory.memory_candidate_grace_hours),
+                "memory_candidate_promote_evidence": int(self._cfg.memory.memory_candidate_promote_evidence),
             },
         }
 

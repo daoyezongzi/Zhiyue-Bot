@@ -19,10 +19,10 @@ persona:
 personality:
   enabled: true
   mood: 0.0
-  energy: 0.6
+  energy: 0.5
   sociability: 0.5
-  neutral_energy: 0.55
-  mood_decay: 0.06
+  neutral_energy: 0.5
+  mood_decay: 0.05
   energy_recovery: 0.05
   interaction_window_sec: 120
   burst_mood_boost: 0.06
@@ -132,11 +132,26 @@ memory:
   milvus_address: 127.0.0.1:19530
   vector_dim: 1536
   chroma_path: ./data/chroma
+  memory_store_path: data/memory/memory_items.json
+  tool_call_store_path: data/memory/tool_calls.json
+  tool_call_max_entries: 5000
+  memory_auto_ingest_enabled: true
+  memory_convergence_interval_minutes: 15
+  memory_candidate_grace_hours: 72
+  memory_candidate_promote_evidence: 2
   short_term_threshold: 20
   short_term_keep_last: 3
   topic_shift_similarity_threshold: 0.35
   topic_shift_min_messages: 8
   rag_top_k: 5
+  topic_enabled: true
+  topic_store_path: data/topics/topic_threads.json
+  topic_max_active_per_group: 5
+  topic_summary_trigger_messages: 10
+  topic_archive_inactive_minutes: 180
+  topic_reuse_threshold: 0.42
+  topic_recall_top_k: 3
+  topic_message_tail_size: 80
 
 sticker:
   enabled: true

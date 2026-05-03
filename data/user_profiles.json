@@ -77,6 +77,12 @@
         "nickname": "A Flower is not a Flower",
         "name_records": [
           {
+            "content": "鬼",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-05-03T13:57:18.601959+00:00"
+          },
+          {
             "content": "浙师大第一张睿饭",
             "source": "group_card",
             "group_id": 827043738,
@@ -111,7 +117,7 @@
         ],
         "affinity": 0.23320000000000002,
         "interaction_style": "Persistent and playful、emojis、using images",
-        "updated_at": "2026-05-02T16:13:25.509597+00:00",
+        "updated_at": "2026-05-03T13:57:18.601959+00:00",
         "tag_scores": {
           "casual_chatter": 14.937397032732575,
           "emoji_user": 14.603257156391086,
@@ -237,7 +243,7 @@
             "content": "折乙  好感度66",
             "source": "group_card",
             "group_id": 247037890,
-            "updated_at": "2026-04-30T10:44:36.752224+00:00"
+            "updated_at": "2026-05-03T13:58:19.477995+00:00"
           },
           {
             "content": "折乙",
@@ -257,7 +263,7 @@
         ],
         "affinity": 0.05940000000000001,
         "interaction_style": "Expresses needs and expectations directly、with playful blame and emotional nuance.、Directly states practical technical needs and solutions with cost awareness.",
-        "updated_at": "2026-04-30T10:44:36.752224+00:00",
+        "updated_at": "2026-05-03T13:58:19.477995+00:00",
         "tag_scores": {
           "seeks_emotional_support": 3.865905979540309,
           "self_aware_about_habits": 6.897243479540308,
@@ -330,7 +336,7 @@
             "content": "数学系ksh",
             "source": "group_card",
             "group_id": 247037890,
-            "updated_at": "2026-04-30T10:39:21.353362+00:00"
+            "updated_at": "2026-05-03T13:58:27.912977+00:00"
           }
         ],
         "tags": [
@@ -341,7 +347,7 @@
         ],
         "affinity": 0.022000000000000002,
         "interaction_style": "Uses informal、playful language with memes and emojis.",
-        "updated_at": "2026-04-30T10:39:21.353362+00:00",
+        "updated_at": "2026-05-03T13:58:27.912977+00:00",
         "tag_scores": {
           "student": 1.4775,
           "tech-savvy": 1.4775,
@@ -618,7 +624,7 @@
             "content": "⚡战⚡争⚡雷⚡霆⚡重⚡度⚡依⚡赖⚡",
             "source": "group_card",
             "group_id": 247037890,
-            "updated_at": "2026-04-30T10:43:51.027545+00:00"
+            "updated_at": "2026-05-03T13:55:36.079608+00:00"
           }
         ],
         "tags": [
@@ -631,7 +637,7 @@
         ],
         "affinity": 0.011000000000000001,
         "interaction_style": "用户倾向于使用图片和简短文字进行互动、用户频繁使用图片、表达方式包含具体日程和事件。",
-        "updated_at": "2026-04-30T10:43:51.027545+00:00",
+        "updated_at": "2026-05-03T13:55:36.079608+00:00",
         "tag_scores": {
           "traveler": 4.874906099442995,
           "fitness_conscious": 4.874906099442995,
@@ -769,7 +775,7 @@
             "content": "超超垂涎你的莴苣",
             "source": "group_card",
             "group_id": 1026976640,
-            "updated_at": "2026-05-02T16:18:33.478272+00:00"
+            "updated_at": "2026-05-03T13:56:32.282225+00:00"
           }
         ],
         "tags": [
@@ -781,7 +787,7 @@
         ],
         "affinity": 0.022000000000000002,
         "interaction_style": "用户倾向于通过分享原创角色图片、表达情感和讨论细节来参与对话。、用户倾向于通过生动的叙述",
-        "updated_at": "2026-05-02T16:18:33.478272+00:00",
+        "updated_at": "2026-05-03T13:56:32.282225+00:00",
         "tag_scores": {
           "gamer": 4.369277775,
           "emotional_expression": 4.369277775,
@@ -894,7 +900,7 @@
             "content": "萌喜欢萌你的超超Q",
             "source": "group_card",
             "group_id": 1026976640,
-            "updated_at": "2026-05-02T16:19:08.842666+00:00"
+            "updated_at": "2026-05-03T13:54:34.860787+00:00"
           }
         ],
         "tags": [
@@ -906,7 +912,7 @@
         ],
         "affinity": -0.011000000000000001,
         "interaction_style": "Sends multiple short messages with frequent @mentions and internet slang.、Sends short、emotionally expressive messages with occasional @mentions and internet slang",
-        "updated_at": "2026-05-02T16:19:08.842666+00:00",
+        "updated_at": "2026-05-03T13:54:34.860787+00:00",
         "tag_scores": {
           "playful": 2.4302387875,
           "tech-savvy": 2.4302387875,
@@ -976,7 +982,7 @@
             "content": "想看牢猫与lmr蛇纹",
             "source": "group_card",
             "group_id": 1026976640,
-            "updated_at": "2026-04-30T10:14:28.076744+00:00"
+            "updated_at": "2026-05-03T13:59:50.627929+00:00"
           }
         ],
         "tags": [
@@ -987,7 +993,7 @@
         ],
         "affinity": 0.0,
         "interaction_style": "User engages in self-narrated、humorous commentary、sometimes addressing others directly.",
-        "updated_at": "2026-04-30T10:14:28.076744+00:00",
+        "updated_at": "2026-05-03T13:59:50.627929+00:00",
         "tag_scores": {
           "casual conversationalist": 1.379,
           "humorous internet slang user": 1.379,
@@ -1543,7 +1549,7 @@
             "content": "九霄环佩",
             "source": "group_card",
             "group_id": 1026976640,
-            "updated_at": "2026-05-02T16:19:09.874594+00:00"
+            "updated_at": "2026-05-03T13:55:03.362726+00:00"
           }
         ],
         "tags": [
@@ -1554,7 +1560,7 @@
         ],
         "affinity": 0.011000000000000001,
         "interaction_style": "主动分享画风资源并提供绘画技巧指导",
-        "updated_at": "2026-05-02T16:19:09.874594+00:00",
+        "updated_at": "2026-05-03T13:55:03.362726+00:00",
         "tag_scores": {
           "绘画爱好者": 1.4775,
           "原创角色创作者": 1.4775,
@@ -1667,6 +1673,23 @@
         "affinity": 0.0,
         "interaction_style": "",
         "updated_at": "2026-05-02T16:16:05.448053+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "822353730": {
+        "nickname": "妖妖梦",
+        "name_records": [
+          {
+            "content": "EnderCrystal",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-05-03T13:57:59.283302+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-05-03T13:57:59.283302+00:00",
         "tag_scores": {},
         "style_scores": {}
       }

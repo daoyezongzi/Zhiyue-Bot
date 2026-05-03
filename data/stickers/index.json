@@ -1348,32 +1348,6 @@
         "静态"
       ],
       "is_sticker":true
-    },
-    {
-      "id":"180450885475bee29dad525f9bf2b6ca",
-      "md5":"180450885475bee29dad525f9bf2b6ca",
-      "file_name":"180450885475bee29dad525f9bf2b6ca.jpg",
-      "summary":"[动画表情]",
-      "media_kind":"sticker",
-      "storage_mode":"local",
-      "segment_type":"image",
-      "sub_type":1,
-      "sender_id":2693053350,
-      "group_id":247037890,
-      "source_url":"https://multimedia.nt.qq.com.cn/download?appid=1407&fileid=EhTENFRKb5D7Okp38_s23dhXOtaC_xjHrAYg_woo_I-q5bCVlAMyBHByb2RQgL2jAVoQ3oBVbiR4XRgeHetX284Nj3oC1z-CAQJneg&rkey=CAMSMHsDDDBX1rCegq-0tO5Aoj4ff_BFclGJ98pjZNUXDYM4882B6cKKiqv4MNKoMC78VA",
-      "source_file":"180450885475BEE29DAD525F9BF2B6CA.jpg",
-      "source_message_id":37031595,
-      "review_status":"approved",
-      "review_reason":"llm_skipped_by_sampling",
-      "review_source":"heuristic",
-      "reviewed_at":"2026-04-30T10:37:23Z",
-      "created_at":"2026-04-30T10:37:23Z",
-      "tags":[
-        "表情包",
-        "静态",
-        "qqnt"
-      ],
-      "is_sticker":true
     }
   ]
 }

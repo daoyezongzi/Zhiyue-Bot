@@ -317,7 +317,10 @@ class PersonalityManager:
             "包含你自己说过的话，按上下文判断是否该回复。\n"
             f"{chat_context}\n"
         )
-        parts.append("\n如果你已经有明确结论，直接调用对应工具来行动。如果你觉得没有必要继续，调用 stayQuiet 结束推理。\n")
+        parts.append(
+            "\n如果你已经有明确结论，直接给出最终回复。"
+            "如果你觉得没有必要回复，请只输出 stayQuiet 这一个词，不要解释原因，也不要写“保持沉默”这类描述。\n"
+        )
         return "".join(parts)
 
     def build_prompt_hint(self) -> str:
@@ -359,10 +362,11 @@ class PersonalityManager:
         mood_decay = _clamp(float(self.mood_cfg.mood_decay), 0.0, 1.0)
         energy_recovery = _clamp(float(self.mood_cfg.energy_recovery), 0.0, 1.0)
         sociability_recovery = _clamp(float(self.mood_cfg.energy_recovery), 0.0, 1.0)
+        elapsed_steps = elapsed_minutes / 5.0
 
-        mood_factor = 1.0 - (1.0 - mood_decay) ** elapsed_minutes
-        energy_factor = 1.0 - (1.0 - energy_recovery) ** elapsed_minutes
-        sociability_factor = 1.0 - (1.0 - sociability_recovery) ** elapsed_minutes
+        mood_factor = 1.0 - (1.0 - mood_decay) ** elapsed_steps
+        energy_factor = 1.0 - (1.0 - energy_recovery) ** elapsed_steps
+        sociability_factor = 1.0 - (1.0 - sociability_recovery) ** elapsed_steps
 
         self._valence += (0.0 - self._valence) * mood_factor
         self._energy += (self._neutral_energy - self._energy) * energy_factor

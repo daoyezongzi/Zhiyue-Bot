@@ -29,10 +29,10 @@ class PersonaConfig(BaseModel):
 class PersonalityConfig(BaseModel):
     enabled: bool = True
     mood: float = 0.0
-    energy: float = 0.6
+    energy: float = 0.5
     sociability: float = 0.5
-    neutral_energy: float = 0.55
-    mood_decay: float = 0.06
+    neutral_energy: float = 0.5
+    mood_decay: float = 0.05
     energy_recovery: float = 0.05
     interaction_window_sec: int = 120
     burst_mood_boost: float = 0.06
@@ -170,11 +170,26 @@ class MemoryConfig(BaseModel):
     milvus_address: str = "127.0.0.1:19530"
     vector_dim: int = 1536
     chroma_path: str = "./data/chroma"
+    memory_store_path: str = "data/memory/memory_items.json"
+    tool_call_store_path: str = "data/memory/tool_calls.json"
+    tool_call_max_entries: int = 5000
+    memory_auto_ingest_enabled: bool = True
+    memory_convergence_interval_minutes: int = 15
+    memory_candidate_grace_hours: int = 72
+    memory_candidate_promote_evidence: int = 2
     short_term_threshold: int = 20
     short_term_keep_last: int = 3
     topic_shift_similarity_threshold: float = 0.35
     topic_shift_min_messages: int = 8
     rag_top_k: int = 5
+    topic_enabled: bool = True
+    topic_store_path: str = "data/topics/topic_threads.json"
+    topic_max_active_per_group: int = 5
+    topic_summary_trigger_messages: int = 10
+    topic_archive_inactive_minutes: int = 180
+    topic_reuse_threshold: float = 0.42
+    topic_recall_top_k: int = 3
+    topic_message_tail_size: int = 80
 
 
 class StickerConfig(BaseModel):

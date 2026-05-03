@@ -36,11 +36,26 @@ EMBEDDING_MODEL=
 
 # Memory/RAG
 MEMORY_CHROMA_PATH=./data/chroma
+MEMORY_STORE_PATH=./data/memory/memory_items.json
+MEMORY_TOOL_CALL_STORE_PATH=./data/memory/tool_calls.json
+MEMORY_TOOL_CALL_MAX_ENTRIES=5000
+MEMORY_AUTO_INGEST_ENABLED=true
+MEMORY_CONVERGENCE_INTERVAL_MINUTES=15
+MEMORY_CANDIDATE_GRACE_HOURS=72
+MEMORY_CANDIDATE_PROMOTE_EVIDENCE=2
 MEMORY_SHORT_TERM_THRESHOLD=20
 MEMORY_SHORT_TERM_KEEP_LAST=3
 MEMORY_TOPIC_SHIFT_THRESHOLD=0.35
 MEMORY_TOPIC_SHIFT_MIN_MESSAGES=8
 MEMORY_RAG_TOP_K=5
+MEMORY_TOPIC_ENABLED=true
+MEMORY_TOPIC_STORE_PATH=./data/topics/topic_threads.json
+MEMORY_TOPIC_MAX_ACTIVE_PER_GROUP=5
+MEMORY_TOPIC_SUMMARY_TRIGGER_MESSAGES=10
+MEMORY_TOPIC_ARCHIVE_INACTIVE_MINUTES=180
+MEMORY_TOPIC_REUSE_THRESHOLD=0.42
+MEMORY_TOPIC_RECALL_TOP_K=3
+MEMORY_TOPIC_MESSAGE_TAIL_SIZE=80
 
 # Vision model (optional)
 VISION_LLM_PROVIDER=
@@ -227,6 +242,57 @@ def _apply_env_overrides(cfg: Config) -> None:
     if chroma_path:
         cfg.memory.chroma_path = chroma_path
 
+    memory_store_path = _read_first_env("MEMORY_STORE_PATH", "ZHIYUE_MEMORY_STORE_PATH")
+    if memory_store_path:
+        cfg.memory.memory_store_path = memory_store_path
+
+    tool_call_store_path = _read_first_env("MEMORY_TOOL_CALL_STORE_PATH", "ZHIYUE_MEMORY_TOOL_CALL_STORE_PATH")
+    if tool_call_store_path:
+        cfg.memory.tool_call_store_path = tool_call_store_path
+
+    tool_call_max_entries = _read_first_env("MEMORY_TOOL_CALL_MAX_ENTRIES", "ZHIYUE_MEMORY_TOOL_CALL_MAX_ENTRIES")
+    if tool_call_max_entries:
+        try:
+            cfg.memory.tool_call_max_entries = max(100, int(tool_call_max_entries))
+        except ValueError:
+            pass
+
+    memory_auto_ingest = _read_first_env("MEMORY_AUTO_INGEST_ENABLED", "ZHIYUE_MEMORY_AUTO_INGEST_ENABLED")
+    if memory_auto_ingest is not None:
+        parsed_auto_ingest = _parse_env_bool(memory_auto_ingest)
+        if parsed_auto_ingest is not None:
+            cfg.memory.memory_auto_ingest_enabled = parsed_auto_ingest
+
+    convergence_interval = _read_first_env(
+        "MEMORY_CONVERGENCE_INTERVAL_MINUTES",
+        "ZHIYUE_MEMORY_CONVERGENCE_INTERVAL_MINUTES",
+    )
+    if convergence_interval:
+        try:
+            cfg.memory.memory_convergence_interval_minutes = max(1, int(convergence_interval))
+        except ValueError:
+            pass
+
+    candidate_grace_hours = _read_first_env(
+        "MEMORY_CANDIDATE_GRACE_HOURS",
+        "ZHIYUE_MEMORY_CANDIDATE_GRACE_HOURS",
+    )
+    if candidate_grace_hours:
+        try:
+            cfg.memory.memory_candidate_grace_hours = max(1, int(candidate_grace_hours))
+        except ValueError:
+            pass
+
+    candidate_promote_evidence = _read_first_env(
+        "MEMORY_CANDIDATE_PROMOTE_EVIDENCE",
+        "ZHIYUE_MEMORY_CANDIDATE_PROMOTE_EVIDENCE",
+    )
+    if candidate_promote_evidence:
+        try:
+            cfg.memory.memory_candidate_promote_evidence = max(1, int(candidate_promote_evidence))
+        except ValueError:
+            pass
+
     short_term_threshold = _read_first_env("MEMORY_SHORT_TERM_THRESHOLD", "ZHIYUE_MEMORY_SHORT_TERM_THRESHOLD")
     if short_term_threshold:
         try:
@@ -262,6 +328,76 @@ def _apply_env_overrides(cfg: Config) -> None:
     if rag_top_k:
         try:
             cfg.memory.rag_top_k = max(1, int(rag_top_k))
+        except ValueError:
+            pass
+
+    topic_enabled = _read_first_env("MEMORY_TOPIC_ENABLED", "ZHIYUE_MEMORY_TOPIC_ENABLED")
+    if topic_enabled is not None:
+        parsed_topic_enabled = _parse_env_bool(topic_enabled)
+        if parsed_topic_enabled is not None:
+            cfg.memory.topic_enabled = parsed_topic_enabled
+
+    topic_store_path = _read_first_env("MEMORY_TOPIC_STORE_PATH", "ZHIYUE_MEMORY_TOPIC_STORE_PATH")
+    if topic_store_path:
+        cfg.memory.topic_store_path = topic_store_path
+
+    topic_max_active = _read_first_env(
+        "MEMORY_TOPIC_MAX_ACTIVE_PER_GROUP",
+        "ZHIYUE_MEMORY_TOPIC_MAX_ACTIVE_PER_GROUP",
+    )
+    if topic_max_active:
+        try:
+            cfg.memory.topic_max_active_per_group = max(1, int(topic_max_active))
+        except ValueError:
+            pass
+
+    topic_summary_trigger = _read_first_env(
+        "MEMORY_TOPIC_SUMMARY_TRIGGER_MESSAGES",
+        "ZHIYUE_MEMORY_TOPIC_SUMMARY_TRIGGER_MESSAGES",
+    )
+    if topic_summary_trigger:
+        try:
+            cfg.memory.topic_summary_trigger_messages = max(1, int(topic_summary_trigger))
+        except ValueError:
+            pass
+
+    topic_archive_inactive = _read_first_env(
+        "MEMORY_TOPIC_ARCHIVE_INACTIVE_MINUTES",
+        "ZHIYUE_MEMORY_TOPIC_ARCHIVE_INACTIVE_MINUTES",
+    )
+    if topic_archive_inactive:
+        try:
+            cfg.memory.topic_archive_inactive_minutes = max(1, int(topic_archive_inactive))
+        except ValueError:
+            pass
+
+    topic_reuse_threshold = _read_first_env(
+        "MEMORY_TOPIC_REUSE_THRESHOLD",
+        "ZHIYUE_MEMORY_TOPIC_REUSE_THRESHOLD",
+    )
+    if topic_reuse_threshold:
+        try:
+            cfg.memory.topic_reuse_threshold = float(topic_reuse_threshold)
+        except ValueError:
+            pass
+
+    topic_recall_top_k = _read_first_env(
+        "MEMORY_TOPIC_RECALL_TOP_K",
+        "ZHIYUE_MEMORY_TOPIC_RECALL_TOP_K",
+    )
+    if topic_recall_top_k:
+        try:
+            cfg.memory.topic_recall_top_k = max(1, int(topic_recall_top_k))
+        except ValueError:
+            pass
+
+    topic_tail_size = _read_first_env(
+        "MEMORY_TOPIC_MESSAGE_TAIL_SIZE",
+        "ZHIYUE_MEMORY_TOPIC_MESSAGE_TAIL_SIZE",
+    )
+    if topic_tail_size:
+        try:
+            cfg.memory.topic_message_tail_size = max(20, int(topic_tail_size))
         except ValueError:
             pass
 

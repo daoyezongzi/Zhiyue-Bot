@@ -39,7 +39,16 @@ Historical background (past events)
 - 相关知识（外部知识）  
 Related knowledge (external knowledge)
 
-7. 管理后台（可选）  
+7. 话题系统完整闭环  
+Topic loop (assignment -> summary -> archive -> recall):
+- 群消息自动归属到进行中话题，低信号消息可保持 no-topic  
+Auto-assign group messages to active topics while keeping low-signal messages as no-topic
+- 达到阈值后自动更新结构化摘要（标题/摘要/事实/未完事项/关键词）  
+Auto-refresh structured summaries after threshold
+- 按活跃度与时效自动归档，并在后续对话中召回历史话题  
+Auto-archive by activity/timeliness and recall archived topics for future turns
+
+8. 管理后台（可选）  
 Optional admin web dashboard:
 - 查看状态、重置运行态  
 View runtime status and reset state
@@ -48,7 +57,7 @@ Update system prompt
 - 配置背景图  
 Update dashboard background
 
-8. 详细可观测日志  
+9. 详细可观测日志  
 Detailed observability logs for enqueue/debounce/retrieval/fallback/reply.
 
 ## 架构概览 / Architecture
@@ -63,6 +72,8 @@ Embedding requests with rate-limit/error handling
 Memory metabolizer and RAG orchestration
 - `internal/memory/vector_storage.py`: ChromaDB 多集合向量存储  
 Multi-collection ChromaDB vector storage
+- `internal/topic/manager.py`: 话题归属、摘要、归档、召回闭环  
+Topic assignment, summary, archive and recall loop
 
 ## 快速开始 / Quick Start
 
@@ -115,6 +126,10 @@ In QQ scenarios, this is the target QQ numeric ID (UIN).
 - `MEMORY_SHORT_TERM_KEEP_LAST`: 沉淀后保留条数 / turns kept after metabolism
 - `MEMORY_TOPIC_SHIFT_THRESHOLD`: 话题切换灵敏度 / topic-shift sensitivity
 - `MEMORY_RAG_TOP_K`: 每次检索条数 / top-k retrieval size
+- `MEMORY_TOPIC_ENABLED`: 是否启用话题闭环 / enable topic loop
+- `MEMORY_TOPIC_STORE_PATH`: 话题持久化文件路径 / topic store file path
+- `MEMORY_TOPIC_MAX_ACTIVE_PER_GROUP`: 每群最大活跃话题数 / max active topics per group
+- `MEMORY_TOPIC_SUMMARY_TRIGGER_MESSAGES`: 触发摘要更新的消息阈值 / summary trigger threshold
 
 ## 依赖说明 / Dependency Notes
 
@@ -132,3 +147,22 @@ No explicit license is declared in this repository; follow maintainer policy.
 参考：https://github.com/SugarMGP/MumuBot
 使用py语言重构了该项目的核心内容。日后会按照我的想法进行更新。
 感谢白糖大大的mumubot 做的真的很棒很棒！
+
+## Memory Governance (新增)
+
+新增配置：
+- `MEMORY_STORE_PATH`
+- `MEMORY_AUTO_INGEST_ENABLED`
+- `MEMORY_CONVERGENCE_INTERVAL_MINUTES`
+- `MEMORY_CANDIDATE_GRACE_HOURS`
+- `MEMORY_CANDIDATE_PROMOTE_EVIDENCE`
+
+新增后台 API：
+- `GET /api/memories`
+- `GET /api/memories/{memory_id}`
+- `POST /api/memories`
+- `POST /api/memories/{memory_id}/archive`
+- `POST /api/memories/{memory_id}/activate`
+- `POST /api/memories/{memory_id}/candidate`
+- `DELETE /api/memories/{memory_id}`
+- `POST /api/memories/convergence`

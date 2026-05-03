@@ -905,6 +905,70 @@
           <label>会话对话流预览（recent_turns）</label>
           <div id="sessionDialogPreview" class="dialog-panel"></div>
         </div>
+        <div class="row">
+          <label>长期记忆治理快照（/api/status.long_term_memory）</label>
+          <div id="memoryGovernanceSummary" class="dialog-panel"></div>
+        </div>
+        <div class="row split">
+          <button id="refreshMemoryGovernanceBtn" class="secondary">刷新长期记忆</button>
+          <button id="runMemoryConvergenceBtn" class="warn">执行收敛</button>
+        </div>
+        <div class="row">
+          <label>长期记忆列表（最新 80 条）</label>
+          <div id="memoryGovernanceList" class="list-box"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>LLM 工具调用管理</h2>
+        <div class="row muted">
+          数据来自 <code>/api/tool-calls</code>，用于排查工具调用链与失败原因。
+        </div>
+        <div class="row">
+          <div id="toolCallStatsText" class="muted">总数: - | 成功: - | 失败: - | 最近: -</div>
+        </div>
+        <div class="row triple">
+          <input id="toolCallKeywordInput" placeholder="关键词（工具名/参数/结果）" />
+          <input id="toolCallNameInput" placeholder="tool_name（可模糊）" />
+          <input id="toolCallSessionInput" placeholder="session_id（可模糊）" />
+        </div>
+        <div class="row triple">
+          <input id="toolCallGroupInput" placeholder="group_id（可选）" />
+          <select id="toolCallSuccessSelect">
+            <option value="">success: 全部</option>
+            <option value="true">success: true</option>
+            <option value="false">success: false</option>
+          </select>
+          <div class="split">
+            <input id="toolCallPageInput" type="number" min="1" step="1" value="1" />
+            <select id="toolCallPageSizeSelect">
+              <option value="20">20 / 页</option>
+              <option value="50" selected>50 / 页</option>
+              <option value="100">100 / 页</option>
+              <option value="200">200 / 页</option>
+            </select>
+          </div>
+        </div>
+        <div class="row triple">
+          <button id="refreshToolCallsBtn" class="secondary">刷新列表</button>
+          <button id="deleteToolCallBtn" class="warn">删除选中</button>
+          <button id="clearToolCallsBtn" class="danger">按筛选清空</button>
+        </div>
+        <div class="row split">
+          <button id="toolCallPrevBtn" class="secondary">上一页</button>
+          <button id="toolCallNextBtn" class="secondary">下一页</button>
+        </div>
+        <div class="row muted">
+          <span id="toolCallPageMetaText">页码: -</span>
+        </div>
+        <div class="row">
+          <label>工具调用列表</label>
+          <div id="toolCallList" class="list-box"></div>
+        </div>
+        <div class="row">
+          <label>工具调用详情</label>
+          <div id="toolCallDetailView" class="dialog-panel"></div>
+        </div>
       </section>
 
       <section class="card">
@@ -1080,6 +1144,26 @@
     const clearSessionInput = document.getElementById("clearSessionInput");
     const memorySessionList = document.getElementById("memorySessionList");
     const sessionDialogPreview = document.getElementById("sessionDialogPreview");
+    const memoryGovernanceSummary = document.getElementById("memoryGovernanceSummary");
+    const memoryGovernanceList = document.getElementById("memoryGovernanceList");
+    const refreshMemoryGovernanceBtn = document.getElementById("refreshMemoryGovernanceBtn");
+    const runMemoryConvergenceBtn = document.getElementById("runMemoryConvergenceBtn");
+    const toolCallStatsText = document.getElementById("toolCallStatsText");
+    const toolCallKeywordInput = document.getElementById("toolCallKeywordInput");
+    const toolCallNameInput = document.getElementById("toolCallNameInput");
+    const toolCallSessionInput = document.getElementById("toolCallSessionInput");
+    const toolCallGroupInput = document.getElementById("toolCallGroupInput");
+    const toolCallSuccessSelect = document.getElementById("toolCallSuccessSelect");
+    const toolCallPageInput = document.getElementById("toolCallPageInput");
+    const toolCallPageSizeSelect = document.getElementById("toolCallPageSizeSelect");
+    const refreshToolCallsBtn = document.getElementById("refreshToolCallsBtn");
+    const deleteToolCallBtn = document.getElementById("deleteToolCallBtn");
+    const clearToolCallsBtn = document.getElementById("clearToolCallsBtn");
+    const toolCallPrevBtn = document.getElementById("toolCallPrevBtn");
+    const toolCallNextBtn = document.getElementById("toolCallNextBtn");
+    const toolCallPageMetaText = document.getElementById("toolCallPageMetaText");
+    const toolCallList = document.getElementById("toolCallList");
+    const toolCallDetailView = document.getElementById("toolCallDetailView");
 
     const knowledgeList = document.getElementById("knowledgeList");
     const knowledgePathInput = document.getElementById("knowledgePathInput");
@@ -1097,12 +1181,19 @@
     let selectedKnowledgePath = "";
     let knowledgeFiles = [];
     let memorySessions = [];
+    let governedMemories = [];
+    let selectedGovernedMemoryId = 0;
     let stickerFiles = [];
     let stickerPendingFiles = [];
     let runtimeGroups = [];
     let memberProfiles = [];
     let selectedMemberId = 0;
     let selectedSessionId = "";
+    let toolCallRows = [];
+    let selectedToolCallId = 0;
+    let toolCallPage = 1;
+    let toolCallPageSize = 50;
+    let toolCallTotal = 0;
     let statusRefreshTimer = null;
     let runtimeRefreshTimer = null;
     let promptInitialized = false;
@@ -1396,6 +1487,209 @@
       const shortTerm = data.short_term_memory || {};
       const sessions = Array.isArray(shortTerm.memory_manager) ? shortTerm.memory_manager : [];
       renderMemorySessions(sessions);
+      renderMemoryGovernanceSummary(data.long_term_memory || {});
+      renderToolCallStats(data.tool_calls || {});
+    }
+
+    function renderToolCallStats(stats) {
+      const payload = stats && typeof stats === "object" ? stats : {};
+      const total = Number(payload.total || 0);
+      const success = Number(payload.success || 0);
+      const failed = Number(payload.failed || 0);
+      const maxEntries = Number(payload.max_entries || 0);
+      const lastAt = formatLocalTime(payload.last_at || "");
+      const maxText = maxEntries > 0 ? ` | 容量上限: ${maxEntries}` : "";
+      toolCallStatsText.textContent = `总数: ${total} | 成功: ${success} | 失败: ${failed} | 最近: ${lastAt}${maxText}`;
+    }
+
+    function normalizeToolCallSuccessFilter(value) {
+      const clean = String(value || "").trim().toLowerCase();
+      if (clean === "true") {
+        return true;
+      }
+      if (clean === "false") {
+        return false;
+      }
+      return null;
+    }
+
+    function buildToolCallQuery() {
+      const groupRaw = String(toolCallGroupInput.value || "").trim();
+      const parsedGroupId = /^\d+$/.test(groupRaw) ? Number(groupRaw) : 0;
+      const pageRaw = Number(toolCallPageInput.value || 1);
+      const pageSizeRaw = Number(toolCallPageSizeSelect.value || 50);
+      return {
+        keyword: String(toolCallKeywordInput.value || "").trim(),
+        tool_name: String(toolCallNameInput.value || "").trim(),
+        session_id: String(toolCallSessionInput.value || "").trim(),
+        group_id: parsedGroupId > 0 ? parsedGroupId : 0,
+        success: normalizeToolCallSuccessFilter(toolCallSuccessSelect.value),
+        page: Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 1,
+        page_size: Number.isFinite(pageSizeRaw) ? Math.max(1, Math.min(200, Math.floor(pageSizeRaw))) : 50,
+      };
+    }
+
+    function updateToolCallPageMeta() {
+      const totalPages = Math.max(1, Math.ceil(toolCallTotal / Math.max(1, toolCallPageSize)));
+      toolCallPageMetaText.textContent = `页码: ${toolCallPage} / ${totalPages} | 总数: ${toolCallTotal}`;
+      toolCallPrevBtn.disabled = toolCallPage <= 1;
+      toolCallNextBtn.disabled = toolCallPage >= totalPages;
+      toolCallPageInput.value = String(toolCallPage);
+    }
+
+    function renderToolCallDetail(item) {
+      if (!item || typeof item !== "object") {
+        toolCallDetailView.textContent = "暂无工具调用详情";
+        return;
+      }
+      try {
+        toolCallDetailView.textContent = JSON.stringify(item, null, 2);
+      } catch {
+        toolCallDetailView.textContent = String(item);
+      }
+    }
+
+    function renderToolCallList(items) {
+      toolCallRows = Array.isArray(items) ? items : [];
+      toolCallList.innerHTML = "";
+      if (!toolCallRows.length) {
+        toolCallList.innerHTML = `<div class="muted">暂无工具调用记录</div>`;
+        toolCallDetailView.textContent = "暂无工具调用详情";
+        selectedToolCallId = 0;
+        return;
+      }
+      const hasSelected = toolCallRows.some((item) => Number(item.id || 0) === selectedToolCallId);
+      if (!hasSelected) {
+        selectedToolCallId = Number(toolCallRows[0].id || 0);
+      }
+
+      toolCallRows.forEach((item) => {
+        const row = document.createElement("div");
+        const currentId = Number(item.id || 0);
+        row.className = `list-item ${currentId === selectedToolCallId ? "active" : ""}`;
+        const okText = Boolean(item.success) ? "OK" : "ERR";
+        const groupText = Number(item.group_id || 0) > 0 ? `g=${Number(item.group_id)}` : "g=-";
+        const sessionText = String(item.session_id || "-");
+        const toolName = String(item.tool_name || "-");
+        const step = Number(item.step || 0);
+        const at = formatLocalTime(item.created_at || "");
+        const preview = String(item.error || item.result_preview || item.arguments_preview || "")
+          .replace(/\s+/g, " ")
+          .slice(0, 96);
+        row.textContent = `#${currentId} [${okText}] ${toolName} | ${groupText} | step=${step} | ${sessionText} | ${at}${preview ? ` | ${preview}` : ""}`;
+        row.addEventListener("click", async () => {
+          selectedToolCallId = currentId;
+          renderToolCallList(toolCallRows);
+          await loadToolCallDetail(currentId);
+        });
+        toolCallList.appendChild(row);
+      });
+    }
+
+    async function loadToolCallDetail(toolCallId) {
+      const id = Number(toolCallId || 0);
+      if (!id) {
+        toolCallDetailView.textContent = "暂无工具调用详情";
+        return;
+      }
+      try {
+        const data = await apiRequest(`/api/tool-calls/${encodeURIComponent(id)}`);
+        renderToolCallDetail(data.item || null);
+      } catch (err) {
+        renderToolCallDetail(null);
+        appendLog(`[tools] 详情读取失败 #${id}: ${err.message}`, "status-error");
+      }
+    }
+
+    async function refreshToolCalls(resetPage = false) {
+      const query = buildToolCallQuery();
+      if (resetPage) {
+        query.page = 1;
+      }
+      try {
+        const params = new URLSearchParams();
+        if (query.keyword) {
+          params.set("keyword", query.keyword);
+        }
+        if (query.tool_name) {
+          params.set("tool_name", query.tool_name);
+        }
+        if (query.session_id) {
+          params.set("session_id", query.session_id);
+        }
+        if (query.group_id > 0) {
+          params.set("group_id", String(query.group_id));
+        }
+        if (query.success !== null) {
+          params.set("success", String(query.success));
+        }
+        params.set("page", String(query.page));
+        params.set("page_size", String(query.page_size));
+
+        const data = await apiRequest(`/api/tool-calls?${params.toString()}`);
+        toolCallPage = Number(data.page || query.page || 1);
+        toolCallPageSize = Number(data.page_size || query.page_size || 50);
+        toolCallTotal = Number(data.total || 0);
+        renderToolCallList(Array.isArray(data.items) ? data.items : []);
+        updateToolCallPageMeta();
+        if (selectedToolCallId > 0) {
+          await loadToolCallDetail(selectedToolCallId);
+        }
+      } catch (err) {
+        appendLog(`[tools] 刷新失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function deleteSelectedToolCall() {
+      const id = Number(selectedToolCallId || 0);
+      if (!id) {
+        appendLog("[tools] 请先选择一条工具调用记录", "status-warn");
+        return;
+      }
+      const confirmed = window.confirm(`确定删除工具调用记录 #${id} 吗？`);
+      if (!confirmed) {
+        return;
+      }
+      try {
+        await apiRequest(`/api/tool-calls/${encodeURIComponent(id)}`, { method: "DELETE" });
+        appendLog(`[tools] 已删除工具调用记录 #${id}`, "status-ok");
+        selectedToolCallId = 0;
+        await Promise.all([refreshToolCalls(false), refreshStatus()]);
+      } catch (err) {
+        appendLog(`[tools] 删除失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function clearToolCallsByFilter() {
+      const query = buildToolCallQuery();
+      const previewFilters = [
+        query.tool_name ? `tool=${query.tool_name}` : "",
+        query.session_id ? `session=${query.session_id}` : "",
+        query.group_id > 0 ? `group=${query.group_id}` : "",
+        query.success === null ? "" : `success=${query.success}`,
+      ].filter((item) => item);
+      const scope = previewFilters.length ? previewFilters.join(", ") : "全部记录";
+      const confirmed = window.confirm(`确定按当前筛选清空工具调用记录吗？\n范围: ${scope}`);
+      if (!confirmed) {
+        return;
+      }
+      try {
+        const data = await apiRequest("/api/tool-calls/clear", {
+          method: "POST",
+          json: {
+            tool_name: query.tool_name,
+            session_id: query.session_id,
+            group_id: query.group_id,
+            success: query.success,
+          },
+        });
+        const removed = Number(data.removed || 0);
+        appendLog(`[tools] 清理完成 removed=${removed}`, removed > 0 ? "status-ok" : "status-warn");
+        selectedToolCallId = 0;
+        await Promise.all([refreshToolCalls(true), refreshStatus()]);
+      } catch (err) {
+        appendLog(`[tools] 清理失败: ${err.message}`, "status-error");
+      }
     }
 
     function buildGroupDisplayLabel(item, enabledState) {
@@ -1867,6 +2161,82 @@
         row.appendChild(content);
         sessionDialogPreview.appendChild(row);
       });
+    }
+
+    function renderMemoryGovernanceSummary(snapshot) {
+      if (!snapshot || typeof snapshot !== "object") {
+        memoryGovernanceSummary.textContent = "暂无长期记忆治理数据。";
+        return;
+      }
+      const status = snapshot.status && typeof snapshot.status === "object" ? snapshot.status : {};
+      const canonical = snapshot.canonical && typeof snapshot.canonical === "object" ? snapshot.canonical : {};
+      const lines = [];
+      lines.push(`总记忆: ${Number(snapshot.total || 0)}`);
+      lines.push(
+        `状态分布: active=${Number(status.active || 0)} | candidate=${Number(status.candidate || 0)} | archived=${Number(status.archived || 0)} | legacy=${Number(status.legacy || 0)}`,
+      );
+      const canonicalPairs = Object.entries(canonical)
+        .map(([key, value]) => `${key}=${Number(value || 0)}`)
+        .join(" | ");
+      lines.push(`类型分布: ${canonicalPairs || "-"}`);
+      lines.push(
+        `规则: grace=${Number(snapshot.candidate_grace_hours || 0)}h | promote_evidence>=${Number(snapshot.candidate_promote_evidence || 0)} | auto_ingest=${Boolean(snapshot.auto_ingest_enabled)}`,
+      );
+      memoryGovernanceSummary.textContent = lines.join("\n");
+    }
+
+    function renderGovernedMemories(items) {
+      governedMemories = Array.isArray(items) ? items : [];
+      memoryGovernanceList.innerHTML = "";
+      if (!governedMemories.length) {
+        memoryGovernanceList.innerHTML = `<div class="muted">暂无长期记忆</div>`;
+        return;
+      }
+
+      const hasSelected = governedMemories.some((item) => Number(item.id || 0) === selectedGovernedMemoryId);
+      if (!hasSelected) {
+        selectedGovernedMemoryId = Number(governedMemories[0].id || 0);
+      }
+
+      governedMemories.forEach((item) => {
+        const id = Number(item.id || 0);
+        const row = document.createElement("div");
+        row.className = "list-item" + (id === selectedGovernedMemoryId ? " active" : "");
+        const status = String(item.status || "-");
+        const canonicalType = String(item.canonical_type || "-");
+        const evidence = Number(item.evidence_count || 0);
+        const content = String(item.content || "").replace(/\s+/g, " ").slice(0, 64);
+        row.textContent = `#${id} [${status}/${canonicalType}] ev=${evidence} | ${content}`;
+        row.addEventListener("click", () => {
+          selectedGovernedMemoryId = id;
+          renderGovernedMemories(governedMemories);
+        });
+        memoryGovernanceList.appendChild(row);
+      });
+    }
+
+    async function refreshGovernedMemories() {
+      try {
+        const data = await apiRequest("/api/memories?page=1&page_size=80&sort=updated&order=desc");
+        const items = Array.isArray(data.items) ? data.items : [];
+        renderGovernedMemories(items);
+      } catch (err) {
+        appendLog(`[memory] 长期记忆刷新失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function runMemoryConvergence() {
+      try {
+        const data = await apiRequest("/api/memories/convergence", { method: "POST" });
+        const stats = data && data.stats && typeof data.stats === "object" ? data.stats : {};
+        appendLog(
+          `[memory] 收敛完成 promoted=${Number(stats.promoted || 0)} archived=${Number(stats.archived || 0)} changed=${Number(stats.changed || 0)}`,
+          "status-ok",
+        );
+        await Promise.all([refreshStatus(), refreshGovernedMemories()]);
+      } catch (err) {
+        appendLog(`[memory] 收敛执行失败: ${err.message}`, "status-error");
+      }
     }
 
     function renderKnowledgeFiles(files) {
@@ -2595,10 +2965,12 @@
     async function refreshAll() {
       await Promise.all([
         refreshStatus(),
+        refreshGovernedMemories(),
         refreshRuntimeConfig(),
         refreshMembers(),
         refreshStickerFiles(),
         refreshKnowledgeFiles(),
+        refreshToolCalls(true),
         refreshPlugins(),
       ]);
     }
@@ -2632,8 +3004,33 @@
     actionTabBtn.addEventListener("click", () => setActiveConsoleTab("action"));
     applyPresetBtn.addEventListener("click", applyPromptPreset);
     clearSessionBtn.addEventListener("click", clearSessionMemory);
+    refreshMemoryGovernanceBtn.addEventListener("click", refreshGovernedMemories);
+    runMemoryConvergenceBtn.addEventListener("click", runMemoryConvergence);
     restartBotBtn.addEventListener("click", restartBotProcess);
     shutdownBotBtn.addEventListener("click", shutdownBotProcess);
+    refreshToolCallsBtn.addEventListener("click", () => refreshToolCalls(true));
+    deleteToolCallBtn.addEventListener("click", deleteSelectedToolCall);
+    clearToolCallsBtn.addEventListener("click", clearToolCallsByFilter);
+    toolCallPrevBtn.addEventListener("click", () => {
+      const next = Math.max(1, Number(toolCallPageInput.value || toolCallPage || 1) - 1);
+      toolCallPageInput.value = String(next);
+      refreshToolCalls(false);
+    });
+    toolCallNextBtn.addEventListener("click", () => {
+      const next = Math.max(1, Number(toolCallPageInput.value || toolCallPage || 1) + 1);
+      toolCallPageInput.value = String(next);
+      refreshToolCalls(false);
+    });
+    [toolCallKeywordInput, toolCallNameInput, toolCallSessionInput, toolCallGroupInput].forEach((inputEl) => {
+      inputEl.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          refreshToolCalls(true);
+        }
+      });
+    });
+    toolCallSuccessSelect.addEventListener("change", () => refreshToolCalls(true));
+    toolCallPageSizeSelect.addEventListener("change", () => refreshToolCalls(true));
+    toolCallPageInput.addEventListener("change", () => refreshToolCalls(false));
 
     document.getElementById("resetEnergyBtn").addEventListener("click", () => triggerReset(true));
 
@@ -2650,6 +3047,10 @@
       setActiveConsoleTab("system");
       togglePluginsPanel(true);
       initPresetOptions();
+      toolCallPageInput.value = "1";
+      toolCallPageSizeSelect.value = "50";
+      updateToolCallPageMeta();
+      renderToolCallDetail(null);
       connectLogStream(false);
 
       await refreshAll();

@@ -1,13 +1,15 @@
 ﻿from __future__ import annotations
 
 import asyncio
+import inspect
+import json
 import random
 import re
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Awaitable, Callable
+from typing import Any, Awaitable, Callable, get_args, get_origin
 
 import yaml
 
@@ -23,6 +25,9 @@ from internal.logger import get_logger
 from internal.memory import MemoryManager, MessageLog
 from internal.persona import MoodInfo, PersonalityManager, PromptContext, StatusEngine, StatusSnapshot
 from internal.sticker import StickerCollector
+from internal.topic import TopicManager
+from plugins.context import ToolContext
+from plugins.registry import PluginRegistry
 
 
 _PROMPT_INLINE_SPACE_PATTERN = re.compile(r"[ \t\f\v]+")
@@ -87,6 +92,20 @@ class ContextBuildResult:
     style: StyleClassification
     prompt_context: PromptContext
     llm_messages: list[dict[str, str]]
+
+
+@dataclass(slots=True, frozen=True)
+class LLMToolCall:
+    id: str
+    name: str
+    arguments: str
+
+
+@dataclass(slots=True)
+class LLMThinkResult:
+    content: str
+    tool_calls: list[LLMToolCall] = field(default_factory=list)
+    force_silence: bool = False
 
 
 @dataclass(slots=True)
@@ -317,27 +336,14 @@ class ZhiyueAgent:
     _STAY_QUIET_PLACEHOLDER_PATTERN = re.compile(
         (
             r"^\s*(?:"
+            r"(?:(?:请|就|那就|直接)?\s*(?:调用|call|use|invoke|执行|选择)?\s*stay[_\s-]?quiet(?:\s*[\(（][^)\r\n]{0,120}[\)）])?(?:\s*(?:工具|结束推理|结束|即可|就行|就好|吧))?)|"
             r"stayQuiet|stay_quiet|保持沉默|保持安静即可|保持安静|安静即可|不回复|无需回复|无必要回应|"
             r"\{.*?(?:stayQuiet|stay_quiet).*?\}"
             r")\s*$"
         ),
         re.IGNORECASE | re.DOTALL,
     )
-    _STAY_QUIET_SIGNAL_PATTERN = re.compile(
-        r"(?:\bstay[_\s-]?quiet\b|保持沉默|保持安静即可|保持安静|安静即可|不回复|无需回复|无必要回应|暂不回应|不作回应|先潜水(?:了|啦)?)",
-        re.IGNORECASE,
-    )
     _ELLIPSIS_ONLY_PATTERN = re.compile(r"^\s*(?:\.{2,}|…{1,}|⋯{1,}|(?:\.\s*){2,})\s*$")
-    _SILENCE_NARRATION_PATTERN = re.compile(
-        (
-            r"^\s*[（(\[【]?\s*"
-            r"(?:(?:我|那我|我先|这里)?\s*(?:先)?\s*)?"
-            r"(?:保持沉默|沉默|不说话|先不说话|先潜水(?:了|啦)?|继续潜水|安静即可|暂不回应|不作回应|无(?:需|必要)回复|先观察|继续观察)"
-            r"\s*[）)\]】]?\s*[。.!！?？~～…]*\s*$"
-        ),
-        re.IGNORECASE,
-    )
-    _SILENCE_SIGNAL_RESIDUE_PATTERN = re.compile(r"[\s，,。.!！?？;；:：~～…、“”\"'`·\-\(\)\[\]\{\}/\\]+")
     _BRACKETED_SILENCE_PLACEHOLDER_PATTERN = re.compile(
         r"^\s*\[{1,2}\s*(?P<token>[^\[\]\r\n]{1,40})\s*\]{1,2}\s*$",
         re.IGNORECASE,
@@ -404,6 +410,7 @@ class ZhiyueAgent:
         "join_group_chat": "加入群聊",
         "shutdown": "关闭程序",
     }
+    _TOOL_MAX_STEP = 6
 
     def __init__(
         self,
@@ -440,6 +447,7 @@ class ZhiyueAgent:
         self.jargon_mgr = JargonManager(self.cfg.jargon)
         self.memory_mgr = MemoryManager(cfg=self.cfg, llm=self.llm, on_summary=self._on_memory_summary)
         self._evolution_llm = ChatLLMAdapter(self.cfg.auxiliary_model, self.cfg.llm)
+        self.topic_mgr = TopicManager(cfg=self.cfg, llm=self._evolution_llm)
         self.sticker_collector = StickerCollector(
             cfg=self.cfg,
             bot_client=self.bot_client,
@@ -484,6 +492,9 @@ class ZhiyueAgent:
         self._sticker_last_sent_at: dict[str, datetime] = {}
         self._tarot_last_draw_at: dict[str, datetime] = {}
         self._rng = random.Random()
+        self._plugin_registry = PluginRegistry()
+        self._plugin_registry.register_defaults()
+        self._llm_tool_schemas = self._build_llm_tool_schemas()
         project_root = Path(__file__).resolve().parents[1]
         knowledge_dir = Path(str(getattr(self.cfg.paths, "knowledge_dir", "data/knowledge") or "data/knowledge"))
         if not knowledge_dir.is_absolute():
@@ -505,6 +516,7 @@ class ZhiyueAgent:
         self._started_at_utc = datetime.now(timezone.utc)
         await self.jargon_mgr.reload()
         await self.memory_mgr.start()
+        await self.topic_mgr.start()
         await self.user_profiler.start()
         await self.jargon_engine.start()
         await self.status_engine.start()
@@ -566,6 +578,7 @@ class ZhiyueAgent:
             self._dispatch_worker = None
         await self.user_profiler.stop()
         await self.jargon_engine.stop()
+        await self.topic_mgr.close()
         await self.memory_mgr.close()
         await self.status_engine.stop()
         self._logger.info("Agent stopped")
@@ -871,6 +884,13 @@ class ZhiyueAgent:
                 created_at=now_utc,
             ),
         )
+        await self.memory_mgr.ingest_message_memory(
+            group_id=memory_group_id,
+            user_id=user_id,
+            content=text,
+            source_ref=f"message:{self._to_int(message.get('message_id')) or 0}:user",
+            source_kind="message",
+        )
         await self.memory_mgr.record_conversation_turn(
             session_id=session_id,
             group_id=memory_group_id,
@@ -878,6 +898,14 @@ class ZhiyueAgent:
             content=text,
             speaker=speaker,
             user_id=user_id,
+            created_at=now_utc,
+        )
+        topic_assignment = await self.topic_mgr.ingest_user_message(
+            group_id=memory_group_id,
+            message_id=self._to_int(message.get("message_id")) or 0,
+            user_id=user_id or 0,
+            speaker=speaker,
+            content=text,
             created_at=now_utc,
         )
         await self._run_background_observers(
@@ -969,6 +997,22 @@ class ZhiyueAgent:
                 group_id=group_id,
                 top_k=self.cfg.memory.rag_top_k,
             )
+            topic_context = await self.topic_mgr.build_prompt_context(
+                group_id=memory_group_id,
+                session_id=session_id,
+                query_text=text,
+                current_topic_id=self._to_int(topic_assignment.get("topic_id")),
+            )
+            history_background = list(retrieval.history_background)
+            related_knowledge = list(retrieval.related_knowledge)
+            current_topic_block = str(topic_context.get("current_topic", "") or "").strip()
+            if current_topic_block:
+                history_background.insert(0, f"当前话题上下文:\n{current_topic_block}")
+            for archived_topic_block in list(topic_context.get("archived_topics", []) or []):
+                clean_archived_topic_block = str(archived_topic_block or "").strip()
+                if clean_archived_topic_block:
+                    history_background.append(f"相关历史话题:\n{clean_archived_topic_block}")
+
             social_background = await self.user_profiler.build_social_background(user_id, speaker)
             ctx = await self._build_context(
                 session_id=session_id,
@@ -977,8 +1021,8 @@ class ZhiyueAgent:
                 user_id=user_id,
                 is_master=is_master,
                 mentioned_in_window=mentioned_in_window,
-                history_background=retrieval.history_background,
-                related_knowledge=retrieval.related_knowledge,
+                history_background=history_background,
+                related_knowledge=related_knowledge,
                 social_background=social_background,
             )
             ctx = await self._before_llm_think(ctx)
@@ -1023,6 +1067,20 @@ class ZhiyueAgent:
             content=final_reply,
             speaker=self.cfg.persona.name,
             user_id=self.cfg.persona.qq,
+            created_at=now_after_reply,
+        )
+        await self.memory_mgr.ingest_message_memory(
+            group_id=memory_group_id,
+            user_id=self.cfg.persona.qq,
+            content=final_reply,
+            source_ref=f"message:{self._to_int(message.get('message_id')) or 0}:assistant",
+            source_kind="message",
+        )
+        await self.topic_mgr.ingest_assistant_reply(
+            group_id=memory_group_id,
+            topic_id=self._to_int(topic_assignment.get("topic_id")),
+            speaker=self.cfg.persona.name,
+            content=final_reply,
             created_at=now_after_reply,
         )
         await self._run_background_observers(
@@ -1114,7 +1172,7 @@ class ZhiyueAgent:
         *,
         max_tokens_override: int | None = None,
         temp_system_prompt: str = "",
-    ) -> str:
+    ) -> LLMThinkResult:
         extra_fields: dict[str, Any] = dict(self.cfg.llm.extra_fields)
         if self.cfg.llm.max_response_tokens > 0:
             if "max_tokens" not in extra_fields and "max_completion_tokens" not in extra_fields:
@@ -1122,6 +1180,10 @@ class ZhiyueAgent:
 
         if max_tokens_override is not None and max_tokens_override > 0:
             self._set_response_token_cap(extra_fields, int(max_tokens_override))
+        tools_enabled = bool(self._llm_tool_schemas)
+        if tools_enabled:
+            extra_fields.setdefault("tools", self._llm_tool_schemas)
+            extra_fields.setdefault("tool_choice", "auto")
 
         llm_messages = ctx.llm_messages
         hint = _normalize_prompt_input(temp_system_prompt)
@@ -1138,23 +1200,139 @@ class ZhiyueAgent:
             if not injected:
                 llm_messages.append({"role": "user", "content": hint_block})
 
-        reply = await self.llm.generate_from_messages(llm_messages, extra_fields)
-        content = reply.strip()
-        self._logger.info(
-            "LLM.Think done: session=%s tone=%s has_reply=%s preview=%s",
-            ctx.session_id,
-            ctx.style.tone,
-            bool(content),
-            content[:120],
-        )
-        return content
+        conversation = [dict(item) for item in llm_messages]
+        tool_ctx = self._build_tool_context(ctx)
+        last_text_reply = ""
+        force_silence = False
 
-    async def _after_llm_think(self, ctx: ThinkContext, reply: str) -> str:
-        tool_result = await self._apply_tool_results(ctx, reply)
+        for step in range(1, self._TOOL_MAX_STEP + 1):
+            data = await self.llm.request_chat_completion(conversation, extra_fields)
+            if not data and tools_enabled:
+                fallback_fields = dict(extra_fields)
+                fallback_fields.pop("tools", None)
+                fallback_fields.pop("tool_choice", None)
+                data = await self.llm.request_chat_completion(conversation, fallback_fields)
+                if data:
+                    tools_enabled = False
+                    extra_fields = fallback_fields
+                    self._logger.info(
+                        "LLM.Tool fallback: session=%s reason=provider_rejected_tools",
+                        ctx.session_id,
+                    )
+            think_result = self._parse_llm_think_response(data)
+            last_text_reply = think_result.content or last_text_reply
+            self._logger.info(
+                "LLM.Think step=%s session=%s tone=%s has_reply=%s tool_calls=%s preview=%s",
+                step,
+                ctx.session_id,
+                ctx.style.tone,
+                bool(think_result.content),
+                len(think_result.tool_calls),
+                think_result.content[:120],
+            )
+
+            if not think_result.tool_calls:
+                return LLMThinkResult(content=think_result.content, tool_calls=[], force_silence=force_silence)
+
+            conversation.append(
+                self._build_assistant_tool_call_message(think_result.content, think_result.tool_calls),
+            )
+
+            executed_any = False
+            for tool_call in think_result.tool_calls:
+                tool_name = str(tool_call.name or "").strip()
+                if not tool_name:
+                    continue
+                tool_success = False
+                tool_error = ""
+                plugin = self._plugin_registry.get(tool_name)
+                if plugin is None:
+                    tool_payload: Any = {"ok": False, "error": "tool_not_found", "name": tool_name}
+                    tool_error = "tool_not_found"
+                    self._logger.info(
+                        "LLM.Tool ignored: session=%s tool=%s reason=not_registered",
+                        ctx.session_id,
+                        tool_name,
+                    )
+                else:
+                    arguments = self._filter_tool_arguments(plugin, self._parse_tool_arguments(tool_call.arguments))
+                    try:
+                        tool_payload = await plugin.run(tool_ctx, **arguments)
+                        executed_any = True
+                        tool_success = True
+                        self._logger.info(
+                            "LLM.Tool executed: session=%s tool=%s result=%s",
+                            ctx.session_id,
+                            tool_name,
+                            str(tool_payload)[:160],
+                        )
+                    except Exception as exc:
+                        tool_payload = {"ok": False, "error": str(exc), "name": tool_name}
+                        tool_error = str(exc)
+                        self._logger.warning(
+                            "LLM.Tool failed: session=%s tool=%s err=%s",
+                            ctx.session_id,
+                            tool_name,
+                            exc,
+                        )
+
+                try:
+                    await self.memory_mgr.record_tool_call(
+                        session_id=ctx.session_id,
+                        message_type=ctx.message_type,
+                        group_id=ctx.group_id if ctx.group_id is not None else 0,
+                        user_id=ctx.user_id if ctx.user_id is not None else 0,
+                        speaker=ctx.speaker,
+                        step=step,
+                        tool_call_id=str(tool_call.id or ""),
+                        tool_name=tool_name,
+                        arguments=self._parse_tool_arguments(tool_call.arguments),
+                        success=tool_success,
+                        result=tool_payload,
+                        error=tool_error,
+                    )
+                except Exception as exc:
+                    self._logger.warning(
+                        "LLM.Tool log persist failed: session=%s tool=%s err=%s",
+                        ctx.session_id,
+                        tool_name,
+                        exc,
+                    )
+
+                conversation.append(
+                    self._build_tool_result_message(
+                        tool_call_id=tool_call.id,
+                        tool_name=tool_name,
+                        payload=tool_payload,
+                    ),
+                )
+
+                if tool_name == "stayQuiet":
+                    force_silence = True
+                    break
+
+            if force_silence:
+                return LLMThinkResult(content="", tool_calls=[], force_silence=True)
+            if not executed_any:
+                break
+
+        self._logger.info(
+            "LLM.Think loop reached max steps: session=%s max_step=%s",
+            ctx.session_id,
+            self._TOOL_MAX_STEP,
+        )
+        return LLMThinkResult(content=last_text_reply, tool_calls=[], force_silence=force_silence)
+
+    async def _after_llm_think(self, ctx: ThinkContext, think_result: LLMThinkResult) -> str:
+        if think_result.force_silence:
+            self._logger.info("LLM.Reply suppressed: session=%s reason=stayQuiet_tool", ctx.session_id)
+            return ""
+
+        tool_result = await self._apply_tool_results(ctx, think_result)
         if bool(tool_result.get("force_silence", False)):
             self._logger.info("LLM.Reply suppressed: session=%s reason=silence_state_flag", ctx.session_id)
             return ""
-        clean_reply = str(tool_result.get("clean_reply", reply) or "").strip()
+        clean_reply = str(tool_result.get("clean_reply", think_result.content) or "").strip()
         if self._should_force_silence(clean_reply):
             self._logger.info("LLM.Reply suppressed: session=%s reason=silence_placeholder", ctx.session_id)
             return ""
@@ -1174,9 +1352,10 @@ class ZhiyueAgent:
             speaker_is_master=ctx.is_master,
         )
 
-    async def _apply_tool_results(self, ctx: ThinkContext, reply: str) -> dict[str, Any]:
-        raw_reply = str(reply or "")
+    async def _apply_tool_results(self, ctx: ThinkContext, think_result: LLMThinkResult) -> dict[str, Any]:
+        raw_reply = str(think_result.content or "")
         clean_reply = raw_reply
+
         explicit_sticker_request = self._is_sticker_request(ctx.source_text)
         sticker_queries = self._extract_sticker_queries(raw_reply)
 
@@ -1236,6 +1415,260 @@ class ZhiyueAgent:
             "sticker_sent": sticker_sent,
             "queries": sticker_queries,
         }
+
+    def _build_llm_tool_schemas(self) -> list[dict[str, Any]]:
+        preferred = [
+            "stayQuiet",
+            "searchStickers",
+            "queryMemory",
+            "saveMemory",
+            "searchJargon",
+            "searchStyleCards",
+            "getMemberInfo",
+            "getRecentMessages",
+            "getGroupMemberDetail",
+        ]
+        out: list[dict[str, Any]] = []
+        for name in preferred:
+            plugin = self._plugin_registry.get(name)
+            if plugin is None:
+                continue
+            schema = self._plugin_to_tool_schema(plugin)
+            if schema:
+                out.append(schema)
+        return out
+
+    def _plugin_to_tool_schema(self, plugin: Any) -> dict[str, Any] | None:
+        plugin_name = str(getattr(plugin, "name", "")).strip()
+        if not plugin_name:
+            return None
+        description = str(getattr(plugin, "description", "")).strip() or plugin_name
+
+        handler = getattr(plugin, "handler", None)
+        if not callable(handler):
+            return {
+                "type": "function",
+                "function": {
+                    "name": plugin_name,
+                    "description": description,
+                    "parameters": {"type": "object", "properties": {}, "additionalProperties": True},
+                },
+            }
+
+        signature = inspect.signature(handler)
+        properties: dict[str, Any] = {}
+        required: list[str] = []
+        for name, param in signature.parameters.items():
+            if name in {"self", "ctx"}:
+                continue
+            schema = self._annotation_to_json_schema(param.annotation)
+            if param.default is inspect._empty:
+                required.append(name)
+            properties[name] = schema
+
+        params_schema: dict[str, Any] = {"type": "object", "properties": properties, "additionalProperties": False}
+        if required:
+            params_schema["required"] = required
+        return {
+            "type": "function",
+            "function": {
+                "name": plugin_name,
+                "description": description,
+                "parameters": params_schema,
+            },
+        }
+
+    @staticmethod
+    def _annotation_to_json_schema(annotation: Any) -> dict[str, Any]:
+        if annotation in {inspect._empty, Any}:
+            return {"type": "string"}
+        if annotation is str:
+            return {"type": "string"}
+        if annotation is int:
+            return {"type": "integer"}
+        if annotation is float:
+            return {"type": "number"}
+        if annotation is bool:
+            return {"type": "boolean"}
+
+        origin = get_origin(annotation)
+        args = get_args(annotation)
+        if origin in {list, tuple, set}:
+            item_annotation = args[0] if args else Any
+            return {"type": "array", "items": ZhiyueAgent._annotation_to_json_schema(item_annotation)}
+        if origin in {dict}:
+            return {"type": "object"}
+        if args:
+            non_none = [arg for arg in args if arg is not type(None)]
+            if len(non_none) == 1:
+                return ZhiyueAgent._annotation_to_json_schema(non_none[0])
+        return {"type": "string"}
+
+    def _filter_tool_arguments(self, plugin: Any, arguments: dict[str, Any]) -> dict[str, Any]:
+        if not arguments:
+            return {}
+        handler = getattr(plugin, "handler", None)
+        if not callable(handler):
+            return dict(arguments)
+        signature = inspect.signature(handler)
+        allowed: set[str] = set()
+        for name in signature.parameters:
+            if name in {"self", "ctx"}:
+                continue
+            allowed.add(name)
+        return {key: value for key, value in arguments.items() if key in allowed}
+
+    def _build_tool_context(self, ctx: ThinkContext) -> ToolContext:
+        return ToolContext(
+            group_id=ctx.group_id if ctx.group_id is not None else 0,
+            memory_mgr=self.memory_mgr,
+            bot=self.bot_client,
+            agent=self,
+            speak_callback=self._make_tool_speak_callback(ctx),
+        )
+
+    def _make_tool_speak_callback(self, ctx: ThinkContext) -> Callable[[int, str, int | None, list[int] | None], Awaitable[int]]:
+        async def _callback(
+            group_id: int,
+            content: str,
+            reply_to: int | None = None,
+            mentions: list[int] | None = None,
+        ) -> int:
+            if ctx.message_type == "group" and ctx.group_id is not None and ctx.group_id > 0:
+                return await self.bot_client.send_group_message(
+                    group_id=ctx.group_id,
+                    content=str(content or ""),
+                    reply_to=reply_to,
+                    mentions=mentions,
+                )
+            if ctx.user_id is not None and ctx.user_id > 0:
+                return await self.bot_client.send_private_message(
+                    user_id=ctx.user_id,
+                    content=str(content or ""),
+                )
+            if group_id > 0:
+                return await self.bot_client.send_group_message(
+                    group_id=group_id,
+                    content=str(content or ""),
+                    reply_to=reply_to,
+                    mentions=mentions,
+                )
+            raise ValueError("speak callback has no valid target")
+
+        return _callback
+
+    @staticmethod
+    def _parse_tool_arguments(raw_arguments: str) -> dict[str, Any]:
+        raw = str(raw_arguments or "").strip()
+        if not raw:
+            return {}
+        try:
+            loaded = json.loads(raw)
+        except json.JSONDecodeError:
+            return {}
+        if isinstance(loaded, dict):
+            return loaded
+        return {}
+
+    @staticmethod
+    def _build_assistant_tool_call_message(content: str, tool_calls: list[LLMToolCall]) -> dict[str, Any]:
+        message: dict[str, Any] = {
+            "role": "assistant",
+            "content": str(content or ""),
+        }
+        normalized_calls: list[dict[str, Any]] = []
+        for idx, call in enumerate(tool_calls):
+            normalized_calls.append(
+                {
+                    "id": str(call.id or f"tool_call_{idx}"),
+                    "type": "function",
+                    "function": {
+                        "name": str(call.name or ""),
+                        "arguments": str(call.arguments or "{}"),
+                    },
+                },
+            )
+        message["tool_calls"] = normalized_calls
+        return message
+
+    @staticmethod
+    def _build_tool_result_message(*, tool_call_id: str, tool_name: str, payload: Any) -> dict[str, Any]:
+        content: str
+        if isinstance(payload, str):
+            content = payload
+        else:
+            try:
+                content = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), default=str)
+            except TypeError:
+                content = str(payload)
+        return {
+            "role": "tool",
+            "tool_call_id": str(tool_call_id or ""),
+            "name": str(tool_name or ""),
+            "content": content[:4000],
+        }
+
+    @staticmethod
+    def _parse_llm_message_content(message: Any) -> str:
+        if not isinstance(message, dict):
+            return ""
+        content = message.get("content", "")
+        if isinstance(content, str):
+            return content.strip()
+        if isinstance(content, list):
+            text_parts: list[str] = []
+            for part in content:
+                if not isinstance(part, dict):
+                    continue
+                if str(part.get("type", "")).strip() != "text":
+                    continue
+                text_value = part.get("text")
+                if isinstance(text_value, str):
+                    text_parts.append(text_value)
+            return "".join(text_parts).strip()
+        return ""
+
+    @classmethod
+    def _parse_llm_think_response(cls, data: dict[str, Any]) -> LLMThinkResult:
+        if not isinstance(data, dict):
+            return LLMThinkResult(content="", tool_calls=[])
+        choices = data.get("choices")
+        if not isinstance(choices, list) or not choices:
+            return LLMThinkResult(content="", tool_calls=[])
+        first = choices[0]
+        if not isinstance(first, dict):
+            return LLMThinkResult(content="", tool_calls=[])
+        message = first.get("message")
+        content = cls._parse_llm_message_content(message)
+
+        tool_calls: list[LLMToolCall] = []
+        if isinstance(message, dict):
+            raw_tool_calls = message.get("tool_calls")
+            if isinstance(raw_tool_calls, list):
+                for idx, row in enumerate(raw_tool_calls):
+                    if not isinstance(row, dict):
+                        continue
+                    function = row.get("function")
+                    if not isinstance(function, dict):
+                        continue
+                    tool_name = str(function.get("name", "")).strip()
+                    if not tool_name:
+                        continue
+                    arguments = str(function.get("arguments", "") or "")
+                    call_id = str(row.get("id", "") or f"tool_call_{idx}").strip()
+                    tool_calls.append(LLMToolCall(id=call_id, name=tool_name, arguments=arguments))
+            elif isinstance(message.get("function_call"), dict):
+                legacy = message.get("function_call") or {}
+                tool_name = str(legacy.get("name", "")).strip()
+                if tool_name:
+                    tool_calls.append(
+                        LLMToolCall(
+                            id="function_call_0",
+                            name=tool_name,
+                            arguments=str(legacy.get("arguments", "") or ""),
+                        ),
+                    )
+        return LLMThinkResult(content=content, tool_calls=tool_calls)
 
     def _extract_sticker_queries(self, reply: str) -> list[str]:
         clean_reply = str(reply or "")
@@ -1558,14 +1991,7 @@ class ZhiyueAgent:
 
         if cls._is_silence_placeholder_reply(clean):
             return True
-        if cls._ELLIPSIS_ONLY_PATTERN.fullmatch(clean):
-            return True
-        if cls._SILENCE_NARRATION_PATTERN.fullmatch(clean):
-            return True
-
-        residue = cls._STAY_QUIET_SIGNAL_PATTERN.sub("", clean)
-        residue = cls._SILENCE_SIGNAL_RESIDUE_PATTERN.sub("", residue)
-        return not residue
+        return bool(cls._ELLIPSIS_ONLY_PATTERN.fullmatch(clean))
 
     async def _sync_learned_jargon(self, term: str, meaning: str) -> None:
         clean_term = str(term).strip()
@@ -1592,7 +2018,10 @@ class ZhiyueAgent:
     async def get_admin_status(self) -> dict[str, Any]:
         status = await self.status_engine.get_snapshot()
         short_term = await self.memory_mgr.get_short_term_snapshot(max_sessions=8, turn_limit=4)
+        long_term = await self.memory_mgr.get_runtime_snapshot()
+        tool_call_stats = await self.memory_mgr.get_tool_call_stats()
         history_summary = self._history.short_term_summary(max_sessions=8, max_messages=3)
+        topic_snapshot = await self.topic_mgr.get_runtime_snapshot()
         return {
             "energy": round(status.energy, 2),
             "energy_tier": status.energy_tier,
@@ -1611,6 +2040,9 @@ class ZhiyueAgent:
                 "memory_manager": short_term,
                 "history": history_summary,
             },
+            "long_term_memory": long_term,
+            "tool_calls": tool_call_stats,
+            "topic_system": topic_snapshot,
         }
 
     async def reset_runtime_state(
