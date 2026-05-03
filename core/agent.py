@@ -2341,8 +2341,14 @@ class ZhiyueAgent:
     def _is_tarot_trigger(text: str) -> bool:
         return str(text or "").strip().lower() == "tarot"
 
+    @staticmethod
+    def _is_tarot3_trigger(text: str) -> bool:
+        return str(text or "").strip().lower() == "tarot3"
+
     async def _try_handle_tarot_command(self, *, message: dict[str, Any], text: str) -> bool:
-        if not self._is_tarot_trigger(text):
+        is_tarot_single = self._is_tarot_trigger(text)
+        is_tarot_three = self._is_tarot3_trigger(text)
+        if not is_tarot_single and not is_tarot_three:
             return False
 
         mention_prefix = self._build_tarot_mention_prefix(message)
@@ -2357,30 +2363,49 @@ class ZhiyueAgent:
             return True
 
         try:
-            draw = self._tarot_knowledge.draw(self._rng)
+            if is_tarot_three:
+                draws = self._tarot_knowledge.draw_many(3, self._rng)
+            else:
+                draws = [self._tarot_knowledge.draw(self._rng)]
         except RuntimeError as exc:
             await self._reply_single(message, f"{mention_prefix}塔罗知识库异常：{exc}")
-            self._logger.error("Tarot.Draw failed: err=%s", exc)
+            self._logger.error("Tarot.Draw failed: mode=%s err=%s", "tarot3" if is_tarot_three else "tarot", exc)
             return True
 
-        summary = f"抽出了一张 {draw.card.display_name_cn}，{draw.orientation_label}，解释是“{draw.meaning}”。"
-        image_path = self._tarot_knowledge.resolve_draw_image_path(draw)
-        if image_path is not None:
-            image_cq = self._build_local_image_cq(image_path)
-            content = f"{mention_prefix}{image_cq}\n{summary}"
+        if is_tarot_three:
+            parts = [f"{mention_prefix}抽出了三张牌："]
+            for idx, draw in enumerate(draws, start=1):
+                parts.append(f"{idx}. {draw.card.display_name_cn}（{draw.orientation_label}）：{draw.meaning}")
+            content = "\n".join(parts)
+            await self._reply_single(message, content)
+            if cooldown_key:
+                self._tarot_last_draw_at[cooldown_key] = now
+            self._logger.info(
+                "Tarot.Draw3: cards=%s user_id=%s group_id=%s",
+                ", ".join(f"{draw.card.display_name_cn}/{draw.orientation_label}" for draw in draws),
+                message.get("user_id"),
+                message.get("group_id"),
+            )
         else:
-            content = f"{mention_prefix}{summary}"
-        await self._reply_single(message, content)
-        if cooldown_key:
-            self._tarot_last_draw_at[cooldown_key] = now
-        self._logger.info(
-            "Tarot.Draw: card=%s orientation=%s image=%s user_id=%s group_id=%s",
-            draw.card.display_name_cn,
-            draw.orientation_label,
-            image_path if image_path is not None else "",
-            message.get("user_id"),
-            message.get("group_id"),
-        )
+            draw = draws[0]
+            summary = f"抽出了一张 {draw.card.display_name_cn}，{draw.orientation_label}，解释是“{draw.meaning}”。"
+            image_path = self._tarot_knowledge.resolve_draw_image_path(draw)
+            if image_path is not None:
+                image_cq = self._build_local_image_cq(image_path)
+                content = f"{mention_prefix}{image_cq}\n{summary}"
+            else:
+                content = f"{mention_prefix}{summary}"
+            await self._reply_single(message, content)
+            if cooldown_key:
+                self._tarot_last_draw_at[cooldown_key] = now
+            self._logger.info(
+                "Tarot.Draw: card=%s orientation=%s image=%s user_id=%s group_id=%s",
+                draw.card.display_name_cn,
+                draw.orientation_label,
+                image_path if image_path is not None else "",
+                message.get("user_id"),
+                message.get("group_id"),
+            )
         return True
 
     def _build_tarot_cooldown_key(self, message: dict[str, Any]) -> str:

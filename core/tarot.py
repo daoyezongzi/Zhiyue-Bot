@@ -109,6 +109,26 @@ class TarotKnowledgeBase:
 
         chooser = rng or random.Random()
         card = chooser.choice(self._cards)
+        return self._build_draw_from_card(card, chooser)
+
+    def draw_many(self, count: int, rng: random.Random | None = None) -> list[TarotDraw]:
+        if self._load_error:
+            raise RuntimeError(self._load_error)
+        if not self._cards:
+            raise RuntimeError("塔罗知识库为空，没有可抽取的牌。")
+
+        draw_count = int(count or 0)
+        if draw_count <= 0:
+            raise RuntimeError("抽牌数量必须大于 0。")
+        if draw_count > len(self._cards):
+            raise RuntimeError(f"抽牌数量超过牌库上限：{draw_count}>{len(self._cards)}")
+
+        chooser = rng or random.Random()
+        selected_cards = chooser.sample(self._cards, k=draw_count)
+        return [self._build_draw_from_card(card, chooser) for card in selected_cards]
+
+    @staticmethod
+    def _build_draw_from_card(card: TarotCard, chooser: random.Random) -> TarotDraw:
         candidates: list[tuple[str, str, str]] = []
         if card.upright_meaning:
             candidates.append(("upright", "正位", card.upright_meaning))

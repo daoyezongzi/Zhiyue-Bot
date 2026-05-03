@@ -774,6 +774,58 @@
       "tags":[
         "表情包",
         "静态"
+      ],
+      "is_sticker":true
+    },
+    {
+      "id":"c9d37904855fc73d7f4c49369023a2b4",
+      "md5":"c9d37904855fc73d7f4c49369023a2b4",
+      "file_name":"c9d37904855fc73d7f4c49369023a2b4.jpg",
+      "summary":"[动画表情]",
+      "media_kind":"sticker",
+      "storage_mode":"local",
+      "segment_type":"image",
+      "sub_type":1,
+      "sender_id":1360576479,
+      "group_id":932968414,
+      "source_url":"https://multimedia.nt.qq.com.cn/download?appid=1407&fileid=EhRkE1EJoWjTTcxR1kmXKLhfQNk21Bir4Awg_woov6zwm6CSlAMyBHByb2RQgL2jAVoQM7lTlncF2QwyFPG5zCxcO3oCKwyCAQJneg&rkey=CAQSMKmqB9R86iJhPXX38E_Qs-c9mJNNyy7gV6bVDOEdj5TVtLj7IRJXoJOSf9Mp3ErIvw",
+      "source_file":"C9D37904855FC73D7F4C49369023A2B4.jpg",
+      "source_message_id":1696024461,
+      "review_status":"approved",
+      "review_reason":"mood_below_threshold",
+      "review_source":"heuristic",
+      "reviewed_at":"2026-04-29T04:45:14Z",
+      "created_at":"2026-04-29T04:45:14Z",
+      "tags":[
+        "表情包",
+        "静态",
+        "qqnt"
+      ],
+      "is_sticker":true
+    },
+    {
+      "id":"668d40cbaa2c3753b84e4b09120a06d8",
+      "md5":"668d40cbaa2c3753b84e4b09120a06d8",
+      "file_name":"668d40cbaa2c3753b84e4b09120a06d8.jpg",
+      "summary":"[动画表情]",
+      "media_kind":"sticker",
+      "storage_mode":"local",
+      "segment_type":"image",
+      "sub_type":1,
+      "sender_id":137566858,
+      "group_id":1056532448,
+      "source_url":"https://multimedia.nt.qq.com.cn/download?appid=1407&fileid=EhSY21nF3YBE7rMJu_r5SAwuM_baoxi6zgMg_woo9b66-KCSlAMyBHByb2RQgL2jAVoQprTuXBfOHRkoCqu3WEO-IXoC_WmCAQJneg&rkey=CAQSMKmqB9R86iJhPXX38E_Qs-c9mJNNyy7gV6bVDOEdj5TVtLj7IRJXoJOSf9Mp3ErIvw",
+      "source_file":"668D40CBAA2C3753B84E4B09120A06D8.jpg",
+      "source_message_id":863416671,
+      "review_status":"approved",
+      "review_reason":"mood_below_threshold",
+      "review_source":"heuristic",
+      "reviewed_at":"2026-04-29T04:48:28Z",
+      "created_at":"2026-04-29T04:48:28Z",
+      "tags":[
+        "表情包",
+        "静态",
+        "qqnt"
       ]
     }
   ]
