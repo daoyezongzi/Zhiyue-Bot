@@ -89,6 +89,7 @@ class StickerSettingsRequest(BaseModel):
     storage_mode: str | None = None
     filter_keywords: list[str] | None = None
     user_weights: dict[str, float] | None = None
+    allow_other_users_collection: bool | None = None
     enable_persona_filter: bool | None = None
     llm_filter_enabled: bool | None = None
     llm_filter_probability: float | None = None
@@ -506,6 +507,11 @@ class AdminService:
                 self._cfg.sticker.user_weights = clean_weights
                 updates["user_weights"] = clean_weights
 
+            if payload.allow_other_users_collection is not None:
+                clean_allow_others = bool(payload.allow_other_users_collection)
+                self._cfg.sticker.allow_other_users_collection = clean_allow_others
+                updates["allow_other_users_collection"] = clean_allow_others
+
             if payload.enable_persona_filter is not None:
                 clean_persona_filter = bool(payload.enable_persona_filter)
                 self._cfg.sticker.enable_persona_filter = clean_persona_filter
@@ -580,6 +586,50 @@ class AdminService:
                 "files": hydrated_files,
             }
 
+        @self._app.get("/api/stickers/pending/files")
+        async def api_sticker_pending_files(_: None = Depends(self._require_token),) -> dict[str, Any]:
+            files = await self._agent.sticker_collector.list_pending_files()
+            hydrated_files: list[dict[str, Any]] = []
+            for item in files:
+                row = dict(item)
+                file_name = str(row.get("file_name", "")).strip()
+                row["content_url"] = self._sticker_pending_content_url(file_name) if file_name else ""
+                hydrated_files.append(row)
+            return {
+                "root": str(self._agent.sticker_collector.pending_dir),
+                "files": hydrated_files,
+            }
+
+        @self._app.post("/api/stickers/pending/files/{file_name}/approve")
+        async def api_sticker_pending_file_approve(
+            file_name: str,
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            try:
+                result = await self._agent.sticker_collector.approve_pending_file(file_name)
+            except ValueError as exc:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+            if not bool(result.get("ok")):
+                detail = str(result.get("error") or "failed to approve pending sticker")
+                code = status.HTTP_404_NOT_FOUND if "not found" in detail.lower() else status.HTTP_400_BAD_REQUEST
+                raise HTTPException(status_code=code, detail=detail)
+            return result
+
+        @self._app.delete("/api/stickers/pending/files/{file_name}")
+        async def api_sticker_pending_file_delete(
+            file_name: str,
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            try:
+                deleted = await self._agent.sticker_collector.reject_pending_file(file_name)
+            except ValueError as exc:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+            if not deleted:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="pending sticker file not found")
+            return {"ok": True, "file_name": file_name}
+
         @self._app.delete("/api/stickers/files/{file_name}")
         async def api_sticker_file_delete(
             file_name: str,
@@ -606,6 +656,24 @@ class AdminService:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
             if not target.exists() or not target.is_file():
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="sticker file not found")
+
+            media_type, _ = mimetypes.guess_type(str(target))
+            if download:
+                return FileResponse(path=str(target), media_type=media_type or "application/octet-stream", filename=target.name)
+            return FileResponse(path=str(target), media_type=media_type or "application/octet-stream")
+
+        @self._app.get("/api/stickers/pending/files/{file_name}/content")
+        async def api_sticker_pending_file_content(
+            file_name: str,
+            download: bool = Query(default=False),
+            _: None = Depends(self._require_token),
+        ) -> FileResponse:
+            try:
+                target = self._agent.sticker_collector.resolve_pending_file_path(file_name)
+            except ValueError as exc:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+            if not target.exists() or not target.is_file():
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="pending sticker file not found")
 
             media_type, _ = mimetypes.guess_type(str(target))
             if download:
@@ -662,6 +730,15 @@ class AdminService:
             except Exception as exc:
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
             return {"ok": True, "path": str(sticker_dir)}
+
+        @self._app.post("/api/stickers/open-pending-dir")
+        async def api_sticker_open_pending_dir(_: None = Depends(self._require_token),) -> dict[str, Any]:
+            pending_dir = self._agent.sticker_collector.pending_dir
+            try:
+                self._open_local_directory(pending_dir)
+            except Exception as exc:
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
+            return {"ok": True, "path": str(pending_dir)}
 
         @self._app.post("/api/action/reset")
         async def api_reset(
@@ -876,8 +953,10 @@ class AdminService:
                 "collection_rate": float(self._cfg.sticker.collection_rate),
                 "storage_mode": self._normalize_storage_mode(self._cfg.sticker.storage_mode),
                 "local_dir": str(self._agent.sticker_collector.local_dir),
+                "pending_local_dir": str(self._agent.sticker_collector.pending_dir),
                 "filter_keywords": self._normalize_filter_keywords(self._cfg.sticker.filter_keywords),
                 "user_weights": self._normalize_user_weights(self._cfg.sticker.user_weights),
+                "allow_other_users_collection": bool(self._cfg.sticker.allow_other_users_collection),
                 "enable_persona_filter": bool(self._cfg.sticker.enable_persona_filter),
                 "llm_filter_enabled": bool(self._cfg.sticker.llm_filter_enabled),
                 "llm_filter_probability": self._clamp_probability(self._cfg.sticker.llm_filter_probability),
@@ -1074,6 +1153,13 @@ class AdminService:
         if not clean_name:
             return ""
         return f"/api/stickers/files/{quote(clean_name, safe='')}/content"
+
+    @staticmethod
+    def _sticker_pending_content_url(file_name: str) -> str:
+        clean_name = str(file_name or "").strip()
+        if not clean_name:
+            return ""
+        return f"/api/stickers/pending/files/{quote(clean_name, safe='')}/content"
 
     @staticmethod
     def _normalize_filter_keywords(raw_keywords: Any) -> list[str]:
@@ -1332,6 +1418,7 @@ class AdminService:
             "storage_mode",
             "filter_keywords",
             "user_weights",
+            "allow_other_users_collection",
             "enable_persona_filter",
             "llm_filter_enabled",
             "llm_filter_probability",

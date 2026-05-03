@@ -101,11 +101,27 @@ class StickerCollector:
         folder.mkdir(parents=True, exist_ok=True)
         return folder.resolve()
 
+    @property
+    def pending_dir(self) -> Path:
+        raw = str(self._cfg.sticker.pending_local_dir or "data/stickers_pending").strip() or "data/stickers_pending"
+        folder = Path(raw)
+        if not folder.is_absolute():
+            folder = self._project_root / folder
+        folder.mkdir(parents=True, exist_ok=True)
+        return folder.resolve()
+
     def resolve_local_file_path(self, file_name: str) -> Path:
         clean_name = self._sanitize_file_name(file_name)
         target = (self.local_dir / clean_name).resolve()
         if target.parent != self.local_dir:
             raise ValueError("invalid sticker file path")
+        return target
+
+    def resolve_pending_file_path(self, file_name: str) -> Path:
+        clean_name = self._sanitize_file_name(file_name)
+        target = (self.pending_dir / clean_name).resolve()
+        if target.parent != self.pending_dir:
+            raise ValueError("invalid pending sticker file path")
         return target
 
     async def runtime_settings(self) -> dict[str, Any]:
@@ -115,8 +131,10 @@ class StickerCollector:
             "collection_rate": round(self._clamp_probability(cfg.collection_rate), 4),
             "storage_mode": self._normalize_storage_mode(cfg.storage_mode),
             "local_dir": str(self.local_dir),
+            "pending_local_dir": str(self.pending_dir),
             "filter_keywords": self._normalize_keywords(cfg.filter_keywords),
             "user_weights": self._normalize_user_weights(cfg.user_weights),
+            "allow_other_users_collection": bool(cfg.allow_other_users_collection),
             "enable_persona_filter": bool(cfg.enable_persona_filter),
             "llm_filter_enabled": bool(cfg.llm_filter_enabled),
             "llm_filter_probability": round(self._clamp_probability(cfg.llm_filter_probability), 4),
@@ -224,6 +242,16 @@ class StickerCollector:
 
         message_id = self._to_int(message.get("message_id"))
         base_rate = self._clamp_probability(cfg.collection_rate)
+        sender_is_specific = bool(is_admin) or self._is_specific_user(sender_id)
+        allow_other_users = bool(cfg.allow_other_users_collection)
+        if not is_admin and not sender_is_specific and not allow_other_users:
+            self._logger.debug(
+                "Sticker.Collect skipped: reason=other_users_disabled user_id=%s group_id=%s",
+                sender_id,
+                group_id,
+            )
+            return
+
         weight = self._resolve_user_weight(sender_id)
         if not is_admin and weight <= 0.0:
             self._logger.info(
@@ -270,6 +298,7 @@ class StickerCollector:
                     mood=mood,
                     message_id=message_id,
                     is_admin=is_admin,
+                    sender_is_specific=sender_is_specific,
                 )
             except Exception:
                 self._logger.exception(
@@ -373,6 +402,183 @@ class StickerCollector:
                 deleted = True
 
         return deleted
+
+    async def list_pending_files(self) -> list[dict[str, Any]]:
+        root = self.pending_dir
+        metadata_by_name: dict[str, dict[str, Any]] = {}
+
+        async with self._index_lock:
+            pending_index = self._load_pending_index_nolock()
+        for item in pending_index.get("items", []):
+            if not isinstance(item, dict):
+                continue
+            file_name = str(item.get("file_name", "")).strip()
+            if not file_name:
+                continue
+            metadata_by_name[file_name] = item
+
+        files: list[dict[str, Any]] = []
+        for path in root.iterdir():
+            if not path.is_file():
+                continue
+            if path.name == self.INDEX_FILE_NAME:
+                continue
+            stat = path.stat()
+            info = metadata_by_name.get(path.name, {})
+            info_with_file = dict(info)
+            info_with_file.setdefault("file_name", path.name)
+            is_sticker = self.is_sticker_item(info_with_file)
+            media_kind = "sticker" if is_sticker else "image"
+            files.append(
+                {
+                    "file_name": path.name,
+                    "size": int(stat.st_size),
+                    "updated_at": int(stat.st_mtime),
+                    "md5": str(info.get("md5") or path.stem),
+                    "summary": self._normalize_summary_text(info.get("summary", "")),
+                    "media_kind": media_kind,
+                    "is_sticker": is_sticker,
+                    "tags": self._normalize_tags(info.get("tags", [])),
+                    "review_status": str(info.get("review_status", "pending")).strip().lower() or "pending",
+                    "review_reason": str(info.get("review_reason", "waiting_manual_review")).strip(),
+                    "review_source": str(info.get("review_source", "pending_staging")).strip(),
+                    "reviewed_at": str(info.get("reviewed_at", "")).strip(),
+                    "sender_id": self._to_int(info.get("sender_id")),
+                    "group_id": self._to_int(info.get("group_id")),
+                    "source_message_id": self._to_int(info.get("source_message_id")),
+                    "created_at": str(info.get("created_at", "")),
+                },
+            )
+        files.sort(key=lambda row: int(row.get("updated_at") or 0), reverse=True)
+        return files
+
+    async def delete_pending_file(self, file_name: str) -> bool:
+        clean_name = self._sanitize_file_name(file_name)
+        target = self.resolve_pending_file_path(clean_name)
+
+        deleted = False
+        if target.exists() and target.is_file():
+            target.unlink()
+            deleted = True
+
+        async with self._index_lock:
+            pending_index = self._load_pending_index_nolock()
+            items = pending_index.get("items", [])
+            if not isinstance(items, list):
+                items = []
+            remaining = [
+                item
+                for item in items
+                if not (isinstance(item, dict) and str(item.get("file_name", "")).strip() == clean_name)
+            ]
+            if len(remaining) != len(items):
+                pending_index["items"] = remaining
+                self._save_pending_index_nolock(pending_index)
+                deleted = True
+
+        return deleted
+
+    async def reject_pending_file(self, file_name: str) -> bool:
+        return await self.delete_pending_file(file_name)
+
+    async def approve_pending_file(self, file_name: str) -> dict[str, Any]:
+        clean_name = self._sanitize_file_name(file_name)
+        source = self.resolve_pending_file_path(clean_name)
+        if not source.exists() or not source.is_file():
+            return {"ok": False, "error": "pending sticker file not found"}
+
+        async with self._index_lock:
+            pending_index = self._load_pending_index_nolock()
+            pending_items = pending_index.get("items", [])
+            if not isinstance(pending_items, list):
+                pending_items = []
+
+            target_pending: dict[str, Any] | None = None
+            remaining_pending: list[dict[str, Any]] = []
+            for row in pending_items:
+                if not isinstance(row, dict):
+                    continue
+                row_name = str(row.get("file_name", "")).strip()
+                if row_name == clean_name and target_pending is None:
+                    target_pending = dict(row)
+                    continue
+                remaining_pending.append(dict(row))
+
+            if target_pending is None:
+                return {"ok": False, "error": "pending sticker metadata not found"}
+
+            image_data = source.read_bytes()
+            if not image_data:
+                pending_index["items"] = remaining_pending
+                self._save_pending_index_nolock(pending_index)
+                source.unlink(missing_ok=True)
+                return {"ok": False, "error": "pending sticker file is empty"}
+
+            md5_hex = hashlib.md5(image_data).hexdigest()
+            local_index = self._load_index_nolock()
+            local_items = local_index.get("items", [])
+            if not isinstance(local_items, list):
+                local_items = []
+
+            for item in local_items:
+                if not isinstance(item, dict):
+                    continue
+                if str(item.get("md5", "")).strip() == md5_hex:
+                    pending_index["items"] = remaining_pending
+                    self._save_pending_index_nolock(pending_index)
+                    source.unlink(missing_ok=True)
+                    return {
+                        "ok": True,
+                        "promoted": False,
+                        "reason": "duplicate_library_md5",
+                        "file_name": str(item.get("file_name", "")).strip(),
+                        "md5": md5_hex,
+                    }
+
+            suffix = Path(clean_name).suffix.lower()
+            if not suffix:
+                suffix = ".png"
+            local_file_name = f"{md5_hex}{suffix}"
+            target = self.resolve_local_file_path(local_file_name)
+            if target.exists() and target.is_file():
+                target.unlink()
+            source.replace(target)
+
+            now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+            entry = {
+                "id": md5_hex,
+                "md5": md5_hex,
+                "file_name": local_file_name,
+                "summary": self._normalize_summary_text(target_pending.get("summary", "")),
+                "media_kind": "sticker",
+                "storage_mode": "local",
+                "segment_type": str(target_pending.get("segment_type", "")).strip().lower(),
+                "sub_type": int(self._to_int(target_pending.get("sub_type")) or 0),
+                "sender_id": self._to_int(target_pending.get("sender_id")),
+                "group_id": self._to_int(target_pending.get("group_id")),
+                "source_url": str(target_pending.get("source_url", "")).strip(),
+                "source_file": str(target_pending.get("source_file", "")).strip(),
+                "source_message_id": self._to_int(target_pending.get("source_message_id")),
+                "review_status": "approved",
+                "review_reason": "manual_review_approved",
+                "review_source": "manual",
+                "reviewed_at": now,
+                "created_at": str(target_pending.get("created_at", "")).strip() or now,
+            }
+            entry["tags"] = self.derive_sticker_tags(entry)
+            local_items.append(entry)
+            local_index["items"] = local_items
+            self._save_index_nolock(local_index)
+
+            pending_index["items"] = remaining_pending
+            self._save_pending_index_nolock(pending_index)
+
+        return {
+            "ok": True,
+            "promoted": True,
+            "file_name": local_file_name,
+            "md5": md5_hex,
+        }
 
     async def search(
         self,
@@ -607,8 +813,10 @@ class StickerCollector:
         mood: float,
         message_id: int | None,
         is_admin: bool,
+        sender_is_specific: bool,
     ) -> None:
-        mode = self._normalize_storage_mode(self._cfg.sticker.storage_mode)
+        storage_mode = self._normalize_storage_mode(self._cfg.sticker.storage_mode)
+        collect_mode = storage_mode
         filter_text = self._build_filter_text(segment, speaker=speaker)
         summary = self._normalize_summary_text(segment.summary)
         if not summary:
@@ -635,7 +843,17 @@ class StickerCollector:
             )
             return
 
-        if mode == "cloud":
+        if not is_admin and not sender_is_specific:
+            collect_mode = "pending_local"
+            ok, note = await self._collect_pending_local(
+                segment=segment,
+                group_id=group_id,
+                sender_id=sender_id,
+                message_id=message_id,
+                summary=summary,
+                decision=decision,
+            )
+        elif storage_mode == "cloud":
             ok, note = await self._collect_cloud(
                 segment=segment,
                 group_id=group_id,
@@ -658,7 +876,7 @@ class StickerCollector:
         if ok:
             self._logger.info(
                 "Sticker.Collect success: mode=%s user_id=%s group_id=%s note=%s",
-                mode,
+                collect_mode,
                 sender_id,
                 group_id,
                 note,
@@ -666,11 +884,82 @@ class StickerCollector:
             return
         self._logger.debug(
             "Sticker.Collect skipped: mode=%s user_id=%s group_id=%s reason=%s",
-            mode,
+            collect_mode,
             sender_id,
             group_id,
             note,
         )
+
+    async def _collect_pending_local(
+        self,
+        *,
+        segment: StickerSegment,
+        group_id: int,
+        sender_id: int | None,
+        message_id: int | None,
+        summary: str,
+        decision: PersonaFilterDecision,
+    ) -> tuple[bool, str]:
+        image_data, content_type = await self._download_image_bytes(segment)
+        if not image_data:
+            return False, "empty_image"
+
+        md5_hex = hashlib.md5(image_data).hexdigest()
+        suffix = self._guess_suffix(segment=segment, content_type=content_type)
+        file_name = f"{md5_hex}{suffix}"
+        target = self.pending_dir / file_name
+
+        async with self._index_lock:
+            local_index = self._load_index_nolock()
+            local_items = local_index.get("items", [])
+            if not isinstance(local_items, list):
+                local_items = []
+            for item in local_items:
+                if not isinstance(item, dict):
+                    continue
+                if str(item.get("md5", "")).strip() == md5_hex:
+                    return False, "duplicate_library_md5"
+
+            pending_index = self._load_pending_index_nolock()
+            pending_items = pending_index.get("items", [])
+            if not isinstance(pending_items, list):
+                pending_items = []
+            for item in pending_items:
+                if not isinstance(item, dict):
+                    continue
+                if str(item.get("md5", "")).strip() == md5_hex:
+                    return False, "duplicate_pending_md5"
+
+            if not target.exists():
+                target.write_bytes(image_data)
+
+            entry = {
+                "id": md5_hex,
+                "md5": md5_hex,
+                "file_name": file_name,
+                "summary": self._normalize_summary_text(summary),
+                "media_kind": "sticker",
+                "storage_mode": "local",
+                "segment_type": str(segment.segment_type or "").strip().lower(),
+                "sub_type": int(segment.sub_type),
+                "sender_id": sender_id,
+                "group_id": group_id,
+                "source_url": segment.url,
+                "source_file": segment.file,
+                "source_message_id": message_id,
+                "review_status": "pending",
+                "review_reason": "waiting_manual_review",
+                "review_source": "pending_staging",
+                "reviewed_at": "",
+                "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "precheck_reason": str(decision.reason or ""),
+                "precheck_source": str(decision.source or ""),
+            }
+            entry["tags"] = self.derive_sticker_tags(entry)
+            pending_items.append(entry)
+            pending_index["items"] = pending_items
+            self._save_pending_index_nolock(pending_index)
+        return True, f"staged:{file_name}"
 
     async def _collect_local(
         self,
@@ -1252,8 +1541,25 @@ class StickerCollector:
         except (TypeError, ValueError):
             return 1.0
 
+    def _is_specific_user(self, sender_id: int | None) -> bool:
+        if sender_id is None:
+            return False
+        master_id = self._to_int(getattr(self._cfg.persona, "master_id", 0))
+        if master_id is not None and master_id > 0 and sender_id == master_id:
+            return True
+        key = str(sender_id)
+        if key not in self._cfg.sticker.user_weights:
+            return False
+        try:
+            return float(self._cfg.sticker.user_weights.get(key, 0.0)) > 0.0
+        except (TypeError, ValueError):
+            return False
+
     def _index_path(self) -> Path:
         return self.local_dir / self.INDEX_FILE_NAME
+
+    def _pending_index_path(self) -> Path:
+        return self.pending_dir / self.INDEX_FILE_NAME
 
     def _load_index_nolock(self) -> dict[str, Any]:
         path = self._index_path()
@@ -1290,6 +1596,59 @@ class StickerCollector:
         }
         if changed:
             self._save_index_nolock(normalized_payload)
+        return normalized_payload
+
+    def _load_pending_index_nolock(self) -> dict[str, Any]:
+        path = self._pending_index_path()
+        if not path.exists():
+            return {"version": self.INDEX_VERSION, "items": []}
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return {"version": self.INDEX_VERSION, "items": []}
+        if not isinstance(payload, dict):
+            return {"version": self.INDEX_VERSION, "items": []}
+
+        raw_items = payload.get("items", [])
+        if not isinstance(raw_items, list):
+            raw_items = []
+
+        normalized_items: list[dict[str, Any]] = []
+        changed = False
+        for raw in raw_items:
+            if not isinstance(raw, dict):
+                changed = True
+                continue
+            file_name = str(raw.get("file_name", "")).strip()
+            if not file_name:
+                changed = True
+                continue
+            try:
+                clean_file_name = self._sanitize_file_name(file_name)
+            except ValueError:
+                changed = True
+                continue
+            row = dict(raw)
+            if clean_file_name != file_name:
+                changed = True
+            row["file_name"] = clean_file_name
+            row["summary"] = self._normalize_summary_text(row.get("summary", ""))
+            row["review_status"] = str(row.get("review_status", "pending")).strip().lower() or "pending"
+            row["review_reason"] = str(row.get("review_reason", "waiting_manual_review")).strip()
+            row["review_source"] = str(row.get("review_source", "pending_staging")).strip()
+            row["tags"] = self.derive_sticker_tags(row)
+            normalized_items.append(row)
+
+        raw_version = int(payload.get("version") or self.INDEX_VERSION)
+        if raw_version != self.INDEX_VERSION:
+            changed = True
+
+        normalized_payload = {
+            "version": self.INDEX_VERSION,
+            "items": normalized_items,
+        }
+        if changed:
+            self._save_pending_index_nolock(normalized_payload)
         return normalized_payload
 
     def _normalize_index_item(self, raw: dict[str, Any]) -> tuple[dict[str, Any], bool]:
@@ -1344,6 +1703,16 @@ class StickerCollector:
 
     def _save_index_nolock(self, payload: dict[str, Any]) -> None:
         path = self._index_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temp = path.with_suffix(path.suffix + ".tmp")
+        temp.write_text(
+            json.dumps(payload, ensure_ascii=False, separators=(",", ":"), indent=2),
+            encoding="utf-8",
+        )
+        temp.replace(path)
+
+    def _save_pending_index_nolock(self, payload: dict[str, Any]) -> None:
+        path = self._pending_index_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         temp = path.with_suffix(path.suffix + ".tmp")
         temp.write_text(

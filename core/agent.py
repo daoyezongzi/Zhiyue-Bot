@@ -323,6 +323,21 @@ class ZhiyueAgent:
         ),
         re.IGNORECASE | re.DOTALL,
     )
+    _STAY_QUIET_SIGNAL_PATTERN = re.compile(
+        r"(?:\bstay[_\s-]?quiet\b|保持沉默|保持安静即可|保持安静|安静即可|不回复|无需回复|无必要回应|暂不回应|不作回应|先潜水(?:了|啦)?)",
+        re.IGNORECASE,
+    )
+    _ELLIPSIS_ONLY_PATTERN = re.compile(r"^\s*(?:\.{2,}|…{1,}|⋯{1,}|(?:\.\s*){2,})\s*$")
+    _SILENCE_NARRATION_PATTERN = re.compile(
+        (
+            r"^\s*[（(\[【]?\s*"
+            r"(?:(?:我|那我|我先|这里)?\s*(?:先)?\s*)?"
+            r"(?:保持沉默|沉默|不说话|先不说话|先潜水(?:了|啦)?|继续潜水|安静即可|暂不回应|不作回应|无(?:需|必要)回复|先观察|继续观察)"
+            r"\s*[）)\]】]?\s*[。.!！?？~～…]*\s*$"
+        ),
+        re.IGNORECASE,
+    )
+    _SILENCE_SIGNAL_RESIDUE_PATTERN = re.compile(r"[\s，,。.!！?？;；:：~～…、“”\"'`·\-\(\)\[\]\{\}/\\]+")
     _BRACKETED_SILENCE_PLACEHOLDER_PATTERN = re.compile(
         r"^\s*\[{1,2}\s*(?P<token>[^\[\]\r\n]{1,40})\s*\]{1,2}\s*$",
         re.IGNORECASE,
@@ -334,6 +349,7 @@ class ZhiyueAgent:
         "silent",
         "stayquiet",
         "noreply",
+        "沉默",
         "保持沉默",
         "保持安静",
         "保持安静即可",
@@ -374,6 +390,9 @@ class ZhiyueAgent:
     _LOW_ENERGY_DIRECT_COOLDOWN_SEC = 120
     _LOW_ENERGY_REPLIES = ("嗯。", "收到。", "知道了。", "行。")
     _LOW_ENERGY_AT_ONLY_REPLY = "我累了，先休息一下。"
+    _MOOD_FAST_REPLY_HIGH_ENERGY_TOKEN_CAP = 192
+    _MOOD_FAST_REPLY_MID_ENERGY_TOKEN_CAP = 144
+    _MOOD_FAST_REPLY_LOW_ENERGY_TOKEN_CAP = 112
     _AUTO_STICKER_SEND_PROBABILITY = 0.22
     _AUTO_STICKER_GROUP_COOLDOWN_SEC = 300
     _AUTO_STICKER_DIRECT_COOLDOWN_SEC = 180
@@ -458,7 +477,8 @@ class ZhiyueAgent:
         self._inbound_worker: asyncio.Task[None] | None = None
         self._dispatch_worker: asyncio.Task[None] | None = None
         self._prompt_cache_heartbeat_task: asyncio.Task[None] | None = None
-        self._debounce_window_sec = 0.5
+        # Slightly shorter debounce keeps response natural while reducing perceived delay.
+        self._debounce_window_sec = 0.4
         self._low_energy_last_reply_at: dict[str, datetime] = {}
         self._low_energy_last_reply_text: dict[str, str] = {}
         self._sticker_last_sent_at: dict[str, datetime] = {}
@@ -962,7 +982,10 @@ class ZhiyueAgent:
                 social_background=social_background,
             )
             ctx = await self._before_llm_think(ctx)
-            reply = await self._llm_think(ctx)
+            reply = await self._llm_think(
+                ctx,
+                max_tokens_override=self._mood_reply_token_cap(ctx),
+            )
             reply = await self._after_llm_think(ctx, reply)
             if not reply:
                 return
@@ -1128,8 +1151,11 @@ class ZhiyueAgent:
 
     async def _after_llm_think(self, ctx: ThinkContext, reply: str) -> str:
         tool_result = await self._apply_tool_results(ctx, reply)
+        if bool(tool_result.get("force_silence", False)):
+            self._logger.info("LLM.Reply suppressed: session=%s reason=silence_state_flag", ctx.session_id)
+            return ""
         clean_reply = str(tool_result.get("clean_reply", reply) or "").strip()
-        if self._is_silence_placeholder_reply(clean_reply):
+        if self._should_force_silence(clean_reply):
             self._logger.info("LLM.Reply suppressed: session=%s reason=silence_placeholder", ctx.session_id)
             return ""
         return clean_reply
@@ -1151,16 +1177,16 @@ class ZhiyueAgent:
     async def _apply_tool_results(self, ctx: ThinkContext, reply: str) -> dict[str, Any]:
         raw_reply = str(reply or "")
         clean_reply = raw_reply
+        explicit_sticker_request = self._is_sticker_request(ctx.source_text)
         sticker_queries = self._extract_sticker_queries(raw_reply)
 
-        if not sticker_queries and self._FAKE_STICKER_TEXT_PATTERN.search(raw_reply):
+        if explicit_sticker_request and not sticker_queries:
             fallback_query = self._extract_sticker_fallback_query(raw_reply, ctx.source_text)
             if fallback_query:
                 sticker_queries.append(fallback_query)
 
         sticker_sent = False
         used_query = ""
-        explicit_sticker_request = self._is_sticker_request(ctx.source_text)
         auto_sticker_blocked = False
         allow_sticker_send = True
         if sticker_queries and not explicit_sticker_request:
@@ -1180,6 +1206,8 @@ class ZhiyueAgent:
         if sticker_sent:
             clean_reply = self._FAKE_STICKER_TEXT_PATTERN.sub("", clean_reply)
             clean_reply = self._normalize_reply_spaces(clean_reply)
+            if not clean_reply and not explicit_sticker_request:
+                clean_reply = "嗯。"
             self._logger.info(
                 "Sticker.Reply executed: session=%s group_id=%s query=%s",
                 ctx.session_id,
@@ -1521,6 +1549,23 @@ class ZhiyueAgent:
             if cls._SILENCE_PLACEHOLDER_PATTERN.fullmatch(candidate):
                 return True
         return False
+
+    @classmethod
+    def _should_force_silence(cls, text: str) -> bool:
+        clean = str(text or "").strip()
+        if not clean:
+            return False
+
+        if cls._is_silence_placeholder_reply(clean):
+            return True
+        if cls._ELLIPSIS_ONLY_PATTERN.fullmatch(clean):
+            return True
+        if cls._SILENCE_NARRATION_PATTERN.fullmatch(clean):
+            return True
+
+        residue = cls._STAY_QUIET_SIGNAL_PATTERN.sub("", clean)
+        residue = cls._SILENCE_SIGNAL_RESIDUE_PATTERN.sub("", residue)
+        return not residue
 
     async def _sync_learned_jargon(self, term: str, meaning: str) -> None:
         clean_term = str(term).strip()
@@ -2511,6 +2556,19 @@ class ZhiyueAgent:
 
     def _mark_sticker_reply(self, *, session_id: str) -> None:
         self._sticker_last_sent_at[session_id] = datetime.now(timezone.utc)
+
+    def _mood_reply_token_cap(self, ctx: ThinkContext) -> int:
+        configured_cap = self._parse_positive_int(getattr(self.cfg.llm, "max_response_tokens", None))
+        energy = float(ctx.status.energy) if ctx.status is not None else 60.0
+        if energy >= 70.0:
+            target_cap = self._MOOD_FAST_REPLY_HIGH_ENERGY_TOKEN_CAP
+        elif energy >= 40.0:
+            target_cap = self._MOOD_FAST_REPLY_MID_ENERGY_TOKEN_CAP
+        else:
+            target_cap = self._MOOD_FAST_REPLY_LOW_ENERGY_TOKEN_CAP
+        if configured_cap is not None:
+            return max(1, min(configured_cap, target_cap))
+        return target_cap
 
     def _active_reply_probability(self, status_energy: float) -> float:
         base = self._clamp_probability(self.cfg.agent.active_reply_probability)

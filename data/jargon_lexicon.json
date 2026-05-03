@@ -127,12 +127,13 @@
         "jargon": "速通",
         "standard": "快速完成",
         "meaning": "指以最快速度完成某项任务",
-        "confidence": 0.95,
-        "weight": 1.95,
+        "confidence": 0.9349999999999999,
+        "weight": 2.3225,
         "source_users": [
-          3052304356
+          3052304356,
+          2332876536
         ],
-        "updated_at": "2026-04-26T07:15:16.043783+00:00"
+        "updated_at": "2026-04-29T07:23:41.657198+00:00"
       },
       "童老师/童导演\t童导": {
         "jargon": "童导",
@@ -170,13 +171,13 @@
       "宝宝\t饱饱": {
         "jargon": "饱饱",
         "standard": "宝宝",
-        "meaning": "亲昵称呼，类似“宝贝”",
-        "confidence": 0.87,
-        "weight": 2.245,
+        "meaning": "亲昵称呼，类似'亲爱的'",
+        "confidence": 0.849,
+        "weight": 2.53825,
         "source_users": [
           137566858
         ],
-        "updated_at": "2026-04-26T12:01:14.322959+00:00"
+        "updated_at": "2026-04-29T07:02:16.776370+00:00"
       },
       "结束了\tover了": {
         "jargon": "over了",
@@ -668,13 +669,13 @@
       "太好了\t好耶": {
         "jargon": "好耶",
         "standard": "太好了",
-        "meaning": "表示兴奋或赞同的感叹词",
-        "confidence": 0.9,
-        "weight": 1.9,
+        "meaning": "表示兴奋、赞成的语气词，常配合表情包使用",
+        "confidence": 0.8555999999999999,
+        "weight": 2.809475,
         "source_users": [
           137566858
         ],
-        "updated_at": "2026-04-26T12:48:12.423248+00:00"
+        "updated_at": "2026-04-29T06:33:44.340664+00:00"
       },
       "不是姐妹\tbsjm": {
         "jargon": "bsjm",
@@ -833,14 +834,16 @@
       "厉害\t666": {
         "jargon": "666",
         "standard": "厉害",
-        "meaning": "称赞对方操作或行为很厉害",
-        "confidence": 0.879,
-        "weight": 2.57325,
+        "meaning": "表示赞赏或惊讶，源于游戏术语",
+        "confidence": 0.88971,
+        "weight": 3.0894231249999997,
         "source_users": [
           3440367913,
-          137566858
+          137566858,
+          1917173927,
+          3469735163
         ],
-        "updated_at": "2026-04-27T09:43:51.254368+00:00"
+        "updated_at": "2026-04-29T07:06:03.679908+00:00"
       },
       "大哥\t老大": {
         "jargon": "老大",
@@ -1396,13 +1399,13 @@
       "可恶\t妈的": {
         "jargon": "妈的",
         "standard": "可恶",
-        "meaning": "表示愤怒或不满",
-        "confidence": 0.95,
-        "weight": 1.95,
+        "meaning": "表达愤怒或懊恼的脏话",
+        "confidence": 0.9349999999999999,
+        "weight": 2.3225,
         "source_users": [
           137566858
         ],
-        "updated_at": "2026-04-27T07:09:08.445219+00:00"
+        "updated_at": "2026-04-30T10:25:12.566514+00:00"
       },
       "什么情况\t什么鬼": {
         "jargon": "什么鬼",
@@ -1418,13 +1421,14 @@
       "偷懒\t摸鱼": {
         "jargon": "摸鱼",
         "standard": "偷懒",
-        "meaning": "在工作中偷懒",
+        "meaning": "在工作或学习中偷懒、不认真",
         "confidence": 0.9,
-        "weight": 1.9,
+        "weight": 2.28,
         "source_users": [
-          137566858
+          137566858,
+          3469735163
         ],
-        "updated_at": "2026-04-27T09:43:51.254352+00:00"
+        "updated_at": "2026-04-29T06:39:30.283181+00:00"
       },
       "放弃努力\t躺平": {
         "jargon": "躺平",
@@ -1865,6 +1869,1297 @@
           1816359572
         ],
         "updated_at": "2026-04-29T04:24:42.850469+00:00"
+      },
+      "真混乱\t闹麻了": {
+        "jargon": "闹麻了",
+        "standard": "真混乱",
+        "meaning": "表示场面混乱或事情麻烦，相当于‘闹得一团糟’",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T04:49:21.084425+00:00"
+      },
+      "充值\t氪金": {
+        "jargon": "氪金",
+        "standard": "充值",
+        "meaning": "付费购买虚拟物品或服务",
+        "confidence": 0.915,
+        "weight": 2.2975,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T05:09:20.452568+00:00"
+      },
+      "刷学习通课程\t刷学习通": {
+        "jargon": "刷学习通",
+        "standard": "刷学习通课程",
+        "meaning": "通过自动化或快速观看完成学习通平台的任务",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T05:06:26.544034+00:00"
+      },
+      "写代码\t写码": {
+        "jargon": "写码",
+        "standard": "写代码",
+        "meaning": "编写计算机代码",
+        "confidence": 0.845,
+        "weight": 2.2125,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T05:09:20.452584+00:00"
+      },
+      "别@我\t别at": {
+        "jargon": "别at",
+        "standard": "别@我",
+        "meaning": "不要提及或通知我",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T05:06:26.544038+00:00"
+      },
+      "deepseek\tds": {
+        "jargon": "ds",
+        "standard": "DeepSeek",
+        "meaning": "深度求索公司的AI服务",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T05:09:20.452579+00:00"
+      },
+      "专业版\tpro": {
+        "jargon": "pro",
+        "standard": "专业版",
+        "meaning": "高级付费版本",
+        "confidence": 0.95,
+        "weight": 1.95,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T05:09:20.452586+00:00"
+      },
+      "穷人\t穷光蛋": {
+        "jargon": "穷光蛋",
+        "standard": "穷人",
+        "meaning": "自嘲没钱",
+        "confidence": 0.95,
+        "weight": 1.95,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T05:09:20.452588+00:00"
+      },
+      "ai响应\t回复": {
+        "jargon": "回复",
+        "standard": "AI响应",
+        "meaning": "AI的回复速度",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T05:09:20.452589+00:00"
+      },
+      "快速完成学习通课程\t刷学习通": {
+        "jargon": "刷学习通",
+        "standard": "快速完成学习通课程",
+        "meaning": "通过非正常方式完成学习通任务",
+        "confidence": 0.85,
+        "weight": 1.85,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T05:09:20.452591+00:00"
+      },
+      "怎么下载的\t咋下的": {
+        "jargon": "咋下的",
+        "standard": "怎么下载的",
+        "meaning": "询问如何下载",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          1745103651
+        ],
+        "updated_at": "2026-04-29T05:40:55.353161+00:00"
+      },
+      "给我弄一个\t给我整一个": {
+        "jargon": "给我整一个",
+        "standard": "给我弄一个",
+        "meaning": "请求对方帮忙获取某物",
+        "confidence": 0.95,
+        "weight": 1.95,
+        "source_users": [
+          1745103651
+        ],
+        "updated_at": "2026-04-29T05:40:55.353164+00:00"
+      },
+      "想了半天\t寻思半天": {
+        "jargon": "寻思半天",
+        "standard": "想了半天",
+        "meaning": "思考了很久",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          1745103651
+        ],
+        "updated_at": "2026-04-29T05:40:55.353165+00:00"
+      },
+      "下载回来\t下回来": {
+        "jargon": "下回来",
+        "standard": "下载回来",
+        "meaning": "重新下载",
+        "confidence": 0.85,
+        "weight": 1.85,
+        "source_users": [
+          1745103651
+        ],
+        "updated_at": "2026-04-29T05:40:55.353166+00:00"
+      },
+      "带节奏/反串/演\t串": {
+        "jargon": "串",
+        "standard": "带节奏/反串/演",
+        "meaning": "故意装作某种态度或身份来引发争论或调侃",
+        "confidence": 0.85,
+        "weight": 1.85,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T05:45:42.845170+00:00"
+      },
+      "碧蓝档案日服\tba日服": {
+        "jargon": "ba日服",
+        "standard": "碧蓝档案日服",
+        "meaning": "游戏《碧蓝档案》的日本服务器",
+        "confidence": 0.75,
+        "weight": 1.75,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T05:45:42.845176+00:00"
+      },
+      "星期四的肯德基优惠活动\t疯狂星期四": {
+        "jargon": "疯狂星期四",
+        "standard": "星期四的肯德基优惠活动",
+        "meaning": "源自肯德基的促销梗，常用来调侃或表达赚/亏钱",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T06:33:44.340646+00:00"
+      },
+      "假的；伪造的\t串": {
+        "jargon": "串",
+        "standard": "假的；伪造的",
+        "meaning": "指模仿、伪装或虚假的内容",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T06:33:44.340657+00:00"
+      },
+      "给钱；分享\t爆": {
+        "jargon": "爆",
+        "standard": "给钱；分享",
+        "meaning": "指父母或他人给自己额外钱财",
+        "confidence": 0.75,
+        "weight": 1.75,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T06:33:44.340660+00:00"
+      },
+      "没忍住\t没绷住": {
+        "jargon": "没绷住",
+        "standard": "没忍住",
+        "meaning": "没忍住笑或情绪，常用于搞笑场景",
+        "confidence": 0.865,
+        "weight": 2.2375,
+        "source_users": [
+          3469735163,
+          209794275
+        ],
+        "updated_at": "2026-04-29T07:24:19.043029+00:00"
+      },
+      "再来一场\t还有一战": {
+        "jargon": "还有一战",
+        "standard": "再来一场",
+        "meaning": "还有能力再战斗一次或继续挑战",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          3469735163
+        ],
+        "updated_at": "2026-04-29T06:39:30.283187+00:00"
+      },
+      "群友们\t群u们": {
+        "jargon": "群U们",
+        "standard": "群友们",
+        "meaning": "群里的朋友们",
+        "confidence": 0.95,
+        "weight": 1.95,
+        "source_users": [
+          3571580399
+        ],
+        "updated_at": "2026-04-29T06:41:35.530943+00:00"
+      },
+      "解释一下\t科普一下": {
+        "jargon": "科普一下",
+        "standard": "解释一下",
+        "meaning": "普及知识或说明一下",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          3571580399
+        ],
+        "updated_at": "2026-04-29T06:41:35.530945+00:00"
+      },
+      "肯德基疯狂星期四促销活动\t疯狂星期四": {
+        "jargon": "疯狂星期四",
+        "standard": "肯德基疯狂星期四促销活动",
+        "meaning": "网络梗，基于肯德基每周四促销，常被网友用来讨要红包或调侃分享收获",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T06:51:20.579590+00:00"
+      },
+      "可爱\t可爱捏": {
+        "jargon": "可爱捏",
+        "standard": "可爱",
+        "meaning": "cute (with affectionate tone)",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          3469735163
+        ],
+        "updated_at": "2026-04-29T06:58:23.720111+00:00"
+      },
+      "小赚了一笔\t小小赚": {
+        "jargon": "小小赚",
+        "standard": "小赚了一笔",
+        "meaning": "赚了一点钱",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          1917173927
+        ],
+        "updated_at": "2026-04-29T07:01:21.266900+00:00"
+      },
+      "minecraft\tmc": {
+        "jargon": "mc",
+        "standard": "Minecraft",
+        "meaning": "游戏《我的世界》",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          1917173927
+        ],
+        "updated_at": "2026-04-29T07:01:21.266903+00:00"
+      },
+      "可爱呢\t可爱捏": {
+        "jargon": "可爱捏",
+        "standard": "可爱呢",
+        "meaning": "萌化语气，表示可爱",
+        "confidence": 0.85,
+        "weight": 1.85,
+        "source_users": [
+          3469735163
+        ],
+        "updated_at": "2026-04-29T07:06:03.679911+00:00"
+      },
+      "我吃饱了\t饱饱": {
+        "jargon": "饱饱",
+        "standard": "我吃饱了",
+        "meaning": "表示自己吃得很饱，带有可爱或撒娇语气",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T07:23:29.816049+00:00"
+      },
+      "给我分一点\t给我掰点": {
+        "jargon": "给我掰点",
+        "standard": "给我分一点",
+        "meaning": "请求对方分享某物，常用于食物",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-29T07:23:29.816052+00:00"
+      },
+      "你怎么了\t怎么你了": {
+        "jargon": "怎么你了",
+        "standard": "你怎么了",
+        "meaning": "网络用语，表示质问或挑衅",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          2332876536
+        ],
+        "updated_at": "2026-04-29T07:23:41.657192+00:00"
+      },
+      "大学物理\t大物": {
+        "jargon": "大物",
+        "standard": "大学物理",
+        "meaning": "大学物理课程的简称",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          2332876536
+        ],
+        "updated_at": "2026-04-29T07:23:41.657202+00:00"
+      },
+      "去喝咖啡\t去咖啡": {
+        "jargon": "去咖啡",
+        "standard": "去喝咖啡",
+        "meaning": "口语中省略动词，表示去喝咖啡",
+        "confidence": 0.6,
+        "weight": 1.6,
+        "source_users": [
+          2332876536
+        ],
+        "updated_at": "2026-04-29T07:23:41.657205+00:00"
+      },
+      "谁家的小孩\t谁家小孩": {
+        "jargon": "谁家小孩",
+        "standard": "谁家的小孩",
+        "meaning": "调侃对方幼稚或不懂事",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          2332876536
+        ],
+        "updated_at": "2026-04-29T07:23:41.657208+00:00"
+      },
+      "数字电路\t数电": {
+        "jargon": "数电",
+        "standard": "数字电路",
+        "meaning": "数字电子技术课程的缩写",
+        "confidence": 0.83,
+        "weight": 2.195,
+        "source_users": [
+          2332876536,
+          209794275
+        ],
+        "updated_at": "2026-04-29T07:24:19.043034+00:00"
+      },
+      "我跪了\torz": {
+        "jargon": "orz",
+        "standard": "我跪了",
+        "meaning": "表示无奈、失意或挫败",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          209794275
+        ],
+        "updated_at": "2026-04-29T07:24:19.043021+00:00"
+      },
+      "扮鬼脸\t<('o')>": {
+        "jargon": "<('o')>",
+        "standard": "扮鬼脸",
+        "meaning": "一种卖萌或搞怪的颜文字表情",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          209794275
+        ],
+        "updated_at": "2026-04-29T07:24:19.043023+00:00"
+      },
+      "害羞\t(*/ω\\*)": {
+        "jargon": "(*/ω\\*)",
+        "standard": "害羞",
+        "meaning": "表达害羞、不好意思的颜文字",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          209794275
+        ],
+        "updated_at": "2026-04-29T07:24:19.043025+00:00"
+      },
+      "呢\t喵": {
+        "jargon": "喵",
+        "standard": "呢",
+        "meaning": "卖萌语气词，模仿猫叫声，增强可爱感",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          209794275
+        ],
+        "updated_at": "2026-04-29T07:24:19.043031+00:00"
+      },
+      "弱智\t铸币": {
+        "jargon": "铸币",
+        "standard": "弱智",
+        "meaning": "谐音骂人愚蠢",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          3052304356
+        ],
+        "updated_at": "2026-04-29T07:30:49.979734+00:00"
+      },
+      "离开/跑路\t润": {
+        "jargon": "润",
+        "standard": "离开/跑路",
+        "meaning": "指离开或逃避，源自英文'run'的谐音",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          1917173927
+        ],
+        "updated_at": "2026-04-29T07:31:00.018481+00:00"
+      },
+      "很厉害/牛逼\t牛牛了个比": {
+        "jargon": "牛牛了个比",
+        "standard": "很厉害/牛逼",
+        "meaning": "表示惊叹或称赞，是'牛逼'的粗俗变体",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          1917173927
+        ],
+        "updated_at": "2026-04-29T07:31:00.018483+00:00"
+      },
+      "色情图片\t色图": {
+        "jargon": "色图",
+        "standard": "色情图片",
+        "meaning": "色情图片",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          2283003902
+        ],
+        "updated_at": "2026-04-30T09:51:17.139183+00:00"
+      },
+      "操\t草": {
+        "jargon": "草",
+        "standard": "操",
+        "meaning": "表示惊讶、无奈等情绪的语气词",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          2283003902
+        ],
+        "updated_at": "2026-04-30T09:51:17.139189+00:00"
+      },
+      "离谱\t逆天": {
+        "jargon": "逆天",
+        "standard": "离谱",
+        "meaning": "表示惊讶或夸张，超出常理",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          1575703183
+        ],
+        "updated_at": "2026-04-30T09:51:35.017571+00:00"
+      },
+      "原创角色\toc": {
+        "jargon": "oc",
+        "standard": "原创角色",
+        "meaning": "原创角色，用于同人创作",
+        "confidence": 0.879,
+        "weight": 2.57325,
+        "source_users": [
+          1575703183,
+          2393350071
+        ],
+        "updated_at": "2026-04-30T10:09:29.988508+00:00"
+      },
+      "伪娘\t男娘": {
+        "jargon": "男娘",
+        "standard": "伪娘",
+        "meaning": "指男性打扮或行为女性化",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          1575703183
+        ],
+        "updated_at": "2026-04-30T09:51:35.017575+00:00"
+      },
+      "爹\t叠": {
+        "jargon": "叠",
+        "standard": "爹",
+        "meaning": "爸爸的谐音，网络用语用于调侃或自称",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          2332876536
+        ],
+        "updated_at": "2026-04-30T09:51:59.057791+00:00"
+      },
+      "带一带\t带带": {
+        "jargon": "带带",
+        "standard": "带一带",
+        "meaning": "帮忙、携带（此处指帮忙宣传或参与）",
+        "confidence": 0.73,
+        "weight": 2.0749999999999997,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-30T09:58:39.129557+00:00"
+      },
+      "大佬\t佬": {
+        "jargon": "佬",
+        "standard": "大佬",
+        "meaning": "对经验丰富或技术高超者的尊称",
+        "confidence": 0.9,
+        "weight": 2.28,
+        "source_users": [
+          209794275
+        ],
+        "updated_at": "2026-04-30T10:02:21.650968+00:00"
+      },
+      "这样啊\tsoga": {
+        "jargon": "soga",
+        "standard": "这样啊",
+        "meaning": "原来如此",
+        "confidence": 1.0,
+        "weight": 2.0,
+        "source_users": [
+          209794275
+        ],
+        "updated_at": "2026-04-30T09:53:44.367549+00:00"
+      },
+      "看看\tcc": {
+        "jargon": "cc",
+        "standard": "看看",
+        "meaning": "查看",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          2393350071
+        ],
+        "updated_at": "2026-04-30T09:53:49.127640+00:00"
+      },
+      "制作\t搓": {
+        "jargon": "搓",
+        "standard": "制作",
+        "meaning": "自己制作画风",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          2393350071
+        ],
+        "updated_at": "2026-04-30T09:53:49.127649+00:00"
+      },
+      "免费获取\t白嫖": {
+        "jargon": "白嫖",
+        "standard": "免费获取",
+        "meaning": "不付出代价获得利益，通常指不付费观看内容",
+        "confidence": 0.9349999999999999,
+        "weight": 2.3225,
+        "source_users": [
+          137566858,
+          3052304356
+        ],
+        "updated_at": "2026-04-30T10:06:10.243838+00:00"
+      },
+      "肯德基疯狂星期四活动\t疯狂星期四": {
+        "jargon": "疯狂星期四",
+        "standard": "肯德基疯狂星期四活动",
+        "meaning": "网络流行梗，源自肯德基每周四的促销活动，常被用于求请客或玩梗",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-30T09:58:39.129551+00:00"
+      },
+      "吓到了\t吓哭了": {
+        "jargon": "吓哭了",
+        "standard": "吓到了",
+        "meaning": "表示惊讶或受到惊吓",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          2731616256
+        ],
+        "updated_at": "2026-04-30T09:59:03.221792+00:00"
+      },
+      "占用内存多少\t吃不吃内存": {
+        "jargon": "吃不吃内存",
+        "standard": "占用内存多少",
+        "meaning": "询问内存消耗情况",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          2731616256
+        ],
+        "updated_at": "2026-04-30T09:59:03.221794+00:00"
+      },
+      "巨大的坑\t深天巨坑": {
+        "jargon": "深天巨坑",
+        "standard": "巨大的坑",
+        "meaning": "形容一个投入后很难跳出的巨大陷阱",
+        "confidence": 0.76,
+        "weight": 2.11,
+        "source_users": [
+          2731616256
+        ],
+        "updated_at": "2026-04-30T10:04:19.237003+00:00"
+      },
+      "层层转包\t下包到下包": {
+        "jargon": "下包到下包",
+        "standard": "层层转包",
+        "meaning": "多次转包给下级服务商",
+        "confidence": 0.675,
+        "weight": 2.0075000000000003,
+        "source_users": [
+          2731616256
+        ],
+        "updated_at": "2026-04-30T10:04:19.237011+00:00"
+      },
+      "利用宽带\t撸宽带": {
+        "jargon": "撸宽带",
+        "standard": "利用宽带",
+        "meaning": "指低成本获取宽带资源",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          2731616256
+        ],
+        "updated_at": "2026-04-30T09:59:03.221798+00:00"
+      },
+      "崩溃了\t炸了": {
+        "jargon": "炸了",
+        "standard": "崩溃了",
+        "meaning": "服务器或系统出现故障",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          2731616256
+        ],
+        "updated_at": "2026-04-30T09:59:03.221799+00:00"
+      },
+      "正规服务器\t正经服务器": {
+        "jargon": "正经服务器",
+        "standard": "正规服务器",
+        "meaning": "指商业级而非家用服务器",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          2731616256
+        ],
+        "updated_at": "2026-04-30T09:59:03.221801+00:00"
+      },
+      "色色\t涩涩": {
+        "jargon": "涩涩",
+        "standard": "色色",
+        "meaning": "性暗示或挑逗内容",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          3612519671
+        ],
+        "updated_at": "2026-04-30T10:00:41.889011+00:00"
+      },
+      "额外好处\t福利": {
+        "jargon": "福利",
+        "standard": "额外好处",
+        "meaning": "免费赠送的好处、福利内容",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          3612519671
+        ],
+        "updated_at": "2026-04-30T10:00:41.889013+00:00"
+      },
+      "开始玩了\t入坑了": {
+        "jargon": "入坑了",
+        "standard": "开始玩了",
+        "meaning": "开始接触或沉迷某个领域",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          2332876536
+        ],
+        "updated_at": "2026-04-30T10:00:46.673380+00:00"
+      },
+      "vpn\t梯": {
+        "jargon": "梯",
+        "standard": "VPN",
+        "meaning": "翻墙工具",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          2332876536
+        ],
+        "updated_at": "2026-04-30T10:00:46.673383+00:00"
+      },
+      "弄到\t搞来": {
+        "jargon": "搞来",
+        "standard": "弄到",
+        "meaning": "获取、弄来",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          2332876536
+        ],
+        "updated_at": "2026-04-30T10:00:46.673384+00:00"
+      },
+      "升级配置\t升配置": {
+        "jargon": "升配置",
+        "standard": "升级配置",
+        "meaning": "提升硬件或软件配置",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          2332876536
+        ],
+        "updated_at": "2026-04-30T10:00:46.673386+00:00"
+      },
+      "深入研究\t玩深了": {
+        "jargon": "玩深了",
+        "standard": "深入研究",
+        "meaning": "玩得更深入",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          2332876536
+        ],
+        "updated_at": "2026-04-30T10:00:46.673387+00:00"
+      },
+      "阻碍了\t卡了": {
+        "jargon": "卡了",
+        "standard": "阻碍了",
+        "meaning": "被卡住、受阻",
+        "confidence": 0.6,
+        "weight": 1.6,
+        "source_users": [
+          2332876536
+        ],
+        "updated_at": "2026-04-30T10:00:46.673388+00:00"
+      },
+      "原来如此\tsoga": {
+        "jargon": "soga",
+        "standard": "原来如此",
+        "meaning": "日语表示恍然大悟",
+        "confidence": 0.95,
+        "weight": 1.95,
+        "source_users": [
+          209794275
+        ],
+        "updated_at": "2026-04-30T10:02:21.650972+00:00"
+      },
+      "小厂商云服务\t小厂云": {
+        "jargon": "小厂云",
+        "standard": "小厂商云服务",
+        "meaning": "小型公司提供的云计算服务",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          209794275
+        ],
+        "updated_at": "2026-04-30T10:02:21.650974+00:00"
+      },
+      "运行\t挂": {
+        "jargon": "挂",
+        "standard": "运行",
+        "meaning": "在服务器上部署或运行软件",
+        "confidence": 0.85,
+        "weight": 1.85,
+        "source_users": [
+          209794275
+        ],
+        "updated_at": "2026-04-30T10:02:21.650977+00:00"
+      },
+      "8gb\t8g": {
+        "jargon": "8g",
+        "standard": "8GB",
+        "meaning": "8GB内存的简写",
+        "confidence": 1.0,
+        "weight": 2.0,
+        "source_users": [
+          209794275
+        ],
+        "updated_at": "2026-04-30T10:02:21.650978+00:00"
+      },
+      "姐妹\t集": {
+        "jargon": "集",
+        "standard": "姐妹",
+        "meaning": "姐妹的简称",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          2283003902
+        ],
+        "updated_at": "2026-04-30T10:03:39.964909+00:00"
+      },
+      "操/靠\t草": {
+        "jargon": "草",
+        "standard": "操/靠",
+        "meaning": "表示无语或惊讶",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          2283003902
+        ],
+        "updated_at": "2026-04-30T10:03:39.964911+00:00"
+      },
+      "在群里闲聊\t水群": {
+        "jargon": "水群",
+        "standard": "在群里闲聊",
+        "meaning": "在群聊中发消息增加活跃度",
+        "confidence": 0.83,
+        "weight": 2.195,
+        "source_users": [
+          2283003902
+        ],
+        "updated_at": "2026-04-30T10:06:46.738077+00:00"
+      },
+      "呢/呀\t捏": {
+        "jargon": "捏",
+        "standard": "呢/呀",
+        "meaning": "语气词，表示轻松或撒娇",
+        "confidence": 0.6,
+        "weight": 1.6,
+        "source_users": [
+          2283003902
+        ],
+        "updated_at": "2026-04-30T10:03:39.964914+00:00"
+      },
+      "胡乱折腾\t瞎几把折腾": {
+        "jargon": "瞎几把折腾",
+        "standard": "胡乱折腾",
+        "meaning": "毫无章法地乱搞",
+        "confidence": 0.915,
+        "weight": 2.2975,
+        "source_users": [
+          2731616256
+        ],
+        "updated_at": "2026-04-30T10:14:33.186198+00:00"
+      },
+      "然后就没有下文了\t然后就没有然后了": {
+        "jargon": "然后就没有然后了",
+        "standard": "然后就没有下文了",
+        "meaning": "事情不了了之",
+        "confidence": 0.95,
+        "weight": 1.95,
+        "source_users": [
+          2731616256
+        ],
+        "updated_at": "2026-04-30T10:04:19.237008+00:00"
+      },
+      "利用\t撸": {
+        "jargon": "撸",
+        "standard": "利用",
+        "meaning": "占便宜地使用（如网络资源）",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          2731616256
+        ],
+        "updated_at": "2026-04-30T10:04:19.237013+00:00"
+      },
+      "搭建一个nas来玩\t整个nas玩": {
+        "jargon": "整个NAS玩",
+        "standard": "搭建一个NAS来玩",
+        "meaning": "组装或搭建NAS设备进行实践",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          2731616256
+        ],
+        "updated_at": "2026-04-30T10:04:19.237015+00:00"
+      },
+      "长期运行\t常驻": {
+        "jargon": "常驻",
+        "standard": "长期运行",
+        "meaning": "服务器持续运行不关机",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          2731616256
+        ],
+        "updated_at": "2026-04-30T10:04:19.237017+00:00"
+      },
+      "轻量云服务器\t轻量云": {
+        "jargon": "轻量云",
+        "standard": "轻量云服务器",
+        "meaning": "一种轻量级的云虚拟服务器",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          2731616256
+        ],
+        "updated_at": "2026-04-30T10:04:19.237019+00:00"
+      },
+      "开始涉足\t入坑了": {
+        "jargon": "入坑了",
+        "standard": "开始涉足",
+        "meaning": "开始进入某个领域或购买某物",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          2332876536
+        ],
+        "updated_at": "2026-04-30T10:05:45.578897+00:00"
+      },
+      "兄弟\tbro": {
+        "jargon": "bro",
+        "standard": "兄弟",
+        "meaning": "称呼对方为兄弟、哥们",
+        "confidence": 0.9349999999999999,
+        "weight": 2.3225,
+        "source_users": [
+          2332876536
+        ],
+        "updated_at": "2026-04-30T10:11:15.022336+00:00"
+      },
+      "完蛋了\t阵亡了": {
+        "jargon": "阵亡了",
+        "standard": "完蛋了",
+        "meaning": "失败或结束",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          2283003902
+        ],
+        "updated_at": "2026-04-30T10:06:46.738062+00:00"
+      },
+      "群友\t群u": {
+        "jargon": "群u",
+        "standard": "群友",
+        "meaning": "群里的朋友",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          2283003902
+        ],
+        "updated_at": "2026-04-30T10:06:46.738069+00:00"
+      },
+      "发言\t冒泡": {
+        "jargon": "冒泡",
+        "standard": "发言",
+        "meaning": "在群里露面说话",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          2283003902
+        ],
+        "updated_at": "2026-04-30T10:06:46.738085+00:00"
+      },
+      "妹妹\t一抹多": {
+        "jargon": "一抹多",
+        "standard": "妹妹",
+        "meaning": "日语‘いもうと’的音译，指妹妹",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          1575703183
+        ],
+        "updated_at": "2026-04-30T10:09:29.988511+00:00"
+      },
+      "奶子\t扔子": {
+        "jargon": "扔子",
+        "standard": "奶子",
+        "meaning": "胸部，粗俗俚语",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          1575703183
+        ],
+        "updated_at": "2026-04-30T10:09:29.988513+00:00"
+      },
+      "虐菜\t炸鱼的": {
+        "jargon": "炸鱼的",
+        "standard": "虐菜",
+        "meaning": "高段位玩家在低段位游戏中展示技术",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          2283003902
+        ],
+        "updated_at": "2026-04-30T10:11:15.290900+00:00"
+      },
+      "完全失败了\t严肃阵亡了": {
+        "jargon": "严肃阵亡了",
+        "standard": "完全失败了",
+        "meaning": "以夸张语气表示严重失败",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          2283003902
+        ],
+        "updated_at": "2026-04-30T10:11:15.290902+00:00"
+      },
+      "我靠\t草": {
+        "jargon": "草",
+        "standard": "我靠",
+        "meaning": "表示惊讶或无奈的语气词",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          2283003902
+        ],
+        "updated_at": "2026-04-30T10:11:15.290904+00:00"
+      },
+      "完全消耗完\t吃干抹尽": {
+        "jargon": "吃干抹尽",
+        "standard": "完全消耗完",
+        "meaning": "资源被彻底用完",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          2731616256
+        ],
+        "updated_at": "2026-04-30T10:14:33.186200+00:00"
+      },
+      "极快地\t光速": {
+        "jargon": "光速",
+        "standard": "极快地",
+        "meaning": "非常迅速",
+        "confidence": 0.85,
+        "weight": 1.85,
+        "source_users": [
+          2731616256
+        ],
+        "updated_at": "2026-04-30T10:14:33.186202+00:00"
+      },
+      "然后就结束了\t然后就没有然后了": {
+        "jargon": "然后就没有然后了",
+        "standard": "然后就结束了",
+        "meaning": "事情不了了之",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          2731616256
+        ],
+        "updated_at": "2026-04-30T10:14:33.186204+00:00"
+      },
+      "获取\t撸": {
+        "jargon": "撸",
+        "standard": "获取",
+        "meaning": "通过某种方式获得（如优惠）",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          2731616256
+        ],
+        "updated_at": "2026-04-30T10:14:33.186206+00:00"
+      },
+      "我操了\t我草了": {
+        "jargon": "我草了",
+        "standard": "我操了",
+        "meaning": "表示极度惊讶或沮丧的粗口",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-30T10:17:02.063025+00:00"
+      },
+      "我靠\t我草了": {
+        "jargon": "我草了",
+        "standard": "我靠",
+        "meaning": "表达惊讶或无奈的语气词",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-30T10:25:12.566506+00:00"
+      },
+      "弥补\t捞": {
+        "jargon": "捞",
+        "standard": "弥补",
+        "meaning": "通过其他方式提高分数或拯救考试",
+        "confidence": 0.85,
+        "weight": 1.85,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-30T10:25:12.566509+00:00"
+      },
+      "估计\t估摸着": {
+        "jargon": "估摸着",
+        "standard": "估计",
+        "meaning": "大概猜测",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-30T10:25:12.566511+00:00"
+      },
+      "呢（语气词）\t喵": {
+        "jargon": "喵",
+        "standard": "呢（语气词）",
+        "meaning": "卖萌语气词，相当于‘啦’、‘呢’",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          439612594
+        ],
+        "updated_at": "2026-04-30T10:38:50.062237+00:00"
+      },
+      "我去\t我靠": {
+        "jargon": "我靠",
+        "standard": "我去",
+        "meaning": "表示惊讶或抱怨",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          3511457481
+        ],
+        "updated_at": "2026-04-30T10:39:54.377915+00:00"
+      },
+      "非常慢\t慢的得一逼": {
+        "jargon": "慢的得一逼",
+        "standard": "非常慢",
+        "meaning": "形容速度极慢（粗俗强调）",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          3511457481
+        ],
+        "updated_at": "2026-04-30T10:39:54.377918+00:00"
+      },
+      "别把我当ai用\t别把我当ai使": {
+        "jargon": "别把我当ai使",
+        "standard": "别把我当AI用",
+        "meaning": "不要把我当作人工智能工具使唤",
+        "confidence": 0.815,
+        "weight": 2.1775,
+        "source_users": [
+          3511457481
+        ],
+        "updated_at": "2026-04-30T10:43:47.960254+00:00"
+      },
+      "被附身了\t夺舍了": {
+        "jargon": "夺舍了",
+        "standard": "被附身了",
+        "meaning": "指对方言行突变，像被灵魂占据",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          3511457481
+        ],
+        "updated_at": "2026-04-30T10:39:54.377921+00:00"
+      },
+      "写好了\t搓好了": {
+        "jargon": "搓好了",
+        "standard": "写好了",
+        "meaning": "编写完成了（指代码）",
+        "confidence": 0.6,
+        "weight": 1.6,
+        "source_users": [
+          2332876536
+        ],
+        "updated_at": "2026-04-30T10:40:35.118823+00:00"
+      },
+      "帮帮忙，让我及格\t捞一下": {
+        "jargon": "捞一下",
+        "standard": "帮帮忙，让我及格",
+        "meaning": "请求老师手下留情，给予低分通过",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          137566858
+        ],
+        "updated_at": "2026-04-30T10:40:58.002689+00:00"
+      },
+      "八卦\t8g": {
+        "jargon": "8g",
+        "standard": "八卦",
+        "meaning": "八卦消息或闲聊",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          2902336359
+        ],
+        "updated_at": "2026-04-30T10:43:45.483954+00:00"
+      },
+      "开挂/过度开放\t超开": {
+        "jargon": "超开",
+        "standard": "开挂/过度开放",
+        "meaning": "指使用非常规手段或极度开放",
+        "confidence": 0.5,
+        "weight": 1.5,
+        "source_users": [
+          2902336359
+        ],
+        "updated_at": "2026-04-30T10:43:45.483957+00:00"
+      },
+      "慢得要命\t慢的得一逼": {
+        "jargon": "慢的得一逼",
+        "standard": "慢得要命",
+        "meaning": "非常慢（粗话加强语气）",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          3511457481
+        ],
+        "updated_at": "2026-04-30T10:43:47.960251+00:00"
+      },
+      "怎么像变了个人\t怎么夺舍了": {
+        "jargon": "怎么夺舍了",
+        "standard": "怎么像变了个人",
+        "meaning": "行为异常，像被附身一样",
+        "confidence": 0.7,
+        "weight": 1.7,
+        "source_users": [
+          3511457481
+        ],
+        "updated_at": "2026-04-30T10:43:47.960257+00:00"
+      },
+      "天哪\t我靠": {
+        "jargon": "我靠",
+        "standard": "天哪",
+        "meaning": "表示惊讶或不满的口头禅",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          3511457481
+        ],
+        "updated_at": "2026-04-30T10:43:47.960259+00:00"
+      },
+      "离开\t开润": {
+        "jargon": "开润",
+        "standard": "离开",
+        "meaning": "迅速离开或逃跑",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          1917173927
+        ],
+        "updated_at": "2026-04-30T10:43:51.594979+00:00"
+      },
+      "拜拜\t886": {
+        "jargon": "886",
+        "standard": "拜拜",
+        "meaning": "告别用语",
+        "confidence": 0.9,
+        "weight": 1.9,
+        "source_users": [
+          1917173927
+        ],
+        "updated_at": "2026-04-30T10:43:51.594982+00:00"
+      },
+      "帮助一下\t捞一下": {
+        "jargon": "捞一下",
+        "standard": "帮助一下",
+        "meaning": "请求帮助或拯救",
+        "confidence": 0.8,
+        "weight": 1.8,
+        "source_users": [
+          1917173927
+        ],
+        "updated_at": "2026-04-30T10:43:51.594984+00:00"
       }
     },
     "group": {},

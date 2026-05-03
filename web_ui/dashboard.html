@@ -814,6 +814,12 @@
             <input id="stickerPersonaFilterToggle" type="checkbox" />
           </div>
         </div>
+        <div class="row">
+          <div class="switch-item">
+            <div>允许学习其他人的表情包（进入待审核库）</div>
+            <input id="stickerAllowOtherUsersToggle" type="checkbox" />
+          </div>
+        </div>
         <div class="row split">
           <div class="switch-item">
             <div>启用 LLM 复杂判定</div>
@@ -848,8 +854,12 @@
         <div class="row muted">
           本地目录：<code id="stickerLocalDirText">-</code>
         </div>
-        <div class="row split">
+        <div class="row muted">
+          待审核目录：<code id="stickerPendingDirText">-</code>
+        </div>
+        <div class="row triple">
           <button id="openStickerDirBtn" class="secondary">打开本地目录</button>
+          <button id="openStickerPendingDirBtn" class="secondary">打开待审核目录</button>
           <button id="refreshStickerFilesBtn" class="secondary">刷新文件列表</button>
         </div>
         <div class="row">
@@ -860,6 +870,7 @@
             <button id="saveStickerWeightBtn">保存权重</button>
           </div>
         </div>
+        <div class="row muted">已配置且权重大于 0 的用户视为“指定 ID”；其他用户会按开关进入待审核库。</div>
         <div class="row">
           <label>用户权重列表</label>
           <div id="stickerUserWeightsList" class="list-box"></div>
@@ -867,6 +878,10 @@
         <div class="row">
           <label>本地表情包文件（支持预览）</label>
           <div id="stickerFilesList" class="list-box"></div>
+        </div>
+        <div class="row">
+          <label>待审核表情包（通过后进入表情包库）</label>
+          <div id="stickerPendingFilesList" class="list-box"></div>
         </div>
       </section>
 
@@ -1004,6 +1019,7 @@
     const uploadBackgroundBtn = document.getElementById("uploadBackgroundBtn");
     const saveStickerSettingsBtn = document.getElementById("saveStickerSettingsBtn");
     const openStickerDirBtn = document.getElementById("openStickerDirBtn");
+    const openStickerPendingDirBtn = document.getElementById("openStickerPendingDirBtn");
     const refreshStickerFilesBtn = document.getElementById("refreshStickerFilesBtn");
     const saveStickerWeightBtn = document.getElementById("saveStickerWeightBtn");
     const restartBotBtn = document.getElementById("restartBotBtn");
@@ -1049,14 +1065,17 @@
     const stickerStorageModeSelect = document.getElementById("stickerStorageModeSelect");
     const stickerFilterKeywordsInput = document.getElementById("stickerFilterKeywordsInput");
     const stickerPersonaFilterToggle = document.getElementById("stickerPersonaFilterToggle");
+    const stickerAllowOtherUsersToggle = document.getElementById("stickerAllowOtherUsersToggle");
     const stickerLlmFilterToggle = document.getElementById("stickerLlmFilterToggle");
     const stickerLlmProbabilityInput = document.getElementById("stickerLlmProbabilityInput");
     const stickerLlmMoodThresholdInput = document.getElementById("stickerLlmMoodThresholdInput");
     const stickerLocalDirText = document.getElementById("stickerLocalDirText");
+    const stickerPendingDirText = document.getElementById("stickerPendingDirText");
     const stickerWeightUserIdInput = document.getElementById("stickerWeightUserIdInput");
     const stickerWeightValueInput = document.getElementById("stickerWeightValueInput");
     const stickerUserWeightsList = document.getElementById("stickerUserWeightsList");
     const stickerFilesList = document.getElementById("stickerFilesList");
+    const stickerPendingFilesList = document.getElementById("stickerPendingFilesList");
 
     const clearSessionInput = document.getElementById("clearSessionInput");
     const memorySessionList = document.getElementById("memorySessionList");
@@ -1079,6 +1098,7 @@
     let knowledgeFiles = [];
     let memorySessions = [];
     let stickerFiles = [];
+    let stickerPendingFiles = [];
     let runtimeGroups = [];
     let memberProfiles = [];
     let selectedMemberId = 0;
@@ -1618,10 +1638,12 @@
       const keywords = Array.isArray(sticker.filter_keywords) ? sticker.filter_keywords : [];
       stickerFilterKeywordsInput.value = keywords.join(", ");
       stickerPersonaFilterToggle.checked = Boolean(sticker.enable_persona_filter);
+      stickerAllowOtherUsersToggle.checked = Boolean(sticker.allow_other_users_collection);
       stickerLlmFilterToggle.checked = Boolean(sticker.llm_filter_enabled);
       stickerLlmProbabilityInput.value = Number(sticker.llm_filter_probability ?? 0.2).toFixed(2);
       stickerLlmMoodThresholdInput.value = Number(sticker.llm_filter_mood_threshold ?? 50).toFixed(1);
       stickerLocalDirText.textContent = String(sticker.local_dir || "-");
+      stickerPendingDirText.textContent = String(sticker.pending_local_dir || "-");
       renderStickerUserWeights(sticker.user_weights || {});
     }
 
@@ -1717,6 +1739,75 @@
         row.appendChild(main);
         row.appendChild(actions);
         stickerFilesList.appendChild(row);
+      });
+    }
+
+    function renderStickerPendingFiles(files) {
+      stickerPendingFilesList.innerHTML = "";
+      const rows = Array.isArray(files) ? files : [];
+      if (!rows.length) {
+        stickerPendingFilesList.innerHTML = `<div class="muted">暂无待审核表情包</div>`;
+        return;
+      }
+
+      rows.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "inline-row sticker-file-row";
+
+        const updatedAt = Number(item.updated_at || 0) > 0
+          ? formatLocalTime(Number(item.updated_at) * 1000)
+          : "-";
+        const contentUrl = item.content_url ? resolveApiUrl(String(item.content_url)) : "";
+
+        const main = document.createElement("div");
+        main.className = "sticker-file-main";
+
+        const thumb = document.createElement("img");
+        thumb.className = "sticker-thumb";
+        thumb.alt = String(item.file_name || "pending-sticker");
+        if (contentUrl) {
+          thumb.src = contentUrl;
+          thumb.loading = "lazy";
+        } else {
+          thumb.style.display = "none";
+        }
+
+        const text = document.createElement("div");
+        text.className = "sticker-file-meta";
+        const summary = String(item.summary || "").trim();
+        const sender = Number(item.sender_id || 0) > 0 ? ` | sender:${item.sender_id}` : "";
+        text.innerHTML = `<span class="mono">${item.file_name || "-"}</span> | ${item.size || 0}B | ${updatedAt}${sender}${summary ? `<br/>${summary}` : ""}`;
+
+        main.appendChild(thumb);
+        main.appendChild(text);
+
+        const actions = document.createElement("div");
+        actions.className = "sticker-file-actions";
+
+        if (contentUrl) {
+          const openLink = document.createElement("a");
+          openLink.className = "sticker-open-link";
+          openLink.textContent = "查看";
+          openLink.href = contentUrl;
+          openLink.target = "_blank";
+          openLink.rel = "noopener noreferrer";
+          actions.appendChild(openLink);
+        }
+
+        const approveBtn = document.createElement("button");
+        approveBtn.textContent = "通过";
+        approveBtn.addEventListener("click", () => approvePendingStickerFile(item.file_name));
+        actions.appendChild(approveBtn);
+
+        const rejectBtn = document.createElement("button");
+        rejectBtn.className = "danger";
+        rejectBtn.textContent = "驳回";
+        rejectBtn.addEventListener("click", () => deletePendingStickerFile(item.file_name));
+        actions.appendChild(rejectBtn);
+
+        row.appendChild(main);
+        row.appendChild(actions);
+        stickerPendingFilesList.appendChild(row);
       });
     }
 
@@ -2170,6 +2261,7 @@
             collection_rate: rate,
             storage_mode: mode,
             filter_keywords: parseStickerKeywords(stickerFilterKeywordsInput.value),
+            allow_other_users_collection: Boolean(stickerAllowOtherUsersToggle.checked),
             enable_persona_filter: Boolean(stickerPersonaFilterToggle.checked),
             llm_filter_enabled: Boolean(stickerLlmFilterToggle.checked),
             llm_filter_probability: llmProbability,
@@ -2228,12 +2320,20 @@
 
     async function refreshStickerFiles() {
       try {
-        const data = await apiRequest("/api/stickers/files");
-        stickerFiles = Array.isArray(data.files) ? data.files : [];
-        if (data.root) {
-          stickerLocalDirText.textContent = String(data.root);
+        const [localData, pendingData] = await Promise.all([
+          apiRequest("/api/stickers/files"),
+          apiRequest("/api/stickers/pending/files"),
+        ]);
+        stickerFiles = Array.isArray(localData.files) ? localData.files : [];
+        stickerPendingFiles = Array.isArray(pendingData.files) ? pendingData.files : [];
+        if (localData.root) {
+          stickerLocalDirText.textContent = String(localData.root);
+        }
+        if (pendingData.root) {
+          stickerPendingDirText.textContent = String(pendingData.root);
         }
         renderStickerFiles(stickerFiles);
+        renderStickerPendingFiles(stickerPendingFiles);
       } catch (err) {
         appendLog(`[stickers] 文件列表刷新失败: ${err.message}`, "status-error");
       }
@@ -2256,6 +2356,44 @@
       }
     }
 
+    async function approvePendingStickerFile(fileName) {
+      const cleanName = String(fileName || "").trim();
+      if (!cleanName) {
+        appendLog("[stickers] 待审核文件名为空，无法通过", "status-warn");
+        return;
+      }
+      try {
+        const result = await apiRequest(`/api/stickers/pending/files/${encodeURIComponent(cleanName)}/approve`, {
+          method: "POST",
+        });
+        if (result && result.promoted === false) {
+          appendLog(`[stickers] 待审核文件已处理（重复入库）: ${cleanName}`, "status-warn");
+        } else {
+          appendLog(`[stickers] 待审核文件已通过: ${cleanName}`, "status-ok");
+        }
+        await refreshStickerFiles();
+      } catch (err) {
+        appendLog(`[stickers] 审核通过失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function deletePendingStickerFile(fileName) {
+      const cleanName = String(fileName || "").trim();
+      if (!cleanName) {
+        appendLog("[stickers] 待审核文件名为空，无法驳回", "status-warn");
+        return;
+      }
+      try {
+        await apiRequest(`/api/stickers/pending/files/${encodeURIComponent(cleanName)}`, {
+          method: "DELETE",
+        });
+        appendLog(`[stickers] 已驳回待审核文件 ${cleanName}`, "status-ok");
+        await refreshStickerFiles();
+      } catch (err) {
+        appendLog(`[stickers] 驳回失败: ${err.message}`, "status-error");
+      }
+    }
+
     async function openStickerDir() {
       try {
         const data = await apiRequest("/api/stickers/open-dir", {
@@ -2264,6 +2402,17 @@
         appendLog(`[stickers] 已打开目录: ${data.path || "-"}`, "status-ok");
       } catch (err) {
         appendLog(`[stickers] 打开目录失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function openStickerPendingDir() {
+      try {
+        const data = await apiRequest("/api/stickers/open-pending-dir", {
+          method: "POST",
+        });
+        appendLog(`[stickers] 已打开待审核目录: ${data.path || "-"}`, "status-ok");
+      } catch (err) {
+        appendLog(`[stickers] 打开待审核目录失败: ${err.message}`, "status-error");
       }
     }
 
@@ -2476,6 +2625,7 @@
     saveStickerWeightBtn.addEventListener("click", saveStickerUserWeight);
     refreshStickerFilesBtn.addEventListener("click", refreshStickerFiles);
     openStickerDirBtn.addEventListener("click", openStickerDir);
+    openStickerPendingDirBtn.addEventListener("click", openStickerPendingDir);
     togglePluginsBtn.addEventListener("click", () => togglePluginsPanel());
     systemTabBtn.addEventListener("click", () => setActiveConsoleTab("system"));
     napcatTabBtn.addEventListener("click", () => setActiveConsoleTab("napcat"));

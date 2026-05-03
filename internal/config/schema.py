@@ -182,10 +182,12 @@ class StickerConfig(BaseModel):
     collection_rate: float = 0.1
     storage_mode: str = "local"
     local_dir: str = "data/stickers"
+    pending_local_dir: str = "data/stickers_pending"
     filter_keywords: List[str] = Field(
         default_factory=lambda: ["浮夸", "低俗", "吵闹", "恶臭", "擦边", "鬼畜"],
     )
     user_weights: Dict[str, float] = Field(default_factory=dict)
+    allow_other_users_collection: bool = False
     enable_persona_filter: bool = True
     llm_filter_enabled: bool = True
     llm_filter_probability: float = 0.2

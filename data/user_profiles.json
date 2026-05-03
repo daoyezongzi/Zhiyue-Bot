@@ -6,50 +6,71 @@
         "nickname": "",
         "name_records": [],
         "tags": [
-          "学生",
-          "考试相关",
-          "使用表情包",
           "网络用语",
+          "学生",
+          "使用表情包",
           "群聊互动",
-          "询问考试难度"
+          "考试相关",
+          "询问考试难度",
+          "技术讨论"
         ],
-        "affinity": 0.022000000000000002,
+        "affinity": 0.044000000000000004,
         "interaction_style": "频繁使用表情包和网络用语、在群聊中主动询问考试情况并表达情绪、表达考试情况和情绪",
-        "updated_at": "2026-04-26T12:00:38.601950+00:00",
+        "updated_at": "2026-04-30T10:06:20.361266+00:00",
         "tag_scores": {
-          "学生": 5.3873047634375,
-          "考试相关": 5.3873047634375,
-          "使用表情包": 5.3873047634375,
-          "网络用语": 3.9752999374999995,
-          "群聊互动": 3.9752999374999995,
-          "询问考试难度": 3.9752999374999995
+          "学生": 6.682235264106148,
+          "考试相关": 5.226897764106148,
+          "使用表情包": 6.682235264106148,
+          "网络用语": 6.789772881860936,
+          "群聊互动": 5.312272881860936,
+          "询问考试难度": 3.856935381860937,
+          "技术讨论": 2.9328375
         },
         "style_scores": {
-          "表达考试情况和情绪": 3.708954414,
-          "使用网络用语和表情包": 1.3448344139999997,
-          "频繁使用表情包和网络用语": 3.7225385999999996,
-          "在群聊中主动询问考试情况并表达情绪": 3.7225385999999996
+          "表达考试情况和情绪": 3.6351462211613996,
+          "使用网络用语和表情包": 1.3180722091613997,
+          "频繁使用表情包和网络用语": 3.6484600818599993,
+          "在群聊中主动询问考试情况并表达情绪": 3.6484600818599993,
+          "在群聊中频繁发送表情包和网络用语": 1.37214,
+          "进行技术话题讨论和互动": 1.37214,
+          "并表达对学校的不满": 1.37214,
+          "主动提出技术项目和商业想法": 1.386,
+          "使用网络用语": 1.386,
+          "直接交流": 1.386
         }
       },
       "2902336359": {
         "nickname": "曾经是未来▆▆▆",
-        "name_records": [],
+        "name_records": [
+          {
+            "content": "曾经是未来",
+            "source": "learned_alias",
+            "group_id": 0,
+            "updated_at": "2026-04-30T10:44:07.573330+00:00"
+          }
+        ],
         "tags": [
           "competitive programmer",
           "frustrated",
-          "expressive"
+          "expressive",
+          "tech-savvy",
+          "curious"
         ],
         "affinity": -0.022000000000000002,
-        "interaction_style": "Emotionally vents about technical setbacks with repeated emphasis and slang.、one-line interaction preference",
-        "updated_at": "2026-04-29T04:33:35.979221+00:00",
+        "interaction_style": "Emotionally vents about technical setbacks with repeated emphasis and slang.、Inquisitively discusses technical topics、asking clarifying questions and sharing observations.",
+        "updated_at": "2026-04-30T10:44:07.573330+00:00",
         "tag_scores": {
-          "competitive programmer": 1.55236,
-          "frustrated": 1.55236,
-          "expressive": 1.55236
+          "competitive programmer": 1.5290746,
+          "frustrated": 1.5290746,
+          "expressive": 1.5290746,
+          "tech-savvy": 1.4775,
+          "curious": 1.4775
         },
         "style_scores": {
-          "Emotionally vents about technical setbacks with repeated emphasis and slang.": 1.4701499999999998,
-          "one-line interaction preference": 1.188
+          "Emotionally vents about technical setbacks with repeated emphasis and slang.": 1.4554485,
+          "one-line interaction preference": 1.1761199999999998,
+          "Inquisitively discusses technical topics": 1.386,
+          "asking clarifying questions and sharing observations.": 1.386
         }
       },
       "137566858": {
@@ -59,168 +80,247 @@
             "content": "浙师大第一张睿饭",
             "source": "group_card",
             "group_id": 827043738,
-            "updated_at": "2026-04-29T04:40:27.628212+00:00"
+            "updated_at": "2026-05-02T16:13:25.509597+00:00"
           },
           {
             "content": "蚊香",
             "source": "group_card",
             "group_id": 247037890,
-            "updated_at": "2026-04-29T04:37:59.068660+00:00"
+            "updated_at": "2026-04-30T10:41:08.856154+00:00"
+          },
+          {
+            "content": "A Flower is not a Flower",
+            "source": "learned_alias",
+            "group_id": 0,
+            "updated_at": "2026-04-30T10:24:32.738293+00:00"
           }
         ],
         "tags": [
+          "image_user",
           "casual_chatter",
           "emoji_user",
-          "image_user",
           "social_seeker",
-          "bot_developer",
           "humorous",
-          "gaming_enthusiast",
           "ai_enthusiast",
-          "music_fan",
+          "bot_developer",
           "developer",
-          "stock_enthusiast",
-          "hardware_enthusiast"
+          "gaming_enthusiast",
+          "api_subscriber",
+          "music_fan",
+          "stock_enthusiast"
         ],
-        "affinity": 0.22000000000000003,
+        "affinity": 0.23320000000000002,
         "interaction_style": "Persistent and playful、emojis、using images",
-        "updated_at": "2026-04-29T04:46:57.785636+00:00",
+        "updated_at": "2026-05-02T16:13:25.509597+00:00",
         "tag_scores": {
-          "casual_chatter": 13.984827609268105,
-          "emoji_user": 13.11414823069326,
-          "gaming_enthusiast": 4.716402089403163,
-          "music_fan": 2.7889270332773872,
-          "ai_enthusiast": 4.2342507947589185,
-          "social_seeker": 7.2897642933510225,
-          "image_user": 12.997329239413244,
-          "bot_developer": 6.612223816355907,
-          "character_designer": 1.043664210912339,
-          "stock_enthusiast": 2.2981545789240916,
-          "developer": 2.4003955140930437,
-          "humorous": 5.411771162223589,
-          "bot_educator": 1.3699623822452107,
-          "developer_sharing": 1.3699623822452107,
-          "hardware_enthusiast": 1.506138481
+          "casual_chatter": 14.937397032732575,
+          "emoji_user": 14.603257156391086,
+          "gaming_enthusiast": 3.6477640723007454,
+          "music_fan": 2.1570145291715246,
+          "ai_enthusiast": 7.397679994982762,
+          "social_seeker": 8.546934541594121,
+          "image_user": 15.72685043743326,
+          "bot_developer": 6.469705249809771,
+          "character_designer": 0.8071917406418374,
+          "stock_enthusiast": 1.7774408429739275,
+          "developer": 5.979337945300033,
+          "humorous": 8.50508590665638,
+          "bot_educator": 1.0595575745302934,
+          "developer_sharing": 1.0595575745302934,
+          "hardware_enthusiast": 1.1648790189550322,
+          "api_subscriber": 2.5292513519957684,
+          "coding_user": 1.3153078185204778,
+          "technical": 1.3556729815460102,
+          "student": 1.55236
         },
         "style_scores": {
-          "none": 0.8356958616594881,
-          "Frequent use of images and casual": 0.9848267729993965,
-          "playful language.": 0.9848267729993965,
-          "Prefers sending images and emojis with short": 0.9237191954539794,
-          "casual replies.": 0.9237191954539794,
-          "Frequent use of images and emojis with short": 1.0048227456375844,
-          "playful text.": 1.0048227456375844,
-          "Persistent and playful": 6.525960548518249,
-          "using images": 3.1917410529645878,
-          "emojis": 4.632635067964587,
-          "and replies to engage others.": 1.0149724703409944,
-          "Frequent use of images and emojis": 0.8787640435852768,
-          "with casual and playful replies.": 0.8787640435852768,
-          "and casual slang.": 1.035580522743592,
-          "Playful and image-heavy": 1.0460409320642343,
-          "with casual banter and references to shared context.": 1.0460409320642343,
-          "Engages with images and references to bot development in a playful manner.": 0.9811350733647219,
-          "Technical and playful": 1.0672798000859447,
-          "using images and replies to discuss bot development.": 1.0672798000859447,
-          "Frequent image and emoji use": 0.9240517749661862,
-          "with short and playful replies.": 0.9240517749661862,
-          "User persistently shares images and emojis": 0.7778213593991465,
-          "often expressing casual or frustrated sentiments.": 0.7778213593991465,
-          "Proactive and descriptive": 1.099949397130106,
-          "using images and emojis to discuss bot design and character mechanics.": 1.099949397130106,
-          "Direct and technical": 1.0316985687367517,
-          "often uses images": 1.0316985687367517,
-          "sometimes critical": 1.0316985687367517,
-          "uses images and emojis": 0.88179364849295,
-          "Playful and technically invested": 1.1336190155097616,
-          "using images and code references.": 1.1336190155097616,
-          "Communicates heavily with images and emojis": 1.2677557532757069,
-          "mixing technical talk with casual banter.": 1.2677557532757069,
-          "Playful banter with repeated catchphrases and image sharing": 0.743551761452028,
-          "Playful and technical": 1.2100449541026268,
-          "using images and emojis to discuss emoji features.": 1.2100449541026268,
-          "using images and emojis.": 1.011531832060712,
-          "日常闲聊": 1.0217493253138505,
-          "偶尔使用图片和表情表达情绪": 1.0217493253138505,
-          "使用图片": 1.1180758610336747,
-          "表情和引用回复": 1.1180758610336747,
-          "表达直率且带有技术抱怨的日常交流": 1.1180758610336747,
-          "活泼幽默": 1.2162441378765692,
-          "频繁使用图片和表情": 1.2162441378765692,
-          "偶尔严肃处理敏感话题": 1.2162441378765692,
-          "喜欢@和口语化表达": 1.2162441378765692,
-          "Playful and image/emoji-heavy": 1.140777329898658,
-          "occasionally assertive about boundaries.": 1.140777329898658,
-          "急切重复地要求表情包": 1.063661846059355,
-          "带撒娇语气": 1.063661846059355,
-          "频繁使用图片和表情包": 1.2982404686751388,
-          "互动轻松简短": 1.2982404686751388,
-          "Brief and image-heavy": 0.813943867507924,
-          "with occasional technical references.": 0.813943867507924,
-          "热情幽默的表情包爱好者": 1.2789241464770968,
-          "喜欢分享生活趣事和股票话题": 1.2789241464770968,
-          "向助手发送图片": 0.92274469442792,
-          "表情和简短指令": 0.92274469442792,
-          "互动积极且带玩梗性质": 0.92274469442792,
-          "Playful and technically inclined": 1.2116849522790867,
-          "uses images and replies in group chats.": 1.2116849522790867,
-          "Actively discusses bot development and shares progress": 1.3180722091613997,
-          "uses images and emojis.": 1.3180722091613997,
-          "uses images": 1.4408940149999998,
-          "and discusses technical details": 1.4408940149999998,
-          "Uses images and playful responses": 1.1643587999999998,
-          "but no new strong signals.": 1.1643587999999998,
-          "Sends emoji images and short casual responses": 0.8820899999999999,
-          "often avoiding in-depth discussion.": 0.8820899999999999,
-          "Playful with frequent use of images and emojis": 1.4849999999999999
+          "none": 0.7044441383249811,
+          "Frequent use of images and casual": 0.830153024962099,
+          "playful language.": 0.830153024962099,
+          "Prefers sending images and emojis with short": 0.7786428084060091,
+          "casual replies.": 0.7786428084060091,
+          "Frequent use of images and emojis with short": 0.8470084939925507,
+          "playful text.": 0.8470084939925507,
+          "Persistent and playful": 11.780125268261612,
+          "using images": 3.4139620556475903,
+          "emojis": 6.117477673479478,
+          "and replies to engage others.": 0.8555641353460108,
+          "Frequent use of images and emojis": 0.7407481691307454,
+          "with casual and playful replies.": 0.7407481691307454,
+          "and casual slang.": 0.8729355528476797,
+          "Playful and image-heavy": 0.8817530836845249,
+          "with casual banter and references to shared context.": 0.8817530836845249,
+          "Engages with images and references to bot development in a playful manner.": 0.8270411318830319,
+          "Technical and playful": 0.8996562429186051,
+          "using images and replies to discuss bot development.": 0.8996562429186051,
+          "Frequent image and emoji use": 0.7789231540420825,
+          "with short and playful replies.": 0.7789231540420825,
+          "User persistently shares images and emojis": 0.6556592205741436,
+          "often expressing casual or frustrated sentiments.": 0.6556592205741436,
+          "Proactive and descriptive": 0.9271948573775766,
+          "using images and emojis to discuss bot design and character mechanics.": 0.9271948573775766,
+          "Direct and technical": 0.869663286140584,
+          "often uses images": 0.869663286140584,
+          "sometimes critical": 0.869663286140584,
+          "uses images and emojis": 1.8391281053654158,
+          "Playful and technically invested": 0.9555764330145414,
+          "using images and code references.": 0.9555764330145414,
+          "Communicates heavily with images and emojis": 1.0686460830970699,
+          "mixing technical talk with casual banter.": 1.0686460830970699,
+          "Playful banter with repeated catchphrases and image sharing": 0.6267718962446162,
+          "Playful and technical": 1.0199991577493754,
+          "using images and emojis to discuss emoji features.": 1.0199991577493754,
+          "using images and emojis.": 0.8526638727267505,
+          "日常闲聊": 0.8612766391179298,
+          "偶尔使用图片和表情表达情绪": 0.8612766391179298,
+          "使用图片": 0.9424744367452091,
+          "表情和引用回复": 0.9424744367452091,
+          "表达直率且带有技术抱怨的日常交流": 0.9424744367452091,
+          "活泼幽默": 1.025224717516156,
+          "频繁使用图片和表情": 1.025224717516156,
+          "偶尔严肃处理敏感话题": 1.025224717516156,
+          "喜欢@和口语化表达": 1.025224717516156,
+          "Playful and image/emoji-heavy": 0.9616104854047639,
+          "occasionally assertive about boundaries.": 0.9616104854047639,
+          "急切重复地要求表情包": 0.8966065131979154,
+          "带撒娇语气": 0.8966065131979154,
+          "频繁使用图片和表情包": 1.0943429664452673,
+          "互动轻松简短": 1.0943429664452673,
+          "Brief and image-heavy": 0.6861084429123931,
+          "with occasional technical references.": 0.6861084429123931,
+          "热情幽默的表情包爱好者": 1.0780604041272168,
+          "喜欢分享生活趣事和股票话题": 1.0780604041272168,
+          "向助手发送图片": 0.7778213593991465,
+          "表情和简短指令": 0.7778213593991465,
+          "互动积极且带玩梗性质": 0.7778213593991465,
+          "Playful and technically inclined": 1.0213815830493842,
+          "uses images and replies in group chats.": 1.0213815830493842,
+          "Actively discusses bot development and shares progress": 1.1110599971011172,
+          "uses images and emojis.": 1.1110599971011172,
+          "uses images": 1.2145918023318873,
+          "and discusses technical details": 1.2145918023318873,
+          "Uses images and playful responses": 0.9814883251166768,
+          "but no new strong signals.": 0.9814883251166768,
+          "Sends emoji images and short casual responses": 0.743551761452028,
+          "often avoiding in-depth discussion.": 0.743551761452028,
+          "Playful with frequent use of images and emojis": 1.2517706421751311,
+          "Prefers using images and emojis with playful persistence.": 1.0217493253138505,
+          "Uses images and replies": 1.3330904496939964,
+          "mixes technical and casual language.": 1.3330904496939964,
+          "Casual and playful": 1.2162441378765692,
+          "often shares technical details and uses images.": 1.2162441378765692,
+          "Engaged in technical bot development discussion": 1.3601575856483996,
+          "responsive to others": 1.3601575856483996,
+          "Prefers using images and emojis": 0.7091078973729034,
+          "with playful and casual tone.": 0.7091078973729034,
+          "using emojis and images": 1.3430073813880745,
+          "Persistent and playful with emojis and images": 1.096220696980369,
+          "using emojis and images.": 1.107293633313504,
+          "uses emojis and images": 1.1184784174883877,
+          "Uses emojis and images frequently": 1.2239241942212997,
+          "sometimes frustrated.": 1.2239241942212997,
+          "Continues using images and emojis": 0.8558910449099999,
+          "responds with short text and replies.": 0.8558910449099999,
+          "Persistent use of images": 1.4889238154999997,
+          "and @mentions in a playful manner.": 1.4889238154999997,
+          "Repeats words and images to convey strong feelings": 0.9702989999999999,
+          "especially frustration.": 0.9702989999999999,
+          "情绪表达强烈": 1.4701499999999998,
+          "使用图片和emojis": 1.4701499999999998,
+          "uses emojis and images.": 0.8909999999999999
         }
       },
       "2332876536": {
-        "nickname": "",
-        "name_records": [],
-        "tags": [
-          "seeks_emotional_support",
-          "self_aware_about_habits",
-          "values_human_connection"
+        "nickname": "折乙",
+        "name_records": [
+          {
+            "content": "折乙  好感度66",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-04-30T10:44:36.752224+00:00"
+          },
+          {
+            "content": "折乙",
+            "source": "learned_alias",
+            "group_id": 0,
+            "updated_at": "2026-04-30T10:40:46.216573+00:00"
+          }
         ],
-        "affinity": 0.044000000000000004,
-        "interaction_style": "Expresses needs and expectations directly、with playful blame and emotional nuance.",
-        "updated_at": "2026-04-26T08:33:43.687153+00:00",
+        "tags": [
+          "technical_interest",
+          "self_aware_about_habits",
+          "values_human_connection",
+          "practical_planning",
+          "cost_conscious",
+          "seeks_guidance",
+          "seeks_emotional_support"
+        ],
+        "affinity": 0.05940000000000001,
+        "interaction_style": "Expresses needs and expectations directly、with playful blame and emotional nuance.、Directly states practical technical needs and solutions with cost awareness.",
+        "updated_at": "2026-04-30T10:44:36.752224+00:00",
         "tag_scores": {
-          "seeks_emotional_support": 1.576,
-          "self_aware_about_habits": 1.576,
-          "values_human_connection": 1.576
+          "seeks_emotional_support": 3.865905979540309,
+          "self_aware_about_habits": 6.897243479540308,
+          "values_human_connection": 6.754750917040309,
+          "technical_interest": 7.155481320199696,
+          "practical_planning": 5.876849763437501,
+          "cost_conscious": 4.4648449375000006,
+          "seeks_guidance": 4.4648449375000006
         },
         "style_scores": {
-          "Expresses needs and expectations directly": 1.4849999999999999,
-          "with playful blame and emotional nuance.": 1.4849999999999999
+          "Expresses needs and expectations directly": 3.726519653351567,
+          "with playful blame and emotional nuance.": 2.5025954591302675,
+          "with emotional nuance and goal-oriented planning.": 1.2239241942212997,
+          "Engages in practical technical discussions with direct questions and clear requirements.": 1.1411880598799997,
+          "Direct and technical": 1.3448344139999997,
+          "seeks practical solutions with clear reasoning.": 1.3448344139999997,
+          "Directly states needs with technical focus and occasional playful tone.": 1.3584185999999998,
+          "Directly states practical needs with technical focus and playful enthusiasm": 1.37214,
+          "seeking guidance and sharing cost concerns.": 1.37214,
+          "Directly states practical technical needs and solutions with cost awareness.": 1.4849999999999999
         }
       },
       "2731616256": {
-        "nickname": "",
+        "nickname": "星期五的小绵羊",
         "name_records": [],
         "tags": [
+          "casual swearing",
+          "technical",
+          "server enthusiast",
+          "NAS enthusiast",
+          "self-hosting",
           "frustrated",
           "impatient",
           "technical student",
-          "casual swearing",
-          "exam stress",
-          "platform complaint"
+          "knowledgeable",
+          "practical advice",
+          "cloud service critic",
+          "exam stress"
         ],
-        "affinity": -0.044000000000000004,
-        "interaction_style": "Expresses intense frustration with profanity and detailed technical complaints about platform issues.、Expresses frustration with strong language and sarcasm.",
-        "updated_at": "2026-04-26T08:53:27.399703+00:00",
+        "affinity": 0.0,
+        "interaction_style": "Expresses intense frustration with profanity and detailed technical complaints about platform issues.、Shares detailed technical experiences and advice with a mix of enthusiasm and mild frustration about cloud services.、Provides technical advice and shares personal experiences with humor and casual language.",
+        "updated_at": "2026-04-30T10:15:51.562402+00:00",
         "tag_scores": {
-          "frustrated": 3.2268600000000003,
-          "impatient": 3.2268600000000003,
-          "technical student": 3.2268600000000003,
-          "casual swearing": 3.2268600000000003,
-          "exam stress": 1.6745,
-          "platform complaint": 1.6745
+          "frustrated": 3.0838185398475004,
+          "impatient": 3.0838185398475004,
+          "technical student": 3.0838185398475004,
+          "casual swearing": 4.636178539847501,
+          "exam stress": 1.6002721360625,
+          "platform complaint": 1.6002721360625,
+          "technical": 4.6111174375,
+          "knowledgeable": 2.9858674375,
+          "server enthusiast": 4.6111174375,
+          "NAS enthusiast": 3.17761,
+          "self-hosting": 3.17761,
+          "practical advice": 1.6252499999999999,
+          "cloud service critic": 1.6252499999999999
         },
         "style_scores": {
-          "Expresses frustration with strong language and sarcasm.": 1.4701499999999998,
-          "Expresses intense frustration with profanity and detailed technical complaints about platform issues.": 1.584
+          "Expresses frustration with strong language and sarcasm.": 1.4264850748499998,
+          "Expresses intense frustration with profanity and detailed technical complaints about platform issues.": 1.536953616,
+          "Provides technical advice and explanations about cloud servers and hosting with a cooperative tone.": 1.3584185999999998,
+          "Provides technical advice and shares personal experiences with humor and casual language.": 1.4701499999999998,
+          "Shares detailed technical experiences and advice with a mix of enthusiasm and mild frustration about cloud services.": 1.5344999999999998
         }
       },
       "2693053350": {
@@ -230,7 +330,7 @@
             "content": "数学系ksh",
             "source": "group_card",
             "group_id": 247037890,
-            "updated_at": "2026-04-29T04:34:59.008036+00:00"
+            "updated_at": "2026-04-30T10:39:21.353362+00:00"
           }
         ],
         "tags": [
@@ -241,7 +341,7 @@
         ],
         "affinity": 0.022000000000000002,
         "interaction_style": "Uses informal、playful language with memes and emojis.",
-        "updated_at": "2026-04-29T04:34:59.008036+00:00",
+        "updated_at": "2026-04-30T10:39:21.353362+00:00",
         "tag_scores": {
           "student": 1.4775,
           "tech-savvy": 1.4775,
@@ -254,8 +354,15 @@
         }
       },
       "3440367913": {
-        "nickname": "",
-        "name_records": [],
+        "nickname": "Luifa",
+        "name_records": [
+          {
+            "content": "25计算机类查尔根",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-04-30T09:45:09.966653+00:00"
+          }
+        ],
         "tags": [
           "表情包爱好者",
           "活泼回应",
@@ -265,7 +372,7 @@
         ],
         "affinity": 0.0374,
         "interaction_style": "常用表情包和图片配合简短文字进行社交互动、偶尔直接评价他人、喜欢用表情包和图片配合直率幽默的文字进行社交互动",
-        "updated_at": "2026-04-27T03:39:06.183410+00:00",
+        "updated_at": "2026-04-30T09:45:09.966653+00:00",
         "tag_scores": {
           "表情包爱好者": 4.225177199999999,
           "学生": 2.62430595,
@@ -288,7 +395,7 @@
             "content": "Плутоний-鈈",
             "source": "group_card",
             "group_id": 1056532448,
-            "updated_at": "2026-04-29T04:37:41.348780+00:00"
+            "updated_at": "2026-04-30T10:43:59.378200+00:00"
           }
         ],
         "tags": [
@@ -303,59 +410,80 @@
         ],
         "affinity": 0.0066,
         "interaction_style": "喜欢用惊恐和困惑表情表达情绪、继续使用引用、@和表情包进行调侃互动",
-        "updated_at": "2026-04-29T04:37:41.348780+00:00",
+        "updated_at": "2026-04-30T10:43:59.378200+00:00",
         "tag_scores": {
-          "自然观察": 5.451728432438154,
-          "幽默调侃": 6.657109885513467,
-          "群聊互动": 8.036109885513467,
-          "频繁引用": 5.652470805200312,
-          "夸张表达": 4.4470893521249995,
-          "策划组织": 1.379,
-          "导演角色": 1.379,
-          "任务布置": 1.379
+          "自然观察": 5.369952505951582,
+          "幽默调侃": 6.557253237230765,
+          "群聊互动": 7.915568237230764,
+          "频繁引用": 5.567683743122307,
+          "夸张表达": 4.380383011843125,
+          "策划组织": 1.358315,
+          "导演角色": 1.358315,
+          "任务布置": 1.358315
         },
         "style_scores": {
-          "随意闲聊": 0.9414801494009999,
-          "喜欢重复引用和调侃": 0.9414801494009999,
-          "继续使用引用和表情包进行调侃互动": 1.1411880598799997,
-          "继续使用引用和表情包进行夸张的调侃互动": 1.2487748129999998,
-          "喜欢用惊恐和困惑表情表达情绪": 2.7527382629999995,
-          "继续使用引用": 1.5039634499999999,
-          "@和表情包进行调侃互动": 1.5039634499999999,
-          "喜欢用表情包": 1.4701499999999998,
-          "引用和@进行调侃互动": 1.4701499999999998,
-          "并关注群内管理事务": 1.4701499999999998,
-          "喜欢直接布置任务": 1.287,
-          "组织群成员进行角色扮演或视频拍摄": 1.287,
-          "使用@和引用进行协调": 1.287
+          "随意闲聊": 0.9320653479069899,
+          "喜欢重复引用和调侃": 0.9320653479069899,
+          "继续使用引用和表情包进行调侃互动": 1.1297761792811998,
+          "继续使用引用和表情包进行夸张的调侃互动": 1.2362870648699997,
+          "喜欢用惊恐和困惑表情表达情绪": 2.7252108803699993,
+          "继续使用引用": 1.4889238154999997,
+          "@和表情包进行调侃互动": 1.4889238154999997,
+          "喜欢用表情包": 1.4554485,
+          "引用和@进行调侃互动": 1.4554485,
+          "并关注群内管理事务": 1.4554485,
+          "喜欢直接布置任务": 1.27413,
+          "组织群成员进行角色扮演或视频拍摄": 1.27413,
+          "使用@和引用进行协调": 1.27413,
+          "偏好使用图片": 0.8909999999999999,
+          "引用和转发进行调侃互动": 0.8909999999999999
         }
       },
       "439612594": {
-        "nickname": "",
-        "name_records": [],
-        "tags": [
-          "英语学习者",
-          "网络活跃",
-          "幽默"
+        "nickname": "厘一二",
+        "name_records": [
+          {
+            "content": "liyier",
+            "source": "group_card",
+            "group_id": 1056532448,
+            "updated_at": "2026-04-30T10:43:18.626463+00:00"
+          }
         ],
-        "affinity": 0.022000000000000002,
+        "tags": [
+          "网络活跃",
+          "幽默",
+          "英语学习者",
+          "优惠券用户"
+        ],
+        "affinity": 0.024200000000000003,
         "interaction_style": "频繁使用表情和引用、热衷网络梗和调侃、积极参与讨论",
-        "updated_at": "2026-04-27T03:37:04.685810+00:00",
+        "updated_at": "2026-04-30T10:43:18.626463+00:00",
         "tag_scores": {
-          "英语学习者": 2.9343150000000002,
-          "网络活跃": 2.9343150000000002,
-          "幽默": 2.9343150000000002
+          "英语学习者": 2.890300275,
+          "网络活跃": 4.170800275,
+          "幽默": 4.170800275,
+          "优惠券用户": 1.2805
         },
         "style_scores": {
-          "积极参与讨论": 1.27413,
-          "常用表情和网络梗表达情绪": 1.27413,
-          "频繁使用表情和引用": 1.4849999999999999,
-          "热衷网络梗和调侃": 1.4849999999999999
+          "积极参与讨论": 1.2613887,
+          "常用表情和网络梗表达情绪": 1.2613887,
+          "频繁使用表情和引用": 1.4701499999999998,
+          "热衷网络梗和调侃": 1.4701499999999998,
+          "热衷于日常购物和优惠券交流": 1.188,
+          "频繁使用图片和表情包": 1.188,
+          "喜欢用'喵'结尾的网络用语风格": 1.188
         }
       },
       "1044973668": {
-        "nickname": "",
-        "name_records": [],
+        "nickname": "柠檬斑鱼狗",
+        "name_records": [
+          {
+            "content": "无敌麦当劳大王(国内)",
+            "source": "group_card",
+            "group_id": 1056532448,
+            "updated_at": "2026-05-02T16:11:57.045276+00:00"
+          }
+        ],
         "tags": [
           "鸟类摄影爱好者",
           "社交粘性高",
@@ -365,7 +493,7 @@
         ],
         "affinity": 0.033,
         "interaction_style": "喜欢分享照片并配合表情包和昵称来建立亲昵互动",
-        "updated_at": "2026-04-27T03:36:28.637736+00:00",
+        "updated_at": "2026-05-02T16:11:57.045276+00:00",
         "tag_scores": {
           "鸟类摄影爱好者": 1.4775,
           "社交粘性高": 1.4775,
@@ -384,7 +512,7 @@
             "content": "无敌区区大王",
             "source": "group_card",
             "group_id": 1056532448,
-            "updated_at": "2026-04-29T04:38:13.176950+00:00"
+            "updated_at": "2026-04-30T10:45:32.478386+00:00"
           }
         ],
         "tags": [
@@ -394,20 +522,27 @@
         ],
         "affinity": 0.022000000000000002,
         "interaction_style": "喜欢穿插图片、表情和引用进行随意幽默的交流",
-        "updated_at": "2026-04-29T04:38:13.176950+00:00",
+        "updated_at": "2026-04-30T10:45:32.478386+00:00",
         "tag_scores": {
-          "中文使用者": 1.379,
-          "学生": 1.379,
-          "喜欢蜜雪冰城": 1.379
+          "中文使用者": 1.358315,
+          "学生": 1.358315,
+          "喜欢蜜雪冰城": 1.358315
         },
         "style_scores": {
-          "喜欢穿插图片": 1.287,
-          "表情和引用进行随意幽默的交流": 1.287
+          "喜欢穿插图片": 2.2641299999999998,
+          "表情和引用进行随意幽默的交流": 2.2641299999999998
         }
       },
       "983392887": {
-        "nickname": "",
-        "name_records": [],
+        "nickname": "朝夕不晚",
+        "name_records": [
+          {
+            "content": "鼠鼠第一可爱（张惢饭）",
+            "source": "group_card",
+            "group_id": 827043738,
+            "updated_at": "2026-04-30T10:34:59.845199+00:00"
+          }
+        ],
         "tags": [
           "playful",
           "instructive",
@@ -416,7 +551,7 @@
         ],
         "affinity": 0.044000000000000004,
         "interaction_style": "Playfully instructive、uses affection and persistent questioning、with occasional mild complaint.",
-        "updated_at": "2026-04-27T04:43:16.384623+00:00",
+        "updated_at": "2026-04-30T10:34:59.845199+00:00",
         "tag_scores": {
           "playful": 2.9328375,
           "instructive": 2.9328375,
@@ -434,33 +569,46 @@
         "nickname": "战车",
         "name_records": [
           {
+            "content": "💤💤💤",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-04-30T09:59:59.234784+00:00"
+          },
+          {
             "content": "摸鱼恶魔Promax",
             "source": "group_card",
             "group_id": 247037890,
-            "updated_at": "2026-04-29T04:37:47.615972+00:00"
+            "updated_at": "2026-04-29T07:31:02.075012+00:00"
           }
         ],
         "tags": [
           "表情包交流",
-          "学业吐槽",
           "网络用语",
           "情绪化",
           "幽默自嘲",
-          "学生"
+          "学生",
+          "学业吐槽",
+          "历史话题兴趣"
         ],
-        "affinity": 0.0154,
-        "interaction_style": "喜欢用表情包和网络用语进行情绪化学业吐槽",
-        "updated_at": "2026-04-29T04:37:47.615972+00:00",
+        "affinity": 0.017599999999999998,
+        "interaction_style": "喜欢用表情包和网络用语进行情绪化学业吐槽、大量使用表情包和网络用语进行互动、频繁回复和转发",
+        "updated_at": "2026-04-30T09:59:59.234784+00:00",
         "tag_scores": {
-          "表情包交流": 6.267141394436875,
-          "学业吐槽": 6.267141394436875,
-          "网络用语": 6.267141394436875,
-          "情绪化": 6.267141394436875,
-          "幽默自嘲": 6.267141394436875,
-          "学生": 6.267141394436875
+          "表情包交流": 8.685584475526253,
+          "学业吐槽": 5.989329200526254,
+          "网络用语": 8.685584475526253,
+          "情绪化": 8.685584475526253,
+          "幽默自嘲": 8.685584475526253,
+          "学生": 7.327269475526254,
+          "历史话题兴趣": 1.337940275
         },
         "style_scores": {
-          "喜欢用表情包和网络用语进行情绪化学业吐槽": 6.94225928187
+          "喜欢用表情包和网络用语进行情绪化学业吐槽": 6.736067238939179,
+          "喜欢用表情包和网络用语进行情绪化互动": 1.2613887,
+          "大量使用表情包和网络用语进行互动": 1.27413,
+          "频繁回复和转发": 1.27413,
+          "带有幽默和调侃风格": 1.27413,
+          "使用表情包和网络用语进行情绪化互动": 1.188
         }
       },
       "1917173927": {
@@ -470,30 +618,55 @@
             "content": "⚡战⚡争⚡雷⚡霆⚡重⚡度⚡依⚡赖⚡",
             "source": "group_card",
             "group_id": 247037890,
-            "updated_at": "2026-04-29T04:35:15.848383+00:00"
+            "updated_at": "2026-04-30T10:43:51.027545+00:00"
           }
         ],
         "tags": [
+          "game_enthusiast",
           "traveler",
-          "fitness_conscious"
+          "fitness_conscious",
+          "social_active",
+          "student",
+          "technology_interested"
         ],
-        "affinity": 0.0,
-        "interaction_style": "用户倾向于使用图片和简短文字进行互动、表达方式包含具体日程和事件。、用户倾向于使用图片和回复功能进行交互",
-        "updated_at": "2026-04-29T04:35:15.848383+00:00",
+        "affinity": 0.011000000000000001,
+        "interaction_style": "用户倾向于使用图片和简短文字进行互动、用户频繁使用图片、表达方式包含具体日程和事件。",
+        "updated_at": "2026-04-30T10:43:51.027545+00:00",
         "tag_scores": {
-          "traveler": 2.983565,
-          "fitness_conscious": 2.983565
+          "traveler": 4.874906099442995,
+          "fitness_conscious": 4.874906099442995,
+          "game_enthusiast": 4.8840984988743745,
+          "social_active": 3.4065984988743745,
+          "student": 1.4775,
+          "technology_interested": 1.4775
         },
         "style_scores": {
-          "用户倾向于使用图片和回复功能进行交互": 1.27413,
-          "表达方式包含具体日程和购票经历。": 1.27413,
-          "用户倾向于使用图片和简短文字进行互动": 1.5344999999999998,
-          "表达方式包含具体日程和事件。": 1.5344999999999998
+          "用户倾向于使用图片和回复功能进行交互": 1.2116849522790867,
+          "表达方式包含具体日程和购票经历。": 1.2116849522790867,
+          "用户倾向于使用图片和简短文字进行互动": 3.7997730315715494,
+          "表达方式包含具体日程和事件。": 2.63541423157155,
+          "用户频繁使用图片": 3.576765864869999,
+          "表情和简短文字": 1.2362870648699997,
+          "并积极回复和提及他人。": 1.2362870648699997,
+          "用户倾向于使用图片和简短文字互动": 0.768476808,
+          "常表达具体日程和事件。": 0.768476808,
+          "表达方式包含具体日程和事件": 1.1643587999999998,
+          "用户频繁使用图片和表情": 1.386,
+          "讨论游戏": 1.386,
+          "科技和学习相关话题": 1.386,
+          "表达方式包含具体内容和提问": 1.386
         }
       },
       "106715858": {
-        "nickname": "",
-        "name_records": [],
+        "nickname": "零落",
+        "name_records": [
+          {
+            "content": "机械学院头号公敌",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-04-30T09:43:01.394781+00:00"
+          }
+        ],
         "tags": [
           "学生",
           "关注考试",
@@ -504,7 +677,7 @@
         ],
         "affinity": 0.0,
         "interaction_style": "喜欢分享个人经历和情绪、并用图片辅助表达。",
-        "updated_at": "2026-04-27T06:37:01.183804+00:00",
+        "updated_at": "2026-04-30T09:43:01.394781+00:00",
         "tag_scores": {
           "学生": 1.4775,
           "关注考试": 1.4775,
@@ -519,8 +692,15 @@
         }
       },
       "2503601364": {
-        "nickname": "",
-        "name_records": [],
+        "nickname": "虾饺",
+        "name_records": [
+          {
+            "content": "和同学分享你的思维，快点！",
+            "source": "group_card",
+            "group_id": 827043738,
+            "updated_at": "2026-04-29T06:15:20.935116+00:00"
+          }
+        ],
         "tags": [
           "二次元爱好者",
           "游戏玩家",
@@ -529,7 +709,7 @@
         ],
         "affinity": 0.011000000000000001,
         "interaction_style": "通过图片和简短文字表达兴趣、并@对方寻求互动",
-        "updated_at": "2026-04-27T09:18:45.693163+00:00",
+        "updated_at": "2026-04-29T06:15:20.935116+00:00",
         "tag_scores": {
           "二次元爱好者": 1.1820000000000002,
           "游戏玩家": 1.1820000000000002,
@@ -542,50 +722,104 @@
         }
       },
       "3511457481": {
-        "nickname": "",
-        "name_records": [],
-        "tags": [
-          "历史敏感话题兴趣",
-          "评判性互动",
-          "表情包用户"
+        "nickname": "黑蚊子多",
+        "name_records": [
+          {
+            "content": "黑蚊子多🐖",
+            "source": "learned_alias",
+            "group_id": 0,
+            "updated_at": "2026-04-30T10:43:44.888321+00:00"
+          },
+          {
+            "content": "黑蚊子多🐖",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-04-30T10:43:00.441396+00:00"
+          }
         ],
-        "affinity": -0.022000000000000002,
-        "interaction_style": "偏好简短指令和表情包、直接要求特定内容并表达不满",
-        "updated_at": "2026-04-27T09:45:34.515108+00:00",
+        "tags": [
+          "表情包用户",
+          "技术实践者",
+          "评判性互动",
+          "历史敏感话题兴趣"
+        ],
+        "affinity": -0.044000000000000004,
+        "interaction_style": "频繁使用表情包、偏好技术细节讨论、对性能效率有高要求并直接表达不满",
+        "updated_at": "2026-04-30T10:43:44.888321+00:00",
         "tag_scores": {
-          "历史敏感话题兴趣": 1.379,
-          "评判性互动": 1.379,
-          "表情包用户": 1.379
+          "历史敏感话题兴趣": 1.337940275,
+          "评判性互动": 2.913940275,
+          "表情包用户": 4.369277775,
+          "技术实践者": 3.0313375000000002
         },
         "style_scores": {
-          "偏好简短指令和表情包": 1.287,
-          "直接要求特定内容并表达不满": 1.287
+          "偏好简短指令和表情包": 1.2613887,
+          "直接要求特定内容并表达不满": 1.2613887,
+          "偏好技术话题讨论": 1.37214,
+          "频繁使用表情包": 2.8571400000000002,
+          "对效率有较高要求并直接表达不满": 1.37214,
+          "偏好技术细节讨论": 1.4849999999999999,
+          "对性能效率有高要求并直接表达不满": 1.4849999999999999
         }
       },
       "1575703183": {
-        "nickname": "",
-        "name_records": [],
+        "nickname": "神鹰哥制裁罪恶的黑手",
+        "name_records": [
+          {
+            "content": "超超垂涎你的莴苣",
+            "source": "group_card",
+            "group_id": 1026976640,
+            "updated_at": "2026-05-02T16:18:33.478272+00:00"
+          }
+        ],
         "tags": [
           "gamer",
           "emotional_expression",
-          "values_communication"
+          "values_communication",
+          "anime_fan",
+          "creative"
         ],
-        "affinity": 0.0,
-        "interaction_style": "用户倾向于分享游戏中的细节和情绪、并通过表情包和夸张语言表达。",
-        "updated_at": "2026-04-27T13:48:07.720481+00:00",
+        "affinity": 0.022000000000000002,
+        "interaction_style": "用户倾向于通过分享原创角色图片、表达情感和讨论细节来参与对话。、用户倾向于通过生动的叙述",
+        "updated_at": "2026-05-02T16:18:33.478272+00:00",
         "tag_scores": {
-          "gamer": 1.379,
-          "emotional_expression": 1.379,
-          "values_communication": 1.379
+          "gamer": 4.369277775,
+          "emotional_expression": 4.369277775,
+          "values_communication": 4.369277775,
+          "anime_fan": 3.0313375000000002,
+          "creative": 1.576
         },
         "style_scores": {
-          "用户倾向于分享游戏中的细节和情绪": 1.287,
-          "并通过表情包和夸张语言表达。": 1.287
+          "用户倾向于分享游戏中的细节和情绪": 1.2613887,
+          "并通过表情包和夸张语言表达。": 1.2613887,
+          "用户倾向于通过生动的叙述": 1.37214,
+          "原创角色和图片分享来表达对动漫和游戏的情感与创意。": 1.37214,
+          "用户倾向于通过分享原创角色图片": 1.4849999999999999,
+          "表达情感和讨论细节来参与对话。": 1.4849999999999999
         }
       },
       "2283003902": {
-        "nickname": "",
-        "name_records": [],
+        "nickname": "Hyperion",
+        "name_records": [
+          {
+            "content": "报告写偏题被打零分了，卷子严肃阵亡了",
+            "source": "group_card",
+            "group_id": 1026976640,
+            "updated_at": "2026-04-30T10:29:54.081934+00:00"
+          },
+          {
+            "content": "报告写偏题被打零分了，卷子严肃阵亡了",
+            "source": "learned_alias",
+            "group_id": 0,
+            "updated_at": "2026-04-30T10:10:09.974067+00:00"
+          },
+          {
+            "content": "超级暴怒生气我草用户彻底怒了！",
+            "source": "group_card",
+            "group_id": 1026976640,
+            "updated_at": "2026-04-29T07:14:12.965745+00:00"
+          }
+        ],
         "tags": [
           "爱用表情包",
           "调侃风格",
@@ -594,33 +828,44 @@
           "话题跳跃快",
           "自问自答倾向"
         ],
-        "affinity": 0.0264,
-        "interaction_style": "用户以表情包和@进行调侃式互动、并期待及时回应。、以轻松调侃的方式互动",
-        "updated_at": "2026-04-29T03:37:03.892284+00:00",
+        "affinity": 0.044000000000000004,
+        "interaction_style": "@和短句进行跳跃式调侃互动、用户以表情包和@进行调侃式互动、用户通过表情包",
+        "updated_at": "2026-04-30T10:29:54.081934+00:00",
         "tag_scores": {
-          "爱用表情包": 5.593218509548437,
-          "调侃风格": 5.593218509548437,
-          "社交观察敏锐": 4.234903509548437,
-          "互动节奏快": 2.6962552749999995,
-          "话题跳跃快": 1.358315,
-          "自问自答倾向": 1.358315
+          "爱用表情包": 13.071499718355959,
+          "调侃风格": 13.071499718355959,
+          "社交观察敏锐": 11.812047634945193,
+          "互动节奏快": 10.385387600536147,
+          "话题跳跃快": 9.144827298376546,
+          "自问自答倾向": 9.144827298376546
         },
         "style_scores": {
-          "未定": 1.1297761792811998,
-          "以轻松调侃的方式互动": 1.3313860698599997,
-          "常用表情包和直接@对方。": 1.3313860698599997,
-          "用户以表情包和@进行调侃式互动": 2.7022827149999995,
-          "并期待及时回应。": 1.4408940149999998,
-          "并期待即时回应": 1.2613887,
-          "节奏快。": 1.2613887,
-          "用户以表情包和@进行跳跃式调侃互动": 1.27413,
-          "常自问自答并快速切换话题": 1.27413,
-          "用户大量使用表情包快速切换话题": 1.287,
-          "调侃语气。": 1.287
+          "未定": 1.0744059051104595,
+          "以轻松调侃的方式互动": 1.2661349050123258,
+          "常用表情包和直接@对方。": 1.2661349050123258,
+          "用户以表情包和@进行调侃式互动": 2.569843973981757,
+          "并期待及时回应。": 1.3702758712254612,
+          "并期待即时回应": 1.1995681027562959,
+          "节奏快。": 1.1995681027562959,
+          "用户以表情包和@进行跳跃式调侃互动": 1.2116849522790867,
+          "常自问自答并快速切换话题": 1.2116849522790867,
+          "用户大量使用表情包快速切换话题": 1.2239241942212997,
+          "调侃语气。": 1.2239241942212997,
+          "用户通过表情包和短句进行跳跃式调侃": 1.4740345773449997,
+          "倾向自导自演式表达。": 1.4740345773449997,
+          "用户通过表情包": 1.536953616,
+          "@和短句进行跳跃式调侃互动": 2.992402116,
+          "常伴有自问自答和自导自演表达。": 1.536953616,
+          "用户以表情包": 1.4554485,
+          "用户通过短句": 1.5191549999999998,
+          "表情包和@进行跳跃式": 1.5191549999999998,
+          "快节奏的调侃互动": 1.5191549999999998,
+          "用户通过别名": 1.5344999999999998,
+          "表情包和@进行跳跃式幽默互动": 1.5344999999999998
         }
       },
       "1578654702": {
-        "nickname": "",
+        "nickname": "铁铁bot l❄️纯良雏铁❄",
         "name_records": [],
         "tags": [
           "图片主导",
@@ -629,7 +874,7 @@
         ],
         "affinity": 0.011000000000000001,
         "interaction_style": "仅发送图片、无文字交互、以图片为主",
-        "updated_at": "2026-04-29T03:53:04.217561+00:00",
+        "updated_at": "2026-04-29T05:41:20.516490+00:00",
         "tag_scores": {
           "图片主导": 1.576,
           "角色图片爱好": 1.576,
@@ -643,8 +888,15 @@
         }
       },
       "3144616920": {
-        "nickname": "",
-        "name_records": [],
+        "nickname": "把好饭拼好给你",
+        "name_records": [
+          {
+            "content": "萌喜欢萌你的超超Q",
+            "source": "group_card",
+            "group_id": 1026976640,
+            "updated_at": "2026-05-02T16:19:08.842666+00:00"
+          }
+        ],
         "tags": [
           "playful",
           "tech-savvy",
@@ -654,7 +906,7 @@
         ],
         "affinity": -0.011000000000000001,
         "interaction_style": "Sends multiple short messages with frequent @mentions and internet slang.、Sends short、emotionally expressive messages with occasional @mentions and internet slang",
-        "updated_at": "2026-04-29T03:58:52.474725+00:00",
+        "updated_at": "2026-05-02T16:19:08.842666+00:00",
         "tag_scores": {
           "playful": 2.4302387875,
           "tech-savvy": 2.4302387875,
@@ -671,12 +923,19 @@
         }
       },
       "2569818408": {
-        "nickname": "",
-        "name_records": [],
+        "nickname": "柯震东",
+        "name_records": [
+          {
+            "content": "想和少爷蛇纹",
+            "source": "group_card",
+            "group_id": 1026976640,
+            "updated_at": "2026-05-02T16:19:02.373067+00:00"
+          }
+        ],
         "tags": [],
         "affinity": 0.0,
         "interaction_style": "暂无明确长期互动风格",
-        "updated_at": "2026-04-27T14:28:03.661329+00:00",
+        "updated_at": "2026-05-02T16:19:02.373067+00:00",
         "tag_scores": {},
         "style_scores": {
           "暂无明确长期互动风格": 0.7919999999999999
@@ -689,7 +948,7 @@
             "content": "-千歲歲佐奈奈-",
             "source": "group_card",
             "group_id": 1026976640,
-            "updated_at": "2026-04-29T04:46:22.806656+00:00"
+            "updated_at": "2026-05-02T16:19:00.816781+00:00"
           }
         ],
         "tags": [
@@ -699,7 +958,7 @@
         ],
         "affinity": 0.0,
         "interaction_style": "用户主动分享图片和幽默评论、不介意助手安静围观。",
-        "updated_at": "2026-04-29T04:46:22.806656+00:00",
+        "updated_at": "2026-05-02T16:19:00.816781+00:00",
         "tag_scores": {
           "二次元爱好者": 1.2805,
           "图片分享者": 1.2805,
@@ -717,7 +976,7 @@
             "content": "想看牢猫与lmr蛇纹",
             "source": "group_card",
             "group_id": 1026976640,
-            "updated_at": "2026-04-29T04:43:02.021667+00:00"
+            "updated_at": "2026-04-30T10:14:28.076744+00:00"
           }
         ],
         "tags": [
@@ -728,7 +987,7 @@
         ],
         "affinity": 0.0,
         "interaction_style": "User engages in self-narrated、humorous commentary、sometimes addressing others directly.",
-        "updated_at": "2026-04-29T04:43:02.021667+00:00",
+        "updated_at": "2026-04-30T10:14:28.076744+00:00",
         "tag_scores": {
           "casual conversationalist": 1.379,
           "humorous internet slang user": 1.379,
@@ -748,7 +1007,7 @@
             "content": "超超喜欢你的绫喵",
             "source": "group_card",
             "group_id": 1026976640,
-            "updated_at": "2026-04-29T04:45:21.236148+00:00"
+            "updated_at": "2026-05-02T16:18:18.777449+00:00"
           }
         ],
         "tags": [
@@ -758,7 +1017,7 @@
         ],
         "affinity": 0.0,
         "interaction_style": "以图片和转发为主、文字简洁、偏好与机器人互动。",
-        "updated_at": "2026-04-29T04:45:21.236148+00:00",
+        "updated_at": "2026-05-02T16:18:18.777449+00:00",
         "tag_scores": {
           "分享图片": 1.1820000000000002,
           "关注机器人对话": 1.1820000000000002,
@@ -794,13 +1053,13 @@
             "content": "那是因为我还没有启动",
             "source": "group_card",
             "group_id": 827043738,
-            "updated_at": "2026-04-29T04:40:14.671752+00:00"
+            "updated_at": "2026-04-30T10:38:53.812792+00:00"
           }
         ],
         "tags": [],
         "affinity": 0.0,
         "interaction_style": "",
-        "updated_at": "2026-04-29T04:40:14.671752+00:00",
+        "updated_at": "2026-04-30T10:38:53.812792+00:00",
         "tag_scores": {},
         "style_scores": {}
       },
@@ -838,15 +1097,23 @@
             "content": "叙拉古才是老大！",
             "source": "group_card",
             "group_id": 827043738,
-            "updated_at": "2026-04-29T04:42:19.991911+00:00"
+            "updated_at": "2026-04-30T10:26:21.337134+00:00"
           }
         ],
-        "tags": [],
+        "tags": [
+          "FGO玩家"
+        ],
         "affinity": 0.0,
-        "interaction_style": "",
-        "updated_at": "2026-04-29T04:42:19.991911+00:00",
-        "tag_scores": {},
-        "style_scores": {}
+        "interaction_style": "倾向于使用短消息和表情、语气直接带情绪、常表达游戏相关诉求",
+        "updated_at": "2026-04-30T10:26:21.337134+00:00",
+        "tag_scores": {
+          "FGO玩家": 1.0835000000000001
+        },
+        "style_scores": {
+          "倾向于使用短消息和表情": 0.99,
+          "语气直接带情绪": 0.99,
+          "常表达游戏相关诉求": 0.99
+        }
       },
       "3564856283": {
         "nickname": "邘夕落",
@@ -855,13 +1122,13 @@
             "content": "改我id的以后所有限定加陪跑吃井",
             "source": "group_card",
             "group_id": 827043738,
-            "updated_at": "2026-04-29T04:42:34.799384+00:00"
+            "updated_at": "2026-04-29T05:37:38.633066+00:00"
           }
         ],
         "tags": [],
         "affinity": 0.0,
         "interaction_style": "",
-        "updated_at": "2026-04-29T04:42:34.799384+00:00",
+        "updated_at": "2026-04-29T05:37:38.633066+00:00",
         "tag_scores": {},
         "style_scores": {}
       },
@@ -892,6 +1159,514 @@
         "affinity": 0.0,
         "interaction_style": "",
         "updated_at": "2026-04-29T04:48:28.775363+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "2829627470": {
+        "nickname": "德厨呀",
+        "name_records": [
+          {
+            "content": "[有人@你]给我留个卫置",
+            "source": "group_card",
+            "group_id": 827043738,
+            "updated_at": "2026-04-30T09:59:22.585100+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-30T09:59:22.585100+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "1269082390": {
+        "nickname": "300",
+        "name_records": [
+          {
+            "content": "你回浦阿厨：我说都能卖",
+            "source": "group_card",
+            "group_id": 827043738,
+            "updated_at": "2026-04-30T10:15:59.250978+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-30T10:15:59.250978+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "3170793253": {
+        "nickname": "疾风之龙",
+        "name_records": [
+          {
+            "content": "25机机机世锦赛",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-04-30T10:41:10.636145+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-30T10:41:10.636145+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "2016860013": {
+        "nickname": "顺天一方",
+        "name_records": [
+          {
+            "content": "智科ksh",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-04-30T10:28:22.213816+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-30T10:28:22.213816+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "3562309217": {
+        "nickname": "风之谷",
+        "name_records": [
+          {
+            "content": "没有活过8⑨年的夏天",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-04-29T06:47:45.672035+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-29T06:47:45.672035+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "3612519671": {
+        "nickname": "杏杏杏杏杏",
+        "name_records": [
+          {
+            "content": "喜欢超超你的杏隐隐杏珠珠",
+            "source": "group_card",
+            "group_id": 1026976640,
+            "updated_at": "2026-04-30T10:10:31.931818+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "none",
+        "updated_at": "2026-04-30T10:10:31.931818+00:00",
+        "tag_scores": {},
+        "style_scores": {
+          "none": 1.188
+        }
+      },
+      "2399003177": {
+        "nickname": "奥利奥童鞋",
+        "name_records": [],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-29T05:41:57.261193+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "209794275": {
+        "nickname": "文三路上单.",
+        "name_records": [
+          {
+            "content": "铸币中登",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-04-30T10:10:40.239905+00:00"
+          }
+        ],
+        "tags": [
+          "学生",
+          "爱用表情",
+          "技术爱好者",
+          "云服务器使用者",
+          "游戏服务器关注者"
+        ],
+        "affinity": 0.011000000000000001,
+        "interaction_style": "喜欢用表情和图片交流、文字简短活泼、常涉及技术话题",
+        "updated_at": "2026-04-30T10:10:40.239905+00:00",
+        "tag_scores": {
+          "学生": 4.17814345,
+          "爱用表情": 4.17814345,
+          "技术爱好者": 3.0313375000000002,
+          "云服务器使用者": 3.0313375000000002,
+          "游戏服务器关注者": 1.576
+        },
+        "style_scores": {
+          "喜欢用表情和图片交流": 3.9244689,
+          "文字简短活泼": 3.9244689,
+          "常涉及技术话题": 2.8571400000000002,
+          "会引用回复他人": 1.4849999999999999
+        }
+      },
+      "2198936039": {
+        "nickname": "思无邪",
+        "name_records": [
+          {
+            "content": "物理王*🤫",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-04-29T07:01:34.863034+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-29T07:01:34.863034+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "1397037658": {
+        "nickname": "九畹采萧",
+        "name_records": [],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-29T06:13:27.633602+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "1448536442": {
+        "nickname": "珲",
+        "name_records": [],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-29T06:22:27.384420+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "1343812979": {
+        "nickname": "Koyuki",
+        "name_records": [],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-29T06:25:03.003999+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "3443623068": {
+        "nickname": "壹只屑导",
+        "name_records": [
+          {
+            "content": "李织烟被我凿的面无表情高超",
+            "source": "group_card",
+            "group_id": 827043738,
+            "updated_at": "2026-04-30T10:31:57.611355+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-30T10:31:57.611355+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "1049547366": {
+        "nickname": "荀荀荀",
+        "name_records": [],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-29T06:25:37.112022+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "2077118009": {
+        "nickname": "Lumen",
+        "name_records": [],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-29T06:33:55.766236+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "2505556752": {
+        "nickname": "完了啊😦",
+        "name_records": [
+          {
+            "content": "撞大运",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-04-29T06:34:37.421050+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-29T06:34:37.421050+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "1423572958": {
+        "nickname": "codeboy",
+        "name_records": [],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-29T06:35:02.404329+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "949863883": {
+        "nickname": "Кино🧑‍🌾🐴🐑🐔🐷",
+        "name_records": [],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-29T06:55:01.574027+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "1213722171": {
+        "nickname": "📱",
+        "name_records": [
+          {
+            "content": "steam九折余额找我喵",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-04-29T07:04:54.043105+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-29T07:04:54.043105+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "1094803128": {
+        "nickname": "Cocoa.",
+        "name_records": [
+          {
+            "content": "你说得对但牛骨火锅真的超好吃",
+            "source": "group_card",
+            "group_id": 878192084,
+            "updated_at": "2026-04-29T07:03:21.006799+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-29T07:03:21.006799+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "3575238089": {
+        "nickname": "令人心寒",
+        "name_records": [
+          {
+            "content": "区",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-04-29T07:06:21.467808+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-29T07:06:21.467808+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "3297132245": {
+        "nickname": "宇琨",
+        "name_records": [],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-29T07:07:01.205494+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "2926293119": {
+        "nickname": "沫秋",
+        "name_records": [
+          {
+            "content": "想超超超你的沫秋",
+            "source": "group_card",
+            "group_id": 1026976640,
+            "updated_at": "2026-04-29T07:20:39.053834+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-29T07:20:39.053834+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "2470535170": {
+        "nickname": "小丛雨呀",
+        "name_records": [],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-29T07:30:07.738178+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "3562552292": {
+        "nickname": "洞里有只小猢狲",
+        "name_records": [
+          {
+            "content": "我这一生如履薄冰",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-04-30T09:44:40.193543+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-30T09:44:40.193543+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "2393350071": {
+        "nickname": "九霄环佩",
+        "name_records": [
+          {
+            "content": "九霄环佩",
+            "source": "group_card",
+            "group_id": 1026976640,
+            "updated_at": "2026-05-02T16:19:09.874594+00:00"
+          }
+        ],
+        "tags": [
+          "绘画爱好者",
+          "原创角色创作者",
+          "指导倾向",
+          "资源分享者"
+        ],
+        "affinity": 0.011000000000000001,
+        "interaction_style": "主动分享画风资源并提供绘画技巧指导",
+        "updated_at": "2026-05-02T16:19:09.874594+00:00",
+        "tag_scores": {
+          "绘画爱好者": 1.4775,
+          "原创角色创作者": 1.4775,
+          "指导倾向": 1.4775,
+          "资源分享者": 1.4775
+        },
+        "style_scores": {
+          "主动分享画风资源并提供绘画技巧指导": 1.386
+        }
+      },
+      "2745897048": {
+        "nickname": "承诺",
+        "name_records": [],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-30T09:52:41.985164+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "3538949217": {
+        "nickname": "腋下花开",
+        "name_records": [
+          {
+            "content": "张Ruifan",
+            "source": "group_card",
+            "group_id": 827043738,
+            "updated_at": "2026-04-30T10:26:39.544947+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-30T10:26:39.544947+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "2910336006": {
+        "nickname": "柠檬水好喝",
+        "name_records": [
+          {
+            "content": "张锐克",
+            "source": "group_card",
+            "group_id": 827043738,
+            "updated_at": "2026-04-30T10:01:38.290073+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-30T10:01:38.290073+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "200608286": {
+        "nickname": "死体遺棄",
+        "name_records": [
+          {
+            "content": "莱昂图索的狗",
+            "source": "group_card",
+            "group_id": 827043738,
+            "updated_at": "2026-04-30T10:11:40.937653+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-30T10:11:40.937653+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "2700483772": {
+        "nickname": "小埋",
+        "name_records": [
+          {
+            "content": "群小埋",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-04-30T10:28:26.733506+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-30T10:28:26.733506+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "2079230695": {
+        "nickname": "HuR-353",
+        "name_records": [
+          {
+            "content": "353",
+            "source": "group_card",
+            "group_id": 247037890,
+            "updated_at": "2026-04-30T10:41:25.462697+00:00"
+          }
+        ],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-04-30T10:41:25.462697+00:00",
+        "tag_scores": {},
+        "style_scores": {}
+      },
+      "2854211260": {
+        "nickname": "是萌卡喵呢",
+        "name_records": [],
+        "tags": [],
+        "affinity": 0.0,
+        "interaction_style": "",
+        "updated_at": "2026-05-02T16:16:05.448053+00:00",
         "tag_scores": {},
         "style_scores": {}
       }
