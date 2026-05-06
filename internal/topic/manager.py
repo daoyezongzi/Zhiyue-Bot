@@ -222,7 +222,9 @@ class TopicManager:
         if current is None and active:
             current = active[0]
 
-        current_block = self._render_topic_block(current, include_recent=True) if current else ""
+        # The latest user turn is already present in chat context.
+        # Avoid duplicating that line in topic memory injection, which can cause parroting.
+        current_block = self._render_topic_block(current, include_recent=False) if current else ""
         archived_blocks = await self._recall_archived(query_text=query_text, topics=archived)
         return {"current_topic": current_block, "archived_topics": archived_blocks}
 
@@ -814,4 +816,3 @@ class TopicManager:
             temp_file = self._store_path.with_suffix(self._store_path.suffix + ".tmp")
             temp_file.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
             temp_file.replace(self._store_path)
-

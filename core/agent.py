@@ -75,6 +75,7 @@ class ThinkContext:
     group_id: int | None
     speaker: str
     source_text: str
+    mentioned_in_window: bool
     is_master: bool
     mood: MoodInfo
     style: StyleClassification
@@ -304,8 +305,16 @@ class ZhiyueAgent:
         r"\[\[\s*(?:sticker|表情包)\s*[:：]\s*(?P<query>[^\]\r\n]{1,120})\s*\]\]",
         re.IGNORECASE,
     )
+    _STICKER_MARKER_LOOSE_PATTERN = re.compile(
+        r"\[\[\s*(?:sticker|表情包)\s*[:：]\s*(?P<query>[^\]\r\n，。,;；!！?？]{1,120})\s*(?:\]\]?)?",
+        re.IGNORECASE,
+    )
     _STICKER_FUNC_CALL_PATTERN = re.compile(
         r"sendSticker\s*[\(（]\s*(?P<query>[^)\）\r\n]{1,120})\s*[\)）]",
+        re.IGNORECASE,
+    )
+    _STICKER_FUNC_CALL_LOOSE_PATTERN = re.compile(
+        r"sendSticker\s*[\(（]\s*(?P<query>[^)\）\r\n，。,;；!！?？]{1,120})\s*[\)）]?",
         re.IGNORECASE,
     )
     _STICKER_INTENT_PATTERN = re.compile(
@@ -326,9 +335,9 @@ class ZhiyueAgent:
     _SILENCE_PLACEHOLDER_PATTERN = re.compile(
         (
             r"^\s*[（(]?\s*"
-            r"(?:沉默观察|保持沉默|保持安静即可|保持安静|安静即可|先观察|继续观察|无必要回应|无需回应|无需回复|暂不回应|不作回应|没有新内容需要回应|先潜水|先潜水了|先潜水啦)"
+            r"(?:沉默观察|保持沉默|保持安静即可|保持安静|安静即可|先观察|继续观察|无必要回应|无需回应|无需回复|不需要回应|不用回应|无需额外回应|不需要额外回应(?:了)?|暂不回应|不作回应|没有新内容需要回应|先潜水|先潜水了|先潜水啦)"
             r"(?:\s*[，,、；;]\s*"
-            r"(?:沉默观察|保持沉默|保持安静即可|保持安静|安静即可|先观察|继续观察|无必要回应|无需回应|无需回复|暂不回应|不作回应|没有新内容需要回应|先潜水|先潜水了|先潜水啦))*"
+            r"(?:沉默观察|保持沉默|保持安静即可|保持安静|安静即可|先观察|继续观察|无必要回应|无需回应|无需回复|不需要回应|不用回应|无需额外回应|不需要额外回应(?:了)?|暂不回应|不作回应|没有新内容需要回应|先潜水|先潜水了|先潜水啦))*"
             r"\s*[）)]?\s*$"
         ),
         re.IGNORECASE,
@@ -337,7 +346,7 @@ class ZhiyueAgent:
         (
             r"^\s*(?:"
             r"(?:(?:请|就|那就|直接)?\s*(?:调用|call|use|invoke|执行|选择)?\s*stay[_\s-]?quiet(?:\s*[\(（][^)\r\n]{0,120}[\)）])?(?:\s*(?:工具|结束推理|结束|即可|就行|就好|吧))?)|"
-            r"stayQuiet|stay_quiet|保持沉默|保持安静即可|保持安静|安静即可|不回复|无需回复|无必要回应|"
+            r"stayQuiet|stay_quiet|保持沉默|保持安静即可|保持安静|安静即可|不回复|无需回复|无必要回应|不需要回应|不用回应|无需额外回应|不需要额外回应(?:了)?|"
             r"\{.*?(?:stayQuiet|stay_quiet).*?\}"
             r")\s*$"
         ),
@@ -364,6 +373,10 @@ class ZhiyueAgent:
         "不回复",
         "无需回复",
         "无必要回应",
+        "不需要回应",
+        "不用回应",
+        "无需额外回应",
+        "不需要额外回应",
     }
     _PASSIVE_GROUP_REPLY_CUE_PATTERN = re.compile(
         r"[?？]|怎么|如何|为啥|为什么|是否|能不能|可不可以|有没有|要不要|谁|哪|几|啥|吗|呢|求|帮|请教|建议|怎么看",
@@ -382,6 +395,11 @@ class ZhiyueAgent:
     )
     _REPLY_LINE_SPLIT_PATTERN = re.compile(r"(?:\r?\n)+")
     _REPLY_SENTENCE_PATTERN = re.compile(r"[^。！？!?；;\n]+(?:[。！？!?；;]+|$)")
+    _TERMINAL_PERIOD_PATTERN = re.compile(r"。+\s*$")
+    _JOKING_REPLY_CUE_PATTERN = re.compile(
+        r"(?:哈哈|哈{2,}|嘿嘿|笑死|绷不住|乐子|整活|开玩笑|逗你|狗头|doge|233|xD|XD|qwq|捏|欸嘿)",
+        re.IGNORECASE,
+    )
     _LOG_STYLE_SELF_PREFIX_PATTERN = re.compile(
         r"^\s*(?:>\s*)?(?:(?:\[[^\]\r\n]+\]\s*)+(?:\(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\)\s*)?|\(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\)\s*)(?P<speaker>[^:\r\n]{1,32})\s*[:：]\s*(?P<body>.*)$",
         re.DOTALL,
@@ -402,6 +420,8 @@ class ZhiyueAgent:
     _AUTO_STICKER_SEND_PROBABILITY = 0.22
     _AUTO_STICKER_GROUP_COOLDOWN_SEC = 300
     _AUTO_STICKER_DIRECT_COOLDOWN_SEC = 180
+    _SILENCE_STICKER_SEND_PROBABILITY = 0.12
+    _SILENCE_STICKER_GROUP_COOLDOWN_SEC = 420
     _TAROT_DRAW_COOLDOWN_SEC = 60
     _SUPPORTED_ADMIN_ACTIONS = {"toggle_group_chat", "join_group_chat", "shutdown"}
     _ADMIN_HELP_SUBCOMMANDS = {"帮助", "列表", "list", "help", "帮助/list", "help/list"}
@@ -410,6 +430,8 @@ class ZhiyueAgent:
         "join_group_chat": "加入群聊",
         "shutdown": "关闭程序",
     }
+    _SILENCE_FORCE_REPLY_SKIP_THRESHOLD = 3
+    _SILENCE_FORCE_REPLY_IDLE_SEC = 180
     _TOOL_MAX_STEP = 6
 
     def __init__(
@@ -485,10 +507,15 @@ class ZhiyueAgent:
         self._inbound_worker: asyncio.Task[None] | None = None
         self._dispatch_worker: asyncio.Task[None] | None = None
         self._prompt_cache_heartbeat_task: asyncio.Task[None] | None = None
-        # Slightly shorter debounce keeps response natural while reducing perceived delay.
-        self._debounce_window_sec = 0.4
+        # Keep message aggregation short to reduce response latency.
+        debounce_ms = self._parse_positive_int(getattr(self.cfg.agent, "think_debounce_ms", None))
+        if debounce_ms is None:
+            debounce_ms = 260
+        self._debounce_window_sec = max(0.08, min(float(debounce_ms) / 1000.0, 0.35))
         self._low_energy_last_reply_at: dict[str, datetime] = {}
         self._low_energy_last_reply_text: dict[str, str] = {}
+        self._consecutive_skip_count: dict[str, int] = {}
+        self._last_reply_at: dict[str, datetime] = {}
         self._sticker_last_sent_at: dict[str, datetime] = {}
         self._tarot_last_draw_at: dict[str, datetime] = {}
         self._rng = random.Random()
@@ -514,11 +541,11 @@ class ZhiyueAgent:
         if self._started:
             return
         self._started_at_utc = datetime.now(timezone.utc)
-        await self.jargon_mgr.reload()
         await self.memory_mgr.start()
         await self.topic_mgr.start()
         await self.user_profiler.start()
         await self.jargon_engine.start()
+        await self._reload_jargon_matcher_from_store()
         await self.status_engine.start()
         restored_status = await self._sync_personality_with_status_engine()
         self._inbound_worker = asyncio.create_task(self._inbound_loop(), name="zhiyue-inbound-worker")
@@ -816,7 +843,17 @@ class ZhiyueAgent:
                 return
 
         if message_type == "group" and group_id is not None and not self.cfg.is_group_enabled(group_id):
-            self._logger.info("Skip group message: group not enabled group_id=%s", group_id)
+            self._logger.info(
+                (
+                    "Skip group message: group not enabled group_id=%s "
+                    "mentioned=%s explicit_at=%s is_master=%s is_admin=%s"
+                ),
+                group_id,
+                mentioned_in_window,
+                explicit_at_in_window,
+                is_master,
+                is_admin_sender,
+            )
             return
 
         if raw_text:
@@ -908,6 +945,10 @@ class ZhiyueAgent:
             content=text,
             created_at=now_utc,
         )
+        topic_interest_score = self._apply_topic_interest_mood(
+            session_id=session_id,
+            source_text=text,
+        )
         await self._run_background_observers(
             self.user_profiler.observe_user_message(
                 user_id=user_id,
@@ -931,7 +972,7 @@ class ZhiyueAgent:
         self._logger.info(
             (
                 "HandleMessage: session=%s type=%s user_id=%s group_id=%s master=%s "
-                "status_energy=%.1f status_tier=%s fatigue=%s"
+                "status_energy=%.1f status_tier=%s fatigue=%s topic_interest=%.2f"
             ),
             session_id,
             message_type,
@@ -941,6 +982,7 @@ class ZhiyueAgent:
             status_after_user.energy,
             status_after_user.energy_tier,
             status_after_user.fatigue_mode,
+            topic_interest_score,
         )
 
         low_energy_mode = bool(status_after_user.fatigue_mode)
@@ -948,34 +990,84 @@ class ZhiyueAgent:
         forced_rest = False
 
         if low_energy_mode:
-            if not explicit_at_in_window:
+            if explicit_at_in_window:
+                final_reply = self._LOW_ENERGY_AT_ONLY_REPLY
+                forced_rest = True
+                self._logger.info(
+                    "Queue.LowEnergyReply: session=%s status_energy=%.1f fatigue=%s forced_rest=%s mode=explicit_at_only",
+                    session_id,
+                    status_after_user.energy,
+                    status_after_user.fatigue_mode,
+                    forced_rest,
+                )
+            elif mentioned_in_window:
+                final_reply = self._pick_low_energy_reply(session_id=session_id)
+                self._logger.info(
+                    "Queue.LowEnergyReply: session=%s status_energy=%.1f fatigue=%s forced_rest=%s mode=mention_guard",
+                    session_id,
+                    status_after_user.energy,
+                    status_after_user.fatigue_mode,
+                    forced_rest,
+                )
+            elif bool(status_after_user.forced_rest):
+                self._logger.info(
+                    "Queue.SkipReply: session=%s reason=forced_rest status_energy=%.1f",
+                    session_id,
+                    status_after_user.energy,
+                )
+                self._track_reply_skip(session_id=session_id, reason="forced_rest")
+                return
+            elif self._allow_low_energy_reply(
+                session_id=session_id,
+                message_type=message_type,
+                mentioned_in_window=mentioned_in_window,
+                status_energy=status_after_user.energy,
+                forced_rest=False,
+            ):
+                final_reply = self._pick_low_energy_reply(session_id=session_id)
+                self._logger.info(
+                    "Queue.LowEnergyReply: session=%s status_energy=%.1f fatigue=%s forced_rest=%s mode=probability",
+                    session_id,
+                    status_after_user.energy,
+                    status_after_user.fatigue_mode,
+                    forced_rest,
+                )
+            else:
                 self._logger.info(
                     "Queue.SkipReply: session=%s reason=low_energy_no_explicit_at status_energy=%.1f",
                     session_id,
                     status_after_user.energy,
                 )
+                self._track_reply_skip(session_id=session_id, reason="low_energy_no_explicit_at")
                 return
 
-            final_reply = self._LOW_ENERGY_AT_ONLY_REPLY
-            forced_rest = True
-            self._logger.info(
-                "Queue.LowEnergyReply: session=%s status_energy=%.1f fatigue=%s forced_rest=%s mode=explicit_at_only",
-                session_id,
-                status_after_user.energy,
-                status_after_user.fatigue_mode,
-                forced_rest,
-            )
-
         if not final_reply:
-            llm_route_probability = self._llm_route_probability(
+            force_active_reply = self._should_force_active_reply(
+                session_id=session_id,
                 message_type=message_type,
                 mentioned_in_window=mentioned_in_window,
-                status_energy=status_after_user.energy,
+                source_text=text,
                 is_master=is_master,
                 is_admin_sender=is_admin_sender,
-                sticker_intent=sticker_intent,
-                source_text=text,
             )
+            llm_route_probability = 1.0
+            if not force_active_reply:
+                llm_route_probability = self._llm_route_probability(
+                    message_type=message_type,
+                    mentioned_in_window=mentioned_in_window,
+                    status_energy=status_after_user.energy,
+                    is_master=is_master,
+                    is_admin_sender=is_admin_sender,
+                    sticker_intent=sticker_intent,
+                    source_text=text,
+                    topic_interest_score=topic_interest_score,
+                )
+            else:
+                self._logger.info(
+                    "Queue.ForceReply: session=%s reason=silence_guard skip_count=%s",
+                    session_id,
+                    self._consecutive_skip_count.get(session_id, 0),
+                )
             if llm_route_probability < 1.0:
                 roll = self._rng.random()
                 if roll >= llm_route_probability:
@@ -989,6 +1081,7 @@ class ZhiyueAgent:
                         llm_route_probability,
                         status_after_user.energy,
                     )
+                    self._track_reply_skip(session_id=session_id, reason="llm_route_probability")
                     return
 
             retrieval = await self.memory_mgr.retrieve_for_prompt(
@@ -1031,18 +1124,37 @@ class ZhiyueAgent:
                 max_tokens_override=self._mood_reply_token_cap(ctx),
             )
             reply = await self._after_llm_think(ctx, reply)
+            if not reply and force_active_reply:
+                reply = await self._recover_required_reply(ctx, reason="silence_guard")
             if not reply:
+                if await self._maybe_send_silence_sticker(ctx=ctx, reason="empty_after_llm_think"):
+                    self._mark_reply_sent(session_id=session_id)
+                    return
+                self._logger.info("Queue.SkipReply: session=%s reason=empty_after_llm_think", session_id)
+                self._track_reply_skip(session_id=session_id, reason="empty_after_llm_think")
                 return
 
             final_reply = await self._response_post_process(reply, ctx)
             if not final_reply:
+                if await self._maybe_send_silence_sticker(ctx=ctx, reason="empty_after_post_process"):
+                    self._mark_reply_sent(session_id=session_id)
+                    return
+                self._logger.info("Queue.SkipReply: session=%s reason=empty_after_post_process", session_id)
+                self._track_reply_skip(session_id=session_id, reason="empty_after_post_process")
                 return
 
             final_reply, forced_rest = await self.status_engine.apply_reply_policy(final_reply)
             if not final_reply:
+                self._logger.info("Queue.SkipReply: session=%s reason=reply_policy_empty", session_id)
+                self._track_reply_skip(session_id=session_id, reason="reply_policy_empty")
                 return
 
-        await self._reply(message, final_reply)
+        try:
+            await self._reply(message, final_reply)
+        except Exception:
+            self._track_reply_skip(session_id=session_id, reason="send_failed")
+            raise
+        self._mark_reply_sent(session_id=session_id)
         if low_energy_mode:
             self._mark_low_energy_reply(session_id=session_id, reply=final_reply)
 
@@ -1151,6 +1263,7 @@ class ZhiyueAgent:
             group_id=self._to_int(message.get("group_id")),
             speaker=speaker,
             source_text=str(message.get("text", "")).strip(),
+            mentioned_in_window=mentioned_in_window,
             is_master=is_master,
             mood=built.mood,
             style=built.style,
@@ -1238,11 +1351,12 @@ class ZhiyueAgent:
                 self._build_assistant_tool_call_message(think_result.content, think_result.tool_calls),
             )
 
-            executed_any = False
+            handled_any = False
             for tool_call in think_result.tool_calls:
                 tool_name = str(tool_call.name or "").strip()
                 if not tool_name:
                     continue
+                handled_any = True
                 tool_success = False
                 tool_error = ""
                 plugin = self._plugin_registry.get(tool_name)
@@ -1258,7 +1372,6 @@ class ZhiyueAgent:
                     arguments = self._filter_tool_arguments(plugin, self._parse_tool_arguments(tool_call.arguments))
                     try:
                         tool_payload = await plugin.run(tool_ctx, **arguments)
-                        executed_any = True
                         tool_success = True
                         self._logger.info(
                             "LLM.Tool executed: session=%s tool=%s result=%s",
@@ -1313,7 +1426,7 @@ class ZhiyueAgent:
 
             if force_silence:
                 return LLMThinkResult(content="", tool_calls=[], force_silence=True)
-            if not executed_any:
+            if not handled_any:
                 break
 
         self._logger.info(
@@ -1324,19 +1437,90 @@ class ZhiyueAgent:
         return LLMThinkResult(content=last_text_reply, tool_calls=[], force_silence=force_silence)
 
     async def _after_llm_think(self, ctx: ThinkContext, think_result: LLMThinkResult) -> str:
+        must_reply = self._must_reply_in_context(ctx)
         if think_result.force_silence:
+            if must_reply:
+                fallback = await self._recover_required_reply(ctx, reason="stayQuiet_tool")
+                if fallback:
+                    return fallback
             self._logger.info("LLM.Reply suppressed: session=%s reason=stayQuiet_tool", ctx.session_id)
             return ""
 
         tool_result = await self._apply_tool_results(ctx, think_result)
         if bool(tool_result.get("force_silence", False)):
+            if must_reply:
+                fallback = await self._recover_required_reply(ctx, reason="silence_state_flag")
+                if fallback:
+                    return fallback
             self._logger.info("LLM.Reply suppressed: session=%s reason=silence_state_flag", ctx.session_id)
             return ""
         clean_reply = str(tool_result.get("clean_reply", think_result.content) or "").strip()
         if self._should_force_silence(clean_reply):
+            if must_reply:
+                fallback = await self._recover_required_reply(ctx, reason="silence_placeholder")
+                if fallback:
+                    return fallback
             self._logger.info("LLM.Reply suppressed: session=%s reason=silence_placeholder", ctx.session_id)
             return ""
+        if not clean_reply and must_reply:
+            fallback = await self._recover_required_reply(ctx, reason="empty_reply")
+            if fallback:
+                return fallback
         return clean_reply
+
+    def _must_reply_in_context(self, ctx: ThinkContext) -> bool:
+        if ctx.message_type != "group":
+            return True
+        if ctx.mentioned_in_window:
+            return True
+        clean_source = str(ctx.source_text or "").strip()
+        if not clean_source:
+            return False
+        if self._PASSIVE_GROUP_REPLY_CUE_PATTERN.search(clean_source):
+            return True
+        compact = re.sub(r"\s+", "", clean_source)
+        if len(compact) >= 20 and not self._is_low_signal_passive_group_message(clean_source):
+            return True
+        return False
+
+    async def _recover_required_reply(self, ctx: ThinkContext, *, reason: str) -> str:
+        extra_fields: dict[str, Any] = dict(self.cfg.llm.extra_fields)
+        if self.cfg.llm.max_response_tokens > 0:
+            if "max_tokens" not in extra_fields and "max_completion_tokens" not in extra_fields:
+                extra_fields["max_tokens"] = self.cfg.llm.max_response_tokens
+        self._set_response_token_cap(extra_fields, 96)
+
+        prompt = (
+            "你上一轮没有给出可直接发送的回复。"
+            "现在必须回复且只输出正文：1-2句，简短自然。"
+            "禁止输出 stayQuiet、沉默说明、工具调用、JSON、代码块。"
+        )
+        messages = [dict(item) for item in ctx.llm_messages]
+        messages.append({"role": "user", "content": prompt})
+        data = await self.llm.request_chat_completion(messages, extra_fields)
+        recovered = self._parse_llm_think_response(data)
+        clean = self._normalize_reply_spaces(str(recovered.content or "")).strip()
+        if not clean:
+            self._logger.info(
+                "LLM.Reply recover failed: session=%s reason=%s detail=empty",
+                ctx.session_id,
+                reason,
+            )
+            return ""
+        if self._should_force_silence(clean):
+            self._logger.info(
+                "LLM.Reply recover failed: session=%s reason=%s detail=silence_like",
+                ctx.session_id,
+                reason,
+            )
+            return ""
+        self._logger.info(
+            "LLM.Reply recovered: session=%s reason=%s preview=%s",
+            ctx.session_id,
+            reason,
+            clean[:120],
+        )
+        return clean
 
     async def _plan_tool_calls(self, ctx: ThinkContext) -> list[str]:
         del ctx
@@ -1346,8 +1530,9 @@ class ZhiyueAgent:
         energy_ratio = self._clamp_probability(
             (ctx.status.energy / 100.0) if ctx.status is not None else ctx.mood.energy,
         )
+        mood_value = max(-1.0, min(1.0, float(ctx.mood.valence)))
         return self.jargon_mgr.classify_style(
-            0.0,
+            mood_value,
             energy_ratio,
             speaker_is_master=ctx.is_master,
         )
@@ -1380,8 +1565,7 @@ class ZhiyueAgent:
                     self._mark_sticker_reply(session_id=ctx.session_id)
                     break
 
-        clean_reply = self._STICKER_MARKER_PATTERN.sub("", clean_reply)
-        clean_reply = self._STICKER_FUNC_CALL_PATTERN.sub("", clean_reply)
+        clean_reply = self._strip_sticker_control_leaks(clean_reply)
         if sticker_sent:
             clean_reply = self._FAKE_STICKER_TEXT_PATTERN.sub("", clean_reply)
             clean_reply = self._normalize_reply_spaces(clean_reply)
@@ -1418,8 +1602,8 @@ class ZhiyueAgent:
 
     def _build_llm_tool_schemas(self) -> list[dict[str, Any]]:
         preferred = [
-            "stayQuiet",
             "searchStickers",
+            "sendSticker",
             "queryMemory",
             "saveMemory",
             "searchJargon",
@@ -1427,6 +1611,7 @@ class ZhiyueAgent:
             "getMemberInfo",
             "getRecentMessages",
             "getGroupMemberDetail",
+            "stayQuiet",
         ]
         out: list[dict[str, Any]] = []
         for name in preferred:
@@ -1679,7 +1864,9 @@ class ZhiyueAgent:
         seen: set[str] = set()
 
         def _append(raw_query: str) -> None:
-            query = str(raw_query or "").strip().strip("\"'`“”‘’")
+            query = str(raw_query or "").strip()
+            query = re.sub(r"^[\s\"'`“”‘’\[\]\(\)\{\}<>]+", "", query)
+            query = re.sub(r"[\s\"'`“”‘’\[\]\(\)\{\}<>,，。.!！?？;；:：]+$", "", query)
             if not query:
                 return
             lowered = query.lower()
@@ -1688,11 +1875,27 @@ class ZhiyueAgent:
             seen.add(lowered)
             out.append(query)
 
-        for match in self._STICKER_MARKER_PATTERN.finditer(clean_reply):
-            _append(match.group("query"))
-        for match in self._STICKER_FUNC_CALL_PATTERN.finditer(clean_reply):
-            _append(match.group("query"))
+        for pattern in (
+            self._STICKER_MARKER_PATTERN,
+            self._STICKER_MARKER_LOOSE_PATTERN,
+            self._STICKER_FUNC_CALL_PATTERN,
+            self._STICKER_FUNC_CALL_LOOSE_PATTERN,
+        ):
+            for match in pattern.finditer(clean_reply):
+                _append(match.group("query"))
         return out
+
+    @classmethod
+    def _strip_sticker_control_leaks(cls, text: str) -> str:
+        clean = str(text or "")
+        for pattern in (
+            cls._STICKER_MARKER_PATTERN,
+            cls._STICKER_MARKER_LOOSE_PATTERN,
+            cls._STICKER_FUNC_CALL_PATTERN,
+            cls._STICKER_FUNC_CALL_LOOSE_PATTERN,
+        ):
+            clean = pattern.sub("", clean)
+        return clean
 
     @staticmethod
     def _normalize_reply_spaces(text: str) -> str:
@@ -1878,12 +2081,19 @@ class ZhiyueAgent:
                 )
                 continue
 
-            content = self.sticker_collector.build_local_sticker_cq(file_name)
-            if group_id is not None:
-                await self.bot_client.send_group_msg(group_id=group_id, message=content)
+            file_path = str(self.sticker_collector.resolve_local_file_path(file_name))
+            as_sticker = self.sticker_collector.is_sticker_item(item)
+            if group_id is not None and hasattr(self.bot_client, "send_group_image"):
+                await self.bot_client.send_group_image(group_id=group_id, file_path=file_path, as_sticker=as_sticker)
+            elif user_id is not None and hasattr(self.bot_client, "send_private_image"):
+                await self.bot_client.send_private_image(user_id=user_id, file_path=file_path, as_sticker=as_sticker)
             else:
-                assert user_id is not None
-                await self.bot_client.send_private_msg(user_id=user_id, message=content)
+                content = self.sticker_collector.build_local_sticker_cq(file_name)
+                if group_id is not None:
+                    await self.bot_client.send_group_msg(group_id=group_id, message=content)
+                else:
+                    assert user_id is not None
+                    await self.bot_client.send_private_msg(user_id=user_id, message=content)
             return True
 
         if random_pick:
@@ -1898,12 +2108,19 @@ class ZhiyueAgent:
                 )
                 if decision.allowed:
                     file_name = str(random_item.get("file_name", "")).strip()
-                    content = self.sticker_collector.build_local_sticker_cq(file_name)
-                    if group_id is not None:
-                        await self.bot_client.send_group_msg(group_id=group_id, message=content)
+                    file_path = str(self.sticker_collector.resolve_local_file_path(file_name))
+                    as_sticker = self.sticker_collector.is_sticker_item(random_item)
+                    if group_id is not None and hasattr(self.bot_client, "send_group_image"):
+                        await self.bot_client.send_group_image(group_id=group_id, file_path=file_path, as_sticker=as_sticker)
+                    elif user_id is not None and hasattr(self.bot_client, "send_private_image"):
+                        await self.bot_client.send_private_image(user_id=user_id, file_path=file_path, as_sticker=as_sticker)
                     else:
-                        assert user_id is not None
-                        await self.bot_client.send_private_msg(user_id=user_id, message=content)
+                        content = self.sticker_collector.build_local_sticker_cq(file_name)
+                        if group_id is not None:
+                            await self.bot_client.send_group_msg(group_id=group_id, message=content)
+                        else:
+                            assert user_id is not None
+                            await self.bot_client.send_private_msg(user_id=user_id, message=content)
                     return True
 
         return False
@@ -1944,16 +2161,62 @@ class ZhiyueAgent:
         )
         styled = self.jargon_mgr.apply_post_process(
             reply,
-            mood=0.0,
+            mood=max(-1.0, min(1.0, float(ctx.mood.valence))),
             energy=energy_ratio,
             speaker_is_master=ctx.is_master,
         )
         processed = await self.jargon_engine.apply_to_reply(styled)
         clean = self._strip_self_prefix(processed)
+        clean = self._strip_sticker_control_leaks(clean)
+        clean = self._normalize_reply_spaces(clean)
+        clean = self._polish_reply_punctuation(clean, tone_key=ctx.style.tone_key)
         if self._is_silence_placeholder_reply(clean):
             self._logger.info("LLM.Reply suppressed: session=%s reason=silence_placeholder_post", ctx.session_id)
             return ""
         return clean
+
+    @classmethod
+    def _polish_reply_punctuation(cls, text: str, *, tone_key: str) -> str:
+        clean = str(text or "").strip()
+        if not clean:
+            return ""
+
+        lines = clean.split("\n")
+        out: list[str] = []
+        for line in lines:
+            current = line.rstrip()
+            if not current:
+                out.append(current)
+                continue
+            if not cls._TERMINAL_PERIOD_PATTERN.search(current):
+                out.append(current)
+                continue
+
+            if cls._looks_like_joking_reply(current, tone_key=tone_key):
+                current = cls._TERMINAL_PERIOD_PATTERN.sub("）", current)
+                out.append(current)
+                continue
+
+            if cls._should_weaken_terminal_period(current, tone_key=tone_key):
+                current = cls._TERMINAL_PERIOD_PATTERN.sub("", current)
+            out.append(current)
+        return "\n".join(out).strip()
+
+    @classmethod
+    def _looks_like_joking_reply(cls, text: str, *, tone_key: str) -> bool:
+        if cls._JOKING_REPLY_CUE_PATTERN.search(str(text or "")):
+            return True
+        if tone_key not in {"light", "exaggerate"}:
+            return False
+        lowered = str(text or "").lower()
+        return any(token in lowered for token in ("不是吧", "你小子", "离谱", "好好好", "行行行"))
+
+    @staticmethod
+    def _should_weaken_terminal_period(text: str, *, tone_key: str) -> bool:
+        if tone_key in {"light", "direct", "exaggerate"}:
+            return True
+        compact = re.sub(r"\s+", "", str(text or ""))
+        return len(compact) <= 20
 
     @classmethod
     def _is_silence_placeholder_reply(cls, text: str) -> bool:
@@ -1998,6 +2261,17 @@ class ZhiyueAgent:
         if not clean_term:
             return
         await self.jargon_mgr.add(clean_term, str(meaning or "").strip())
+
+    async def _reload_jargon_matcher_from_store(self) -> None:
+        rows = await self.jargon_lexicon_store.get_entries()
+        mapping: dict[str, str] = {}
+        for row in rows:
+            term = str(getattr(row, "jargon", "") or "").strip()
+            if not term:
+                continue
+            meaning = str(getattr(row, "meaning", "") or "").strip() or str(getattr(row, "standard", "") or "").strip()
+            mapping[term] = meaning
+        await self.jargon_mgr.reload(mapping)
 
     async def _run_background_observers(self, *tasks: Awaitable[Any], stage: str) -> None:
         if not tasks:
@@ -2122,18 +2396,51 @@ class ZhiyueAgent:
         await self.handle_message(packet)
 
     async def _reply(self, message: dict[str, Any], reply: str) -> None:
-        parts = self._split_reply_parts(reply)
+        safe_reply = self._normalize_reply_spaces(self._strip_sticker_control_leaks(reply))
+        if safe_reply != str(reply or "").strip():
+            self._logger.info(
+                "SendChain.Sanitize: removed_sticker_control_text target=%s message_id=%s",
+                str(message.get("message_type", "")).strip() or "private",
+                message.get("message_id"),
+            )
+
+        parts = self._split_reply_parts(safe_reply)
         if not parts:
+            self._logger.info("SendChain.Skip: reason=empty_reply_parts")
             return
 
         message_type = str(message.get("message_type", "")).strip() or "private"
+        self._logger.info(
+            "SendChain.Prepare: target=%s message_id=%s parts=%s",
+            message_type,
+            message.get("message_id"),
+            len(parts),
+        )
         if message_type == "group":
             group_id = self._to_int(message.get("group_id"))
             if group_id is None:
                 self._logger.warning("Skip group reply: missing group_id")
                 return
             for idx, part in enumerate(parts):
-                await self.bot_client.send_group_msg(group_id=group_id, message=part)
+                try:
+                    echo = await self.bot_client.send_group_msg(group_id=group_id, message=part)
+                except Exception as exc:
+                    self._logger.warning(
+                        "SendChain.Failed: target=group group_id=%s part=%s/%s err=%s",
+                        group_id,
+                        idx + 1,
+                        len(parts),
+                        exc,
+                    )
+                    raise
+                self._logger.info(
+                    "SendChain.Sent: target=group group_id=%s part=%s/%s echo=%s preview=%s",
+                    group_id,
+                    idx + 1,
+                    len(parts),
+                    echo,
+                    part[:80],
+                )
                 self._logger.info(
                     "Queue.Reply: target=group group_id=%s part=%s/%s",
                     group_id,
@@ -2149,7 +2456,25 @@ class ZhiyueAgent:
             self._logger.warning("Skip private reply: missing user_id")
             return
         for idx, part in enumerate(parts):
-            await self.bot_client.send_private_msg(user_id=user_id, message=part)
+            try:
+                echo = await self.bot_client.send_private_msg(user_id=user_id, message=part)
+            except Exception as exc:
+                self._logger.warning(
+                    "SendChain.Failed: target=private user_id=%s part=%s/%s err=%s",
+                    user_id,
+                    idx + 1,
+                    len(parts),
+                    exc,
+                )
+                raise
+            self._logger.info(
+                "SendChain.Sent: target=private user_id=%s part=%s/%s echo=%s preview=%s",
+                user_id,
+                idx + 1,
+                len(parts),
+                echo,
+                part[:80],
+            )
             self._logger.info(
                 "Queue.Reply: target=private user_id=%s part=%s/%s",
                 user_id,
@@ -2208,10 +2533,10 @@ class ZhiyueAgent:
 
     def _reply_gap_seconds(self, part: str) -> float:
         # 小间隔让多条消息看起来更像自然打字，而不是一次性刷屏。
-        base = 0.18
-        length_factor = min(0.6, max(0.0, len(part)) * 0.012)
-        jitter = self._rng.uniform(0.04, 0.18)
-        return min(1.2, base + length_factor + jitter)
+        base = 0.12
+        length_factor = min(0.35, max(0.0, len(part)) * 0.008)
+        jitter = self._rng.uniform(0.02, 0.10)
+        return min(0.72, base + length_factor + jitter)
 
     def _strip_self_prefix(self, text: str) -> str:
         clean = str(text or "").strip()
@@ -2948,6 +3273,67 @@ class ZhiyueAgent:
         await self.bot_client.send_private_msg(user_id=user_id, message=text)
         self._logger.info("Queue.ReplySingle: target=private user_id=%s", user_id)
 
+    async def _maybe_send_silence_sticker(self, *, ctx: ThinkContext, reason: str) -> bool:
+        if not self._allow_silence_sticker_send(ctx=ctx):
+            return False
+
+        sent = await self._send_sticker_from_library(ctx, "随机")
+        if not sent:
+            self._logger.info(
+                "Sticker.Silence skipped: session=%s group_id=%s reason=%s detail=send_failed",
+                ctx.session_id,
+                ctx.group_id,
+                reason,
+            )
+            return False
+
+        self._mark_sticker_reply(session_id=ctx.session_id)
+        self._logger.info(
+            "Sticker.Silence sent: session=%s group_id=%s reason=%s",
+            ctx.session_id,
+            ctx.group_id,
+            reason,
+        )
+        return True
+
+    def _allow_silence_sticker_send(self, *, ctx: ThinkContext) -> bool:
+        if ctx.message_type != "group":
+            return False
+        if ctx.group_id is None or ctx.group_id <= 0:
+            return False
+        if ctx.mentioned_in_window:
+            return False
+        if not bool(getattr(self.cfg.sticker, "enabled", True)):
+            return False
+
+        now = datetime.now(timezone.utc)
+        previous = self._sticker_last_sent_at.get(ctx.session_id)
+        if previous is not None:
+            elapsed = (now - previous).total_seconds()
+            if elapsed < float(self._SILENCE_STICKER_GROUP_COOLDOWN_SEC):
+                self._logger.info(
+                    "Sticker.Silence skipped: session=%s reason=cooldown elapsed=%.1fs cooldown=%ss",
+                    ctx.session_id,
+                    elapsed,
+                    self._SILENCE_STICKER_GROUP_COOLDOWN_SEC,
+                )
+                return False
+
+        probability = self._clamp_probability(self._SILENCE_STICKER_SEND_PROBABILITY)
+        if probability <= 0.0:
+            return False
+
+        roll = self._rng.random()
+        if roll > probability:
+            self._logger.info(
+                "Sticker.Silence skipped: session=%s reason=probability roll=%.4f threshold=%.4f",
+                ctx.session_id,
+                roll,
+                probability,
+            )
+            return False
+        return True
+
     def _allow_auto_sticker_send(self, *, ctx: ThinkContext) -> bool:
         now = datetime.now(timezone.utc)
         is_direct = ctx.message_type != "group"
@@ -3005,12 +3391,63 @@ class ZhiyueAgent:
     def _active_reply_probability(self, status_energy: float) -> float:
         base = self._clamp_probability(self.cfg.agent.active_reply_probability)
         if status_energy >= 70.0:
-            tier_scale = 1.0
+            tier_scale = 1.15
         elif status_energy >= 30.0:
-            tier_scale = 0.55
+            tier_scale = 0.92
         else:
-            tier_scale = 0.15
-        return self._clamp_probability(base * tier_scale)
+            tier_scale = 0.55
+        probability = self._clamp_probability(base * tier_scale)
+        if status_energy >= 70.0:
+            probability = max(probability, 0.50)
+        elif status_energy >= 30.0:
+            probability = max(probability, 0.35)
+        else:
+            probability = max(probability, 0.18)
+        return self._clamp_probability(probability)
+
+    def _apply_topic_interest_mood(self, *, session_id: str, source_text: str) -> float:
+        if not bool(getattr(self.cfg.personality, "topic_interest_enabled", True)):
+            return 0.0
+
+        clean_text = str(source_text or "").strip()
+        if not clean_text:
+            return 0.0
+        if self._is_low_signal_passive_group_message(clean_text):
+            return 0.0
+
+        interest_score = self._clamp_probability(self.personality.topic_interest_score(clean_text))
+        if interest_score <= 0:
+            return 0.0
+
+        valence_boost = max(0.0, float(getattr(self.cfg.personality, "topic_interest_mood_boost", 0.08)))
+        sociability_boost = max(
+            0.0,
+            float(getattr(self.cfg.personality, "topic_interest_sociability_boost", 0.06)),
+        )
+        valence_delta = valence_boost * interest_score
+        sociability_delta = sociability_boost * interest_score
+        if valence_delta <= 0 and sociability_delta <= 0:
+            return interest_score
+
+        current = self.personality.get_current_mood()
+        updated = self.personality.set_mood(
+            valence=current.valence + valence_delta,
+            energy=current.energy,
+            sociability=current.sociability + sociability_delta,
+        )
+        self._logger.info(
+            (
+                "Mood.TopicInterest: session=%s score=%.2f valence_delta=%.3f "
+                "sociability_delta=%.3f valence=%.2f sociability=%.2f"
+            ),
+            session_id,
+            interest_score,
+            valence_delta,
+            sociability_delta,
+            updated.valence,
+            updated.sociability,
+        )
+        return interest_score
 
     def _llm_route_probability(
         self,
@@ -3022,6 +3459,7 @@ class ZhiyueAgent:
         is_admin_sender: bool,
         sticker_intent: bool = False,
         source_text: str = "",
+        topic_interest_score: float = 0.0,
     ) -> float:
         if is_master or is_admin_sender:
             return 1.0
@@ -3034,7 +3472,20 @@ class ZhiyueAgent:
             return 0.0
 
         base = self._active_reply_probability(status_energy)
-        return base
+        clean_text = str(source_text or "").strip()
+        if self._PASSIVE_GROUP_REPLY_CUE_PATTERN.search(clean_text):
+            base = max(base, 0.72)
+        compact_len = len(re.sub(r"\s+", "", clean_text))
+        if compact_len >= 18:
+            base = max(base, 0.42)
+        interest_score = self._clamp_probability(topic_interest_score)
+        if interest_score > 0:
+            boost = max(
+                0.0,
+                float(getattr(self.cfg.personality, "topic_interest_reply_probability_boost", 0.18)),
+            )
+            base = base + (boost * interest_score)
+        return self._clamp_probability(base)
 
     def _allow_low_energy_reply(
         self,
@@ -3120,6 +3571,61 @@ class ZhiyueAgent:
     def _mark_low_energy_reply(self, *, session_id: str, reply: str) -> None:
         self._low_energy_last_reply_at[session_id] = datetime.now(timezone.utc)
         self._low_energy_last_reply_text[session_id] = str(reply or "").strip()
+
+    def _track_reply_skip(self, *, session_id: str, reason: str) -> None:
+        skip_count = int(self._consecutive_skip_count.get(session_id, 0)) + 1
+        self._consecutive_skip_count[session_id] = skip_count
+        self._logger.info(
+            "Queue.Silence: session=%s reason=%s skip_count=%s",
+            session_id,
+            reason,
+            skip_count,
+        )
+
+    def _mark_reply_sent(self, *, session_id: str) -> None:
+        previous_skip_count = int(self._consecutive_skip_count.pop(session_id, 0))
+        self._last_reply_at[session_id] = datetime.now(timezone.utc)
+        if previous_skip_count > 0:
+            self._logger.info(
+                "Queue.SilenceRecovered: session=%s skipped_before_reply=%s",
+                session_id,
+                previous_skip_count,
+            )
+
+    def _should_force_active_reply(
+        self,
+        *,
+        session_id: str,
+        message_type: str,
+        mentioned_in_window: bool,
+        source_text: str,
+        is_master: bool,
+        is_admin_sender: bool,
+    ) -> bool:
+        if is_master or is_admin_sender:
+            return False
+        if message_type != "group" or mentioned_in_window:
+            return False
+
+        clean_text = str(source_text or "").strip()
+        if self._is_low_signal_passive_group_message(clean_text):
+            return False
+
+        skip_count = int(self._consecutive_skip_count.get(session_id, 0))
+        if skip_count >= int(self._SILENCE_FORCE_REPLY_SKIP_THRESHOLD):
+            return True
+
+        last_reply_at = self._last_reply_at.get(session_id)
+        if last_reply_at is None:
+            return False
+        idle_seconds = (datetime.now(timezone.utc) - last_reply_at).total_seconds()
+        if idle_seconds < float(self._SILENCE_FORCE_REPLY_IDLE_SEC):
+            return False
+
+        if self._PASSIVE_GROUP_REPLY_CUE_PATTERN.search(clean_text):
+            return True
+        compact = re.sub(r"\s+", "", clean_text)
+        return len(compact) >= 14
 
     @staticmethod
     def _set_response_token_cap(extra_fields: dict[str, Any], cap: int) -> None:

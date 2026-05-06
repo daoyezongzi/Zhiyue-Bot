@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import mimetypes
 import os
 import secrets
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Awaitable, Callable
 from urllib.parse import quote
@@ -46,6 +48,10 @@ TEXT_FILE_EXTENSIONS = {
     ".csv",
     ".log",
 }
+
+STYLE_CARD_STATUSES = {"candidate", "active", "rejected"}
+JARGON_SCOPES = {"user", "group", "public"}
+JARGON_STATUSES = {"candidate", "active", "rejected"}
 
 
 class ResetActionRequest(BaseModel):
@@ -125,6 +131,48 @@ class ToolCallClearRequest(BaseModel):
     success: bool | None = Field(default=None)
 
 
+class StyleCardCreateRequest(BaseModel):
+    group_id: int = Field(default=0)
+    title: str = Field(default="", min_length=1)
+    content: str = Field(default="", min_length=1)
+    intent: str = Field(default="")
+    tone: str = Field(default="")
+    tags: list[str] | None = None
+    source_kind: str = Field(default="manual")
+    source_ref: str = Field(default="")
+    status: str = Field(default="candidate")
+
+
+class StyleCardUpdateRequest(BaseModel):
+    group_id: int | None = None
+    title: str | None = None
+    content: str | None = None
+    intent: str | None = None
+    tone: str | None = None
+    tags: list[str] | None = None
+    source_kind: str | None = None
+    source_ref: str | None = None
+
+
+class StyleCardStatusRequest(BaseModel):
+    status: str = Field(..., min_length=1)
+
+
+class JargonCreateRequest(BaseModel):
+    jargon: str = Field(..., min_length=1)
+    standard: str = Field(..., min_length=1)
+    meaning: str = Field(default="")
+    confidence: float = Field(default=0.5)
+    weight: float = Field(default=1.0)
+    scope: str = Field(default="group")
+    source_users: list[int] | None = None
+
+
+class JargonStatusRequest(BaseModel):
+    status: str = Field(..., min_length=1)
+    scope: str = Field(default="group")
+
+
 class UTF8JSONResponse(JSONResponse):
     def render(self, content: Any) -> bytes:
         return json.dumps(
@@ -170,6 +218,19 @@ class AdminService:
         self._knowledge_dir = knowledge_path.resolve()
         self._knowledge_dir.mkdir(parents=True, exist_ok=True)
 
+        style_card_path = self._project_root / "data" / "style_cards.json"
+        self._style_card_store_path = style_card_path.resolve()
+        self._style_card_store_path.parent.mkdir(parents=True, exist_ok=True)
+
+        jargon_store_path = Path(str(getattr(cfg.jargon, "lexicon_store_path", "data/jargon_lexicon.json") or ""))
+        if not jargon_store_path.is_absolute():
+            jargon_store_path = self._project_root / jargon_store_path
+        self._jargon_store_path = jargon_store_path.resolve()
+        self._jargon_store_path.parent.mkdir(parents=True, exist_ok=True)
+        self._jargon_rejected_store_path = (
+            self._jargon_store_path.parent / f"{self._jargon_store_path.stem}_rejected.json"
+        )
+
         self._log_hub = log_hub or LogStreamHub()
         self._plugin_manager = plugin_manager or RuntimePluginManager(self._project_root / "plugins")
         self._shutdown_handler = shutdown_handler
@@ -179,6 +240,8 @@ class AdminService:
         self._restart_requested = False
         self._restart_lock = asyncio.Lock()
         self._config_lock = asyncio.Lock()
+        self._style_card_lock = asyncio.Lock()
+        self._jargon_store_lock = asyncio.Lock()
 
         self._app = FastAPI(
             title="Zhiyue Unified Dashboard",
@@ -271,6 +334,14 @@ class AdminService:
         @self._app.websocket("/ws/logs")
         async def ws_logs(websocket: WebSocket) -> None:
             await _stream_logs_ws(websocket)
+
+        @self._app.get("/health", include_in_schema=False)
+        async def health() -> dict[str, Any]:
+            return self._health_payload()
+
+        @self._app.get("/api/health")
+        async def api_health() -> dict[str, Any]:
+            return self._health_payload()
 
         @self._app.get("/api/status")
         async def api_status(_: None = Depends(self._require_token),) -> dict[str, Any]:
@@ -411,6 +482,132 @@ class AdminService:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="topic not found")
             detail = await self._agent.topic_mgr.get_topic_detail(topic_id=int(topic_id), message_limit=40)
             return {"ok": True, "topic_id": int(topic_id), "item": detail}
+
+        @self._app.get("/api/style-cards")
+        async def api_style_cards(
+            group_id: int = Query(default=0),
+            status_filter: str = Query(default="", alias="status"),
+            keyword: str = Query(default=""),
+            page: int = Query(default=1, ge=1),
+            page_size: int = Query(default=20, ge=1, le=200),
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            return await self._list_style_cards(
+                group_id=int(group_id),
+                status_filter=str(status_filter or ""),
+                keyword=str(keyword or ""),
+                page=int(page),
+                page_size=int(page_size),
+            )
+
+        @self._app.get("/api/style-cards/{style_card_id}")
+        async def api_style_card_detail(style_card_id: int, _: None = Depends(self._require_token),) -> dict[str, Any]:
+            row = await self._get_style_card(int(style_card_id))
+            if row is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="style card not found")
+            return {"ok": True, "item": row}
+
+        @self._app.post("/api/style-cards")
+        async def api_style_card_create(
+            payload: StyleCardCreateRequest,
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            try:
+                row = await self._create_style_card(payload)
+            except ValueError as exc:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+            return {"ok": True, "item": row}
+
+        @self._app.post("/api/style-cards/{style_card_id}")
+        async def api_style_card_update(
+            style_card_id: int,
+            payload: StyleCardUpdateRequest,
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            try:
+                row = await self._update_style_card(int(style_card_id), payload)
+            except ValueError as exc:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+            if row is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="style card not found")
+            return {"ok": True, "item": row}
+
+        @self._app.post("/api/style-cards/{style_card_id}/status")
+        async def api_style_card_status(
+            style_card_id: int,
+            payload: StyleCardStatusRequest,
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            try:
+                row = await self._set_style_card_status(int(style_card_id), payload.status)
+            except ValueError as exc:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+            if row is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="style card not found")
+            return {"ok": True, "item": row}
+
+        @self._app.delete("/api/style-cards/{style_card_id}")
+        async def api_style_card_delete(style_card_id: int, _: None = Depends(self._require_token),) -> dict[str, Any]:
+            deleted = await self._delete_style_card(int(style_card_id))
+            if not deleted:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="style card not found")
+            return {"ok": True, "style_card_id": int(style_card_id)}
+
+        @self._app.get("/api/jargons")
+        async def api_jargons(
+            status_filter: str = Query(default="", alias="status"),
+            scope: str = Query(default=""),
+            keyword: str = Query(default=""),
+            page: int = Query(default=1, ge=1),
+            page_size: int = Query(default=20, ge=1, le=200),
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            return await self._list_jargons(
+                status_filter=str(status_filter or ""),
+                scope=str(scope or ""),
+                keyword=str(keyword or ""),
+                page=int(page),
+                page_size=int(page_size),
+            )
+
+        @self._app.get("/api/jargons/{jargon_id}")
+        async def api_jargon_detail(jargon_id: str, _: None = Depends(self._require_token),) -> dict[str, Any]:
+            row = await self._get_jargon(jargon_id)
+            if row is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="jargon not found")
+            return {"ok": True, "item": row}
+
+        @self._app.post("/api/jargons")
+        async def api_jargon_create(
+            payload: JargonCreateRequest,
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            try:
+                row = await self._create_jargon(payload)
+            except ValueError as exc:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+            return {"ok": True, "item": row}
+
+        @self._app.post("/api/jargons/{jargon_id}/status")
+        async def api_jargon_status(
+            jargon_id: str,
+            payload: JargonStatusRequest,
+            _: None = Depends(self._require_token),
+        ) -> dict[str, Any]:
+            try:
+                row = await self._set_jargon_status(jargon_id, payload.status, payload.scope)
+            except ValueError as exc:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+            if row is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="jargon not found")
+            return {"ok": True, "item": row}
+
+        @self._app.delete("/api/jargons/{jargon_id}")
+        async def api_jargon_delete(jargon_id: str, _: None = Depends(self._require_token),) -> dict[str, Any]:
+            deleted = await self._delete_jargon(jargon_id)
+            if not deleted:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="jargon not found")
+            return {"ok": True, "jargon_id": jargon_id}
 
         @self._app.get("/api/memories")
         async def api_memories(
@@ -1224,6 +1421,11 @@ class AdminService:
                 "memory_candidate_grace_hours": int(self._cfg.memory.memory_candidate_grace_hours),
                 "memory_candidate_promote_evidence": int(self._cfg.memory.memory_candidate_promote_evidence),
             },
+            "ops": {
+                "style_card_store_path": str(self._style_card_store_path),
+                "jargon_store_path": str(self._jargon_store_path),
+                "jargon_rejected_store_path": str(self._jargon_rejected_store_path),
+            },
         }
 
     def _serialize_groups(self) -> list[dict[str, Any]]:
@@ -1585,6 +1787,847 @@ class AdminService:
         if auth.lower().startswith("bearer "):
             return auth[7:].strip()
         return ""
+
+    def _health_payload(self) -> dict[str, Any]:
+        now = datetime.now(timezone.utc).isoformat()
+        started_at_raw = getattr(self._agent, "_started_at_utc", None)
+        started_at = started_at_raw.isoformat() if isinstance(started_at_raw, datetime) else ""
+        connected = bool(getattr(getattr(self._agent, "bot_client", None), "connected", False))
+        return {
+            "status": "ok",
+            "name": "zhiyue-bot",
+            "time": now,
+            "connected": connected,
+            "uptime_seconds": int(getattr(self._agent, "uptime_seconds", lambda: 0)() or 0),
+            "started_at": started_at,
+        }
+
+    async def _list_style_cards(
+        self,
+        *,
+        group_id: int,
+        status_filter: str,
+        keyword: str,
+        page: int,
+        page_size: int,
+    ) -> dict[str, Any]:
+        safe_page = max(1, int(page))
+        safe_page_size = max(1, min(int(page_size), 200))
+        clean_status = self._normalize_style_card_status(status_filter, allow_empty=True)
+        clean_keyword = str(keyword or "").strip().lower()
+        clean_group_id = int(group_id)
+
+        async with self._style_card_lock:
+            store = self._load_style_card_store_locked()
+            rows = [dict(item) for item in store.get("items", []) if isinstance(item, dict)]
+
+        if clean_group_id > 0:
+            rows = [item for item in rows if int(item.get("group_id", 0) or 0) == clean_group_id]
+        if clean_status:
+            rows = [item for item in rows if str(item.get("status", "")).strip().lower() == clean_status]
+        if clean_keyword:
+            rows = [item for item in rows if clean_keyword in self._style_card_search_text(item)]
+
+        rows.sort(key=lambda item: str(item.get("updated_at", "") or ""), reverse=True)
+        start = (safe_page - 1) * safe_page_size
+        end = start + safe_page_size
+        items = [self._style_card_row(item) for item in rows[start:end]]
+        return {
+            "items": items,
+            "total": len(rows),
+            "page": safe_page,
+            "page_size": safe_page_size,
+            "query": {
+                "group_id": clean_group_id,
+                "status": clean_status,
+                "keyword": str(keyword or ""),
+            },
+        }
+
+    async def _get_style_card(self, style_card_id: int) -> dict[str, Any] | None:
+        clean_id = int(style_card_id)
+        if clean_id <= 0:
+            return None
+        async with self._style_card_lock:
+            store = self._load_style_card_store_locked()
+            for item in store.get("items", []):
+                if not isinstance(item, dict):
+                    continue
+                if int(item.get("id", 0) or 0) != clean_id:
+                    continue
+                return self._style_card_row(item)
+        return None
+
+    async def _create_style_card(self, payload: StyleCardCreateRequest) -> dict[str, Any]:
+        title = str(payload.title or "").strip()
+        content = str(payload.content or "").strip()
+        if not title:
+            raise ValueError("title is empty")
+        if not content:
+            raise ValueError("content is empty")
+
+        clean_status = self._normalize_style_card_status(payload.status, allow_empty=False)
+        if not clean_status:
+            raise ValueError("invalid style card status")
+        now = datetime.now(timezone.utc).isoformat()
+        async with self._style_card_lock:
+            store = self._load_style_card_store_locked()
+            card_id = int(store.get("next_id", 1) or 1)
+            store["next_id"] = card_id + 1
+            item = {
+                "id": card_id,
+                "group_id": max(0, int(payload.group_id or 0)),
+                "title": title,
+                "content": content,
+                "intent": str(payload.intent or "").strip(),
+                "tone": str(payload.tone or "").strip(),
+                "tags": self._normalize_tags(payload.tags),
+                "status": clean_status,
+                "source_kind": str(payload.source_kind or "manual").strip() or "manual",
+                "source_ref": str(payload.source_ref or "").strip(),
+                "use_count": 0,
+                "evidence_count": 0,
+                "created_at": now,
+                "updated_at": now,
+            }
+            store.setdefault("items", []).append(item)
+            self._save_style_card_store_locked(store)
+            return self._style_card_row(item)
+
+    async def _update_style_card(self, style_card_id: int, payload: StyleCardUpdateRequest) -> dict[str, Any] | None:
+        clean_id = int(style_card_id)
+        if clean_id <= 0:
+            return None
+        async with self._style_card_lock:
+            store = self._load_style_card_store_locked()
+            for item in store.get("items", []):
+                if not isinstance(item, dict):
+                    continue
+                if int(item.get("id", 0) or 0) != clean_id:
+                    continue
+                if payload.group_id is not None:
+                    item["group_id"] = max(0, int(payload.group_id or 0))
+                if payload.title is not None:
+                    title = str(payload.title or "").strip()
+                    if not title:
+                        raise ValueError("title is empty")
+                    item["title"] = title
+                if payload.content is not None:
+                    content = str(payload.content or "").strip()
+                    if not content:
+                        raise ValueError("content is empty")
+                    item["content"] = content
+                if payload.intent is not None:
+                    item["intent"] = str(payload.intent or "").strip()
+                if payload.tone is not None:
+                    item["tone"] = str(payload.tone or "").strip()
+                if payload.tags is not None:
+                    item["tags"] = self._normalize_tags(payload.tags)
+                if payload.source_kind is not None:
+                    item["source_kind"] = str(payload.source_kind or "").strip() or "manual"
+                if payload.source_ref is not None:
+                    item["source_ref"] = str(payload.source_ref or "").strip()
+                item["updated_at"] = datetime.now(timezone.utc).isoformat()
+                self._save_style_card_store_locked(store)
+                return self._style_card_row(item)
+        return None
+
+    async def _set_style_card_status(self, style_card_id: int, raw_status: str) -> dict[str, Any] | None:
+        clean_id = int(style_card_id)
+        if clean_id <= 0:
+            return None
+        clean_status = self._normalize_style_card_status(raw_status, allow_empty=False)
+        if not clean_status:
+            raise ValueError("invalid style card status")
+        async with self._style_card_lock:
+            store = self._load_style_card_store_locked()
+            for item in store.get("items", []):
+                if not isinstance(item, dict):
+                    continue
+                if int(item.get("id", 0) or 0) != clean_id:
+                    continue
+                item["status"] = clean_status
+                item["updated_at"] = datetime.now(timezone.utc).isoformat()
+                self._save_style_card_store_locked(store)
+                return self._style_card_row(item)
+        return None
+
+    async def _delete_style_card(self, style_card_id: int) -> bool:
+        clean_id = int(style_card_id)
+        if clean_id <= 0:
+            return False
+        async with self._style_card_lock:
+            store = self._load_style_card_store_locked()
+            items = [item for item in store.get("items", []) if isinstance(item, dict)]
+            next_items = [item for item in items if int(item.get("id", 0) or 0) != clean_id]
+            if len(next_items) == len(items):
+                return False
+            store["items"] = next_items
+            self._save_style_card_store_locked(store)
+            return True
+
+    def _load_style_card_store_locked(self) -> dict[str, Any]:
+        default = {"version": 1, "next_id": 1, "items": []}
+        if not self._style_card_store_path.exists():
+            return dict(default)
+        try:
+            payload = json.loads(self._style_card_store_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return dict(default)
+        if not isinstance(payload, dict):
+            return dict(default)
+        raw_items = payload.get("items", [])
+        items: list[dict[str, Any]] = []
+        max_id = 0
+        if isinstance(raw_items, list):
+            for row in raw_items:
+                if not isinstance(row, dict):
+                    continue
+                style_id = int(row.get("id", 0) or 0)
+                if style_id <= 0:
+                    continue
+                max_id = max(max_id, style_id)
+                normalized = {
+                    "id": style_id,
+                    "group_id": max(0, int(row.get("group_id", 0) or 0)),
+                    "title": str(row.get("title", "") or "").strip(),
+                    "content": str(row.get("content", "") or "").strip(),
+                    "intent": str(row.get("intent", "") or "").strip(),
+                    "tone": str(row.get("tone", "") or "").strip(),
+                    "tags": self._normalize_tags(row.get("tags", [])),
+                    "status": self._normalize_style_card_status(str(row.get("status", "") or ""), allow_empty=False)
+                    or "candidate",
+                    "source_kind": str(row.get("source_kind", "manual") or "manual").strip() or "manual",
+                    "source_ref": str(row.get("source_ref", "") or "").strip(),
+                    "use_count": max(0, int(row.get("use_count", 0) or 0)),
+                    "evidence_count": max(0, int(row.get("evidence_count", 0) or 0)),
+                    "created_at": str(row.get("created_at", "") or "").strip() or datetime.now(timezone.utc).isoformat(),
+                    "updated_at": str(row.get("updated_at", "") or "").strip() or datetime.now(timezone.utc).isoformat(),
+                }
+                if normalized["title"] and normalized["content"]:
+                    items.append(normalized)
+        next_id_raw = int(payload.get("next_id", 0) or 0)
+        next_id = next_id_raw if next_id_raw > max_id else (max_id + 1 if max_id > 0 else 1)
+        return {"version": 1, "next_id": next_id, "items": items}
+
+    def _save_style_card_store_locked(self, payload: dict[str, Any]) -> None:
+        self._style_card_store_path.parent.mkdir(parents=True, exist_ok=True)
+        temp = self._style_card_store_path.with_suffix(self._style_card_store_path.suffix + ".tmp")
+        temp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        temp.replace(self._style_card_store_path)
+
+    @staticmethod
+    def _normalize_style_card_status(raw_status: str, *, allow_empty: bool) -> str:
+        clean = str(raw_status or "").strip().lower()
+        if not clean:
+            return "" if allow_empty else "candidate"
+        if clean not in STYLE_CARD_STATUSES:
+            return ""
+        return clean
+
+    @staticmethod
+    def _style_card_search_text(item: dict[str, Any]) -> str:
+        parts = [
+            str(item.get("title", "") or ""),
+            str(item.get("content", "") or ""),
+            str(item.get("intent", "") or ""),
+            str(item.get("tone", "") or ""),
+            " ".join(str(tag or "").strip() for tag in item.get("tags", []) if str(tag or "").strip()),
+        ]
+        return "\n".join(parts).lower()
+
+    @staticmethod
+    def _normalize_tags(raw_tags: Any) -> list[str]:
+        if not isinstance(raw_tags, list):
+            return []
+        out: list[str] = []
+        seen: set[str] = set()
+        for item in raw_tags:
+            clean = str(item or "").strip()
+            if not clean:
+                continue
+            key = clean.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(clean[:32])
+            if len(out) >= 24:
+                break
+        return out
+
+    @staticmethod
+    def _style_card_row(item: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": int(item.get("id", 0) or 0),
+            "group_id": int(item.get("group_id", 0) or 0),
+            "title": str(item.get("title", "") or ""),
+            "content": str(item.get("content", "") or ""),
+            "intent": str(item.get("intent", "") or ""),
+            "tone": str(item.get("tone", "") or ""),
+            "tags": list(item.get("tags", []) if isinstance(item.get("tags"), list) else []),
+            "status": str(item.get("status", "candidate") or "candidate"),
+            "source_kind": str(item.get("source_kind", "manual") or "manual"),
+            "source_ref": str(item.get("source_ref", "") or ""),
+            "use_count": int(item.get("use_count", 0) or 0),
+            "evidence_count": int(item.get("evidence_count", 0) or 0),
+            "created_at": str(item.get("created_at", "") or ""),
+            "updated_at": str(item.get("updated_at", "") or ""),
+        }
+
+    async def _list_jargons(
+        self,
+        *,
+        status_filter: str,
+        scope: str,
+        keyword: str,
+        page: int,
+        page_size: int,
+    ) -> dict[str, Any]:
+        clean_status = self._normalize_jargon_status(status_filter, allow_empty=True)
+        clean_scope = self._normalize_jargon_scope(scope, allow_empty=True)
+        clean_keyword = str(keyword or "").strip().lower()
+        safe_page = max(1, int(page))
+        safe_page_size = max(1, min(int(page_size), 200))
+
+        async with self._jargon_store_lock:
+            _, managed, _ = self._load_jargon_payload_locked()
+            rejected = self._load_rejected_jargons_locked()
+            items = self._collect_jargon_rows_locked(managed, rejected)
+
+        if clean_status:
+            items = [row for row in items if str(row.get("status", "")) == clean_status]
+        if clean_scope:
+            items = [row for row in items if str(row.get("scope", "")) == clean_scope]
+        if clean_keyword:
+            items = [row for row in items if clean_keyword in self._jargon_search_text(row)]
+
+        items.sort(key=lambda row: str(row.get("updated_at", "") or ""), reverse=True)
+        start = (safe_page - 1) * safe_page_size
+        end = start + safe_page_size
+        return {
+            "items": items[start:end],
+            "total": len(items),
+            "page": safe_page,
+            "page_size": safe_page_size,
+            "query": {
+                "status": clean_status,
+                "scope": clean_scope,
+                "keyword": str(keyword or ""),
+            },
+        }
+
+    async def _get_jargon(self, jargon_id: str) -> dict[str, Any] | None:
+        clean_id = str(jargon_id or "").strip()
+        if not clean_id:
+            return None
+        async with self._jargon_store_lock:
+            _, managed, _ = self._load_jargon_payload_locked()
+            rejected = self._load_rejected_jargons_locked()
+            for row in self._collect_jargon_rows_locked(managed, rejected):
+                if str(row.get("id", "")) == clean_id:
+                    return row
+        return None
+
+    async def _create_jargon(self, payload: JargonCreateRequest) -> dict[str, Any]:
+        jargon = str(payload.jargon or "").strip()
+        standard = str(payload.standard or "").strip()
+        if not jargon:
+            raise ValueError("jargon is empty")
+        if not standard:
+            raise ValueError("standard is empty")
+        target_scope = self._normalize_jargon_scope(payload.scope, allow_empty=False)
+        if not target_scope:
+            raise ValueError("invalid scope")
+        now = datetime.now(timezone.utc).isoformat()
+        new_entry = self._normalize_jargon_entry(
+            {
+                "jargon": jargon,
+                "standard": standard,
+                "meaning": str(payload.meaning or "").strip(),
+                "confidence": payload.confidence,
+                "weight": payload.weight,
+                "source_users": payload.source_users or [],
+                "updated_at": now,
+            }
+        )
+        if new_entry is None:
+            raise ValueError("invalid jargon entry")
+        key = self._compose_jargon_key(new_entry["standard"], new_entry["jargon"])
+
+        async with self._jargon_store_lock:
+            payload_data, managed, extras = self._load_jargon_payload_locked()
+            rejected = self._load_rejected_jargons_locked()
+            for scope_name in JARGON_SCOPES:
+                managed.setdefault(scope_name, {}).pop(key, None)
+            managed.setdefault(target_scope, {})[key] = new_entry
+            self._save_jargon_payload_locked(payload_data, managed, extras)
+            rejected = [row for row in rejected if self._compose_jargon_key(row["standard"], row["jargon"]) != key]
+            self._save_rejected_jargons_locked(rejected)
+
+        await self._reload_jargon_runtime()
+        status_text = "active" if target_scope == "public" else "candidate"
+        return self._build_jargon_row(
+            scope=target_scope,
+            status=status_text,
+            key=key,
+            entry=new_entry,
+        )
+
+    async def _set_jargon_status(self, jargon_id: str, raw_status: str, raw_scope: str) -> dict[str, Any] | None:
+        clean_id = str(jargon_id or "").strip()
+        if not clean_id:
+            return None
+        target_status = self._normalize_jargon_status(raw_status, allow_empty=False)
+        if not target_status:
+            raise ValueError("invalid jargon status")
+        target_candidate_scope = self._normalize_jargon_scope(raw_scope, allow_empty=False) or "group"
+        if target_candidate_scope == "public":
+            target_candidate_scope = "group"
+
+        changed_live = False
+        changed_rejected = False
+        final_row: dict[str, Any] | None = None
+        async with self._jargon_store_lock:
+            payload_data, managed, extras = self._load_jargon_payload_locked()
+            rejected = self._load_rejected_jargons_locked()
+
+            found_scope = ""
+            found_key = ""
+            found_entry: dict[str, Any] | None = None
+            for scope_name, bucket in managed.items():
+                for key, entry in bucket.items():
+                    if self._jargon_id(scope_name, key, "active" if scope_name == "public" else "candidate") != clean_id:
+                        continue
+                    found_scope = scope_name
+                    found_key = key
+                    found_entry = dict(entry)
+                    break
+                if found_entry is not None:
+                    break
+
+            found_rejected_idx = -1
+            found_rejected: dict[str, Any] | None = None
+            if found_entry is None:
+                for idx, row in enumerate(rejected):
+                    if str(row.get("id", "")) == clean_id:
+                        found_rejected_idx = idx
+                        found_rejected = dict(row)
+                        break
+
+            if found_entry is None and found_rejected is None:
+                return None
+
+            if found_entry is not None:
+                if target_status == "rejected":
+                    managed[found_scope].pop(found_key, None)
+                    changed_live = True
+                    rejected_row = self._build_rejected_jargon_row(
+                        scope=found_scope,
+                        key=found_key,
+                        entry=found_entry,
+                    )
+                    rejected = [row for row in rejected if str(row.get("id", "")) != str(rejected_row.get("id", ""))]
+                    rejected.append(rejected_row)
+                    changed_rejected = True
+                    final_row = rejected_row
+                else:
+                    target_scope = "public" if target_status == "active" else target_candidate_scope
+                    managed[found_scope].pop(found_key, None)
+                    found_entry["updated_at"] = datetime.now(timezone.utc).isoformat()
+                    target_key = self._compose_jargon_key(found_entry["standard"], found_entry["jargon"])
+                    existing = managed.setdefault(target_scope, {}).get(target_key)
+                    if isinstance(existing, dict):
+                        found_entry = self._merge_jargon_entries(existing, found_entry)
+                    managed[target_scope][target_key] = found_entry
+                    changed_live = True
+                    status_text = "active" if target_scope == "public" else "candidate"
+                    final_row = self._build_jargon_row(
+                        scope=target_scope,
+                        status=status_text,
+                        key=target_key,
+                        entry=found_entry,
+                    )
+            elif found_rejected is not None:
+                if target_status == "rejected":
+                    final_row = found_rejected
+                else:
+                    restored_scope = "public" if target_status == "active" else target_candidate_scope
+                    restored_entry = self._normalize_jargon_entry(found_rejected)
+                    if restored_entry is None:
+                        raise ValueError("invalid rejected jargon row")
+                    restored_entry["updated_at"] = datetime.now(timezone.utc).isoformat()
+                    restored_key = self._compose_jargon_key(restored_entry["standard"], restored_entry["jargon"])
+                    existing = managed.setdefault(restored_scope, {}).get(restored_key)
+                    if isinstance(existing, dict):
+                        restored_entry = self._merge_jargon_entries(existing, restored_entry)
+                    managed[restored_scope][restored_key] = restored_entry
+                    changed_live = True
+                    if found_rejected_idx >= 0:
+                        del rejected[found_rejected_idx]
+                        changed_rejected = True
+                    status_text = "active" if restored_scope == "public" else "candidate"
+                    final_row = self._build_jargon_row(
+                        scope=restored_scope,
+                        status=status_text,
+                        key=restored_key,
+                        entry=restored_entry,
+                    )
+
+            if changed_live:
+                self._save_jargon_payload_locked(payload_data, managed, extras)
+            if changed_rejected:
+                self._save_rejected_jargons_locked(rejected)
+
+        if changed_live:
+            await self._reload_jargon_runtime()
+        return final_row
+
+    async def _delete_jargon(self, jargon_id: str) -> bool:
+        clean_id = str(jargon_id or "").strip()
+        if not clean_id:
+            return False
+        changed_live = False
+        changed_rejected = False
+        deleted = False
+        async with self._jargon_store_lock:
+            payload_data, managed, extras = self._load_jargon_payload_locked()
+            rejected = self._load_rejected_jargons_locked()
+
+            for scope_name in JARGON_SCOPES:
+                bucket = managed.get(scope_name, {})
+                remove_key = ""
+                for key in bucket.keys():
+                    status_text = "active" if scope_name == "public" else "candidate"
+                    if self._jargon_id(scope_name, key, status_text) == clean_id:
+                        remove_key = key
+                        break
+                if remove_key:
+                    bucket.pop(remove_key, None)
+                    changed_live = True
+                    deleted = True
+                    break
+
+            if not deleted:
+                next_rejected = [row for row in rejected if str(row.get("id", "")) != clean_id]
+                if len(next_rejected) != len(rejected):
+                    rejected = next_rejected
+                    changed_rejected = True
+                    deleted = True
+
+            if changed_live:
+                self._save_jargon_payload_locked(payload_data, managed, extras)
+            if changed_rejected:
+                self._save_rejected_jargons_locked(rejected)
+
+        if changed_live:
+            await self._reload_jargon_runtime()
+        return deleted
+
+    async def _reload_jargon_runtime(self) -> None:
+        async with self._jargon_store_lock:
+            _, managed, _ = self._load_jargon_payload_locked()
+            live_rows = self._collect_live_jargon_entries_locked(managed)
+        mapping: dict[str, str] = {}
+        for row in live_rows:
+            term = str(row.get("jargon", "") or "").strip()
+            if not term:
+                continue
+            meaning = str(row.get("meaning", "") or "").strip() or str(row.get("standard", "") or "").strip()
+            mapping[term] = meaning
+        await self._agent.jargon_mgr.reload(mapping)
+        try:
+            await self._agent.jargon_engine.reload_automaton()
+        except Exception:
+            # Keep admin operations available even when automaton reload fails.
+            return
+
+    def _load_jargon_payload_locked(self) -> tuple[dict[str, Any], dict[str, dict[str, dict[str, Any]]], dict[str, Any]]:
+        payload: dict[str, Any] = {}
+        if self._jargon_store_path.exists():
+            try:
+                raw = json.loads(self._jargon_store_path.read_text(encoding="utf-8"))
+                if isinstance(raw, dict):
+                    payload = raw
+            except (json.JSONDecodeError, OSError):
+                payload = {}
+
+        raw_spaces = payload.get("spaces")
+        if not isinstance(raw_spaces, dict):
+            raw_spaces = {}
+        managed: dict[str, dict[str, dict[str, Any]]] = {scope: {} for scope in JARGON_SCOPES}
+        extras: dict[str, Any] = {}
+
+        for scope_name, bucket in raw_spaces.items():
+            if scope_name not in JARGON_SCOPES:
+                extras[str(scope_name)] = bucket
+                continue
+            if not isinstance(bucket, dict):
+                continue
+            normalized_bucket: dict[str, dict[str, Any]] = {}
+            for raw_key, raw_entry in bucket.items():
+                if not isinstance(raw_entry, dict):
+                    continue
+                entry = self._normalize_jargon_entry(raw_entry)
+                if entry is None:
+                    continue
+                key = str(raw_key or "").strip() or self._compose_jargon_key(entry["standard"], entry["jargon"])
+                normalized_bucket[key] = entry
+            managed[scope_name] = normalized_bucket
+
+        return payload, managed, extras
+
+    def _save_jargon_payload_locked(
+        self,
+        payload: dict[str, Any],
+        managed: dict[str, dict[str, dict[str, Any]]],
+        extras: dict[str, Any],
+    ) -> None:
+        next_payload = dict(payload) if isinstance(payload, dict) else {}
+        spaces: dict[str, Any] = {}
+        for scope_name in sorted(JARGON_SCOPES):
+            bucket = managed.get(scope_name, {})
+            safe_bucket: dict[str, Any] = {}
+            for key, entry in bucket.items():
+                normalized = self._normalize_jargon_entry(entry)
+                if normalized is None:
+                    continue
+                safe_bucket[str(key)] = normalized
+            spaces[scope_name] = safe_bucket
+        for scope_name, value in extras.items():
+            if scope_name in spaces:
+                continue
+            spaces[scope_name] = value
+        next_payload["version"] = 1
+        next_payload["spaces"] = spaces
+
+        self._jargon_store_path.parent.mkdir(parents=True, exist_ok=True)
+        temp = self._jargon_store_path.with_suffix(self._jargon_store_path.suffix + ".tmp")
+        temp.write_text(json.dumps(next_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        temp.replace(self._jargon_store_path)
+
+    def _load_rejected_jargons_locked(self) -> list[dict[str, Any]]:
+        if not self._jargon_rejected_store_path.exists():
+            return []
+        try:
+            payload = json.loads(self._jargon_rejected_store_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return []
+        if not isinstance(payload, dict):
+            return []
+        rows = payload.get("items", [])
+        if not isinstance(rows, list):
+            return []
+        out: list[dict[str, Any]] = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            entry = self._normalize_jargon_entry(row)
+            if entry is None:
+                continue
+            scope_name = self._normalize_jargon_scope(str(row.get("scope", "") or ""), allow_empty=False) or "group"
+            key = str(row.get("key", "") or "").strip() or self._compose_jargon_key(entry["standard"], entry["jargon"])
+            rejected_id = str(row.get("id", "") or "").strip()
+            if not rejected_id:
+                rejected_id = self._jargon_id(scope_name, key, "rejected")
+            out.append(
+                {
+                    "id": rejected_id,
+                    "scope": scope_name,
+                    "status": "rejected",
+                    "key": key,
+                    "jargon": entry["jargon"],
+                    "standard": entry["standard"],
+                    "meaning": entry["meaning"],
+                    "confidence": entry["confidence"],
+                    "weight": entry["weight"],
+                    "source_users": entry["source_users"],
+                    "updated_at": str(row.get("updated_at", "") or entry["updated_at"]),
+                    "rejected_at": str(row.get("rejected_at", "") or entry["updated_at"]),
+                }
+            )
+        return out
+
+    def _save_rejected_jargons_locked(self, rows: list[dict[str, Any]]) -> None:
+        payload = {
+            "version": 1,
+            "items": rows,
+        }
+        self._jargon_rejected_store_path.parent.mkdir(parents=True, exist_ok=True)
+        temp = self._jargon_rejected_store_path.with_suffix(self._jargon_rejected_store_path.suffix + ".tmp")
+        temp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        temp.replace(self._jargon_rejected_store_path)
+
+    def _collect_live_jargon_entries_locked(self, managed: dict[str, dict[str, dict[str, Any]]]) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        for scope_name, bucket in managed.items():
+            for entry in bucket.values():
+                if not isinstance(entry, dict):
+                    continue
+                normalized = self._normalize_jargon_entry(entry)
+                if normalized is None:
+                    continue
+                rows.append(normalized)
+        return rows
+
+    def _collect_jargon_rows_locked(
+        self,
+        managed: dict[str, dict[str, dict[str, Any]]],
+        rejected: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        for scope_name, bucket in managed.items():
+            for key, entry in bucket.items():
+                status_text = "active" if scope_name == "public" else "candidate"
+                rows.append(self._build_jargon_row(scope=scope_name, status=status_text, key=key, entry=entry))
+        rows.extend(dict(item) for item in rejected)
+        return rows
+
+    def _build_jargon_row(self, *, scope: str, status: str, key: str, entry: dict[str, Any]) -> dict[str, Any]:
+        normalized = self._normalize_jargon_entry(entry) or {}
+        jargon = str(normalized.get("jargon", "") or "").strip()
+        standard = str(normalized.get("standard", "") or "").strip()
+        meaning = str(normalized.get("meaning", "") or "").strip()
+        confidence = float(normalized.get("confidence", 0.5) or 0.5)
+        weight = float(normalized.get("weight", 1.0) or 1.0)
+        source_users = list(normalized.get("source_users", []) if isinstance(normalized.get("source_users"), list) else [])
+        updated_at = str(normalized.get("updated_at", "") or "")
+        return {
+            "id": self._jargon_id(scope, key, status),
+            "scope": scope,
+            "status": status,
+            "key": key,
+            "jargon": jargon,
+            "standard": standard,
+            "meaning": meaning,
+            "confidence": confidence,
+            "weight": weight,
+            "source_users": source_users,
+            "updated_at": updated_at,
+        }
+
+    def _build_rejected_jargon_row(self, *, scope: str, key: str, entry: dict[str, Any]) -> dict[str, Any]:
+        row = self._build_jargon_row(scope=scope, status="rejected", key=key, entry=entry)
+        row["rejected_at"] = datetime.now(timezone.utc).isoformat()
+        return row
+
+    def _normalize_jargon_entry(self, raw_entry: Any) -> dict[str, Any] | None:
+        if not isinstance(raw_entry, dict):
+            return None
+        jargon = str(raw_entry.get("jargon", "") or "").strip()
+        standard = str(raw_entry.get("standard", "") or "").strip()
+        if not jargon or not standard:
+            return None
+        meaning = str(raw_entry.get("meaning", "") or "").strip()
+        try:
+            confidence = float(raw_entry.get("confidence", 0.5) or 0.5)
+        except (TypeError, ValueError):
+            confidence = 0.5
+        confidence = max(0.0, min(1.0, confidence))
+        try:
+            weight = float(raw_entry.get("weight", 1.0) or 1.0)
+        except (TypeError, ValueError):
+            weight = 1.0
+        weight = max(0.05, min(100.0, weight))
+        source_users: list[int] = []
+        raw_users = raw_entry.get("source_users", [])
+        if isinstance(raw_users, list):
+            for item in raw_users:
+                try:
+                    uid = int(item)
+                except (TypeError, ValueError):
+                    continue
+                if uid <= 0 or uid in source_users:
+                    continue
+                source_users.append(uid)
+        updated_at = str(raw_entry.get("updated_at", "") or "").strip() or datetime.now(timezone.utc).isoformat()
+        return {
+            "jargon": jargon,
+            "standard": standard,
+            "meaning": meaning,
+            "confidence": confidence,
+            "weight": weight,
+            "source_users": source_users,
+            "updated_at": updated_at,
+        }
+
+    @staticmethod
+    def _merge_jargon_entries(base: dict[str, Any], incoming: dict[str, Any]) -> dict[str, Any]:
+        merged = dict(base)
+        if str(incoming.get("meaning", "") or "").strip():
+            if not str(merged.get("meaning", "") or "").strip():
+                merged["meaning"] = str(incoming.get("meaning", "")).strip()
+            else:
+                merged["meaning"] = str(incoming.get("meaning", "")).strip()
+        merged["confidence"] = max(
+            0.0,
+            min(
+                1.0,
+                (float(merged.get("confidence", 0.5) or 0.5) * 0.7)
+                + (float(incoming.get("confidence", 0.5) or 0.5) * 0.3),
+            ),
+        )
+        merged["weight"] = max(
+            0.05,
+            min(
+                100.0,
+                (float(merged.get("weight", 1.0) or 1.0) * 0.75)
+                + (float(incoming.get("weight", 1.0) or 1.0) * 0.4),
+            ),
+        )
+        merged["updated_at"] = datetime.now(timezone.utc).isoformat()
+        users: list[int] = []
+        for raw_list in (merged.get("source_users", []), incoming.get("source_users", [])):
+            if not isinstance(raw_list, list):
+                continue
+            for item in raw_list:
+                try:
+                    uid = int(item)
+                except (TypeError, ValueError):
+                    continue
+                if uid <= 0 or uid in users:
+                    continue
+                users.append(uid)
+        merged["source_users"] = users
+        merged["jargon"] = str(incoming.get("jargon", merged.get("jargon", "")) or "").strip()
+        merged["standard"] = str(incoming.get("standard", merged.get("standard", "")) or "").strip()
+        return merged
+
+    @staticmethod
+    def _compose_jargon_key(standard: str, jargon: str) -> str:
+        return f"{str(standard or '').strip().lower()}\t{str(jargon or '').strip().lower()}"
+
+    @staticmethod
+    def _normalize_jargon_scope(raw_scope: str, *, allow_empty: bool) -> str:
+        clean = str(raw_scope or "").strip().lower()
+        if not clean:
+            return "" if allow_empty else "group"
+        if clean not in JARGON_SCOPES and clean != "rejected":
+            return ""
+        return clean
+
+    @staticmethod
+    def _normalize_jargon_status(raw_status: str, *, allow_empty: bool) -> str:
+        clean = str(raw_status or "").strip().lower()
+        if not clean:
+            return "" if allow_empty else "candidate"
+        if clean not in JARGON_STATUSES:
+            return ""
+        return clean
+
+    @staticmethod
+    def _jargon_search_text(item: dict[str, Any]) -> str:
+        return (
+            f"{item.get('jargon', '')}\n"
+            f"{item.get('standard', '')}\n"
+            f"{item.get('meaning', '')}\n"
+            f"{item.get('scope', '')}\n"
+            f"{item.get('status', '')}"
+        ).lower()
+
+    @staticmethod
+    def _jargon_id(scope: str, key: str, status: str) -> str:
+        digest = hashlib.sha1(f"{scope}\n{status}\n{key}".encode("utf-8", errors="ignore")).hexdigest()
+        return digest[:24]
 
     async def _persist_config(
         self,

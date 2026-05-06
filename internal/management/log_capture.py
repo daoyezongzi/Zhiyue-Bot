@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import io
+import logging
 import sys
 import threading
 from typing import Any
@@ -85,6 +86,52 @@ class _LineMirroringStream(io.TextIOBase):
             return
 
 
+class _HubLoggingHandler(logging.Handler):
+    def __init__(
+        self,
+        *,
+        hub: LogStreamHub,
+        loop: asyncio.AbstractEventLoop,
+    ) -> None:
+        super().__init__(level=logging.NOTSET)
+        self._hub = hub
+        self._loop = loop
+        self.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+
+    def emit(self, record: logging.LogRecord) -> None:
+        if self._loop.is_closed():
+            return
+        try:
+            message = self.format(record)
+        except Exception:
+            message = str(record.getMessage())
+        clean = str(message).strip()
+        if not clean:
+            return
+
+        source = str(getattr(record, "name", "") or "system")
+        channel = self._channel_for_logger_name(source)
+
+        def _publisher() -> None:
+            asyncio.create_task(self._hub.publish(source, clean, channel=channel))
+
+        try:
+            self._loop.call_soon_threadsafe(_publisher)
+        except RuntimeError:
+            return
+
+    @staticmethod
+    def _channel_for_logger_name(logger_name: str) -> str | None:
+        name = str(logger_name or "").strip().lower()
+        if not name:
+            return None
+        if "agent" in name or "onebot" in name or "plugin" in name:
+            return "action"
+        if "napcat" in name:
+            return "napcat"
+        return None
+
+
 class BotLogCapture:
     def __init__(self, hub: LogStreamHub) -> None:
         self._hub = hub
@@ -93,6 +140,7 @@ class BotLogCapture:
         self._old_stderr: Any | None = None
         self._stdout_proxy: _LineMirroringStream | None = None
         self._stderr_proxy: _LineMirroringStream | None = None
+        self._logging_handler: _HubLoggingHandler | None = None
 
     def install(self, loop: asyncio.AbstractEventLoop) -> None:
         if self._installed:
@@ -114,6 +162,10 @@ class BotLogCapture:
         )
         sys.stdout = self._stdout_proxy
         sys.stderr = self._stderr_proxy
+
+        root_logger = logging.getLogger()
+        self._logging_handler = _HubLoggingHandler(hub=self._hub, loop=loop)
+        root_logger.addHandler(self._logging_handler)
         self._installed = True
 
     def restore(self) -> None:
@@ -130,8 +182,15 @@ class BotLogCapture:
         if self._old_stderr is not None:
             sys.stderr = self._old_stderr
 
+        if self._logging_handler is not None:
+            try:
+                logging.getLogger().removeHandler(self._logging_handler)
+            except Exception:
+                pass
+
         self._stdout_proxy = None
         self._stderr_proxy = None
         self._old_stdout = None
         self._old_stderr = None
+        self._logging_handler = None
         self._installed = False

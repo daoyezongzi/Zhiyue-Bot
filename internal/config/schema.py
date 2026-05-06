@@ -42,6 +42,10 @@ class PersonalityConfig(BaseModel):
     other_mood_boost: float = 0.03
     other_energy_delta: float = -0.01
     reply_energy_cost: float = 0.06
+    topic_interest_enabled: bool = True
+    topic_interest_mood_boost: float = 0.08
+    topic_interest_sociability_boost: float = 0.06
+    topic_interest_reply_probability_boost: float = 0.18
     energy_timezone_offset_hours: int = 8
     energy_active_start_hour: int = 8
     energy_active_end_hour: int = 21
@@ -122,7 +126,7 @@ class AdminCommandConfig(BaseModel):
 class AgentConfig(BaseModel):
     observe_window: int = 30
     think_interval: int = 8
-    think_debounce_ms: int = 800
+    think_debounce_ms: int = 260
     message_buffer_size: int = 20
     context_window_size: int = 20
     max_step: int = 12

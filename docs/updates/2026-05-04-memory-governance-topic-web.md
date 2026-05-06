@@ -95,3 +95,55 @@
 ## 7. 验证
 - 已执行：`python -m compileall core adapters internal`
 - 结果：通过。
+
+## 8. 后台数据运营面完善（对齐 MumuBot 的运营维度）
+
+本轮进一步补齐了数据运营面，目标是让“风格卡片、黑话、表情包、话题、记忆、成员、系统页”在纸月后台可统一运营，并补充健康检查。
+
+### 8.1 新增系统健康检查
+- 新增公开健康检查接口：
+  - `GET /health`
+  - `GET /api/health`（便于 Dashboard 同域调用）
+- 健康返回包含：`status/name/time/connected/uptime_seconds/started_at`。
+
+### 8.2 新增风格卡片治理闭环
+- 新增风格卡片持久化与运营 API（本地 JSON 存储）：
+  - `GET /api/style-cards`
+  - `GET /api/style-cards/{style_card_id}`
+  - `POST /api/style-cards`
+  - `POST /api/style-cards/{style_card_id}`
+  - `POST /api/style-cards/{style_card_id}/status`
+  - `DELETE /api/style-cards/{style_card_id}`
+- 支持状态流转：`candidate / active / rejected`，可按 `group_id/status/keyword` 分页检索。
+
+### 8.3 新增黑话治理闭环
+- 新增黑话运营 API：
+  - `GET /api/jargons`
+  - `GET /api/jargons/{jargon_id}`
+  - `POST /api/jargons`
+  - `POST /api/jargons/{jargon_id}/status`
+  - `DELETE /api/jargons/{jargon_id}`
+- 支持状态流转：`candidate / active / rejected`，并按 `scope/status/keyword` 分页检索。
+- 引入 rejected 持久化文件（与主词库分离），用于运营驳回留痕。
+
+### 8.4 黑话运行时同步修正
+- 修正了“重启后黑话匹配器不回填词库”的问题：
+  - 启动时从 `jargon_lexicon` 回填到 `JargonManager`。
+- Web 端变更黑话后会触发运行时同步：
+  - 刷新 `JargonManager`（匹配）
+  - 刷新 `JargonEvolutionEngine` 自动机（替换）
+
+### 8.5 Dashboard 面板补齐
+- `web_ui/dashboard.html` 新增运营面板：
+  - 系统健康页（/health）
+  - 话题系统（筛选、详情、激活/归档、摘要刷新）
+  - 风格卡片治理（筛选、新增、状态流转、删除）
+  - 黑话治理（筛选、新增、状态流转、删除）
+- 与既有面板合并后，运营维度齐全：
+  - 风格卡片、黑话、表情包、话题、记忆、成员、系统
+
+### 8.6 本轮主要改动文件
+- `adapters/web/admin_service.py`
+- `core/agent.py`
+- `web_ui/dashboard.html`
+- `docs/updates/2026-05-04-memory-governance-topic-web.md`

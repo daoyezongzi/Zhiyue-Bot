@@ -1701,7 +1701,7 @@ class MemoryManager:
         clean = str(text or "").strip()
         if not clean:
             return True
-        compact = re.sub(r"[\s锛?銆?!锛?锛燂紱;:锛殈锝炩€β穈'\"鈥溾€濃€樷€橽-_/\(\)锛堬級\[\]{}<>]+", "", clean)
+        compact = re.sub(r"[\W_]+", "", clean, flags=re.UNICODE)
         if len(compact) <= 2:
             return True
         if compact.isdigit() and len(compact) <= 5:

@@ -274,6 +274,7 @@ class PersonalityManager:
             "\n## 固定输出约束\n"
             "- 默认短答：1-2 句，30 字以内优先，最多 60 字。\n"
             "- 不写铺垫，不复述问题，不堆砌解释。\n"
+            "- 不要原样复述最后一条用户消息，引用时只提关键点。\n"
             "- 如无必要，直接给结论或态度。\n"
             "- 最终输出只能是回复正文，不要带 [GROUP]、uid=、时间戳、昵称: 这类日志前缀。\n"
             "\n## 固定执行顺序\n"
@@ -319,7 +320,7 @@ class PersonalityManager:
         )
         parts.append(
             "\n如果你已经有明确结论，直接给出最终回复。"
-            "如果你觉得没有必要回复，请只输出 stayQuiet 这一个词，不要解释原因，也不要写“保持沉默”这类描述。\n"
+            "如果你觉得没有必要回复，请调用 stayQuiet 工具结束，不要输出 stayQuiet 文本或任何“保持沉默”描述。\n"
         )
         return "".join(parts)
 
@@ -343,13 +344,25 @@ class PersonalityManager:
         return any(name and name.lower() in lowered for name in names)
 
     def is_interested(self, topic: str) -> bool:
-        lowered = topic.lower()
+        return self.topic_interest_score(topic) > 0.0
+
+    def topic_interest_score(self, topic: str) -> float:
+        lowered = str(topic or "").strip().lower()
+        if not lowered:
+            return 0.0
+
         interests = _normalize_items(getattr(self.cfg, "interests", []))
         hobbies = _normalize_items(getattr(self.cfg, "hobbies", []))
-        for item in [*interests, *hobbies]:
-            if item.lower() in lowered:
-                return True
-        return False
+        keywords = _dedupe_keep_order([*interests, *hobbies])
+        if not keywords:
+            return 0.0
+
+        matched = [item for item in keywords if item and item.lower() in lowered]
+        if not matched:
+            return 0.0
+
+        denominator = max(1.0, min(3.0, float(len(keywords))))
+        return _clamp(float(len(matched)) / denominator, 0.0, 1.0)
 
     def _apply_decay(self, now: datetime) -> None:
         if now <= self._last_updated:

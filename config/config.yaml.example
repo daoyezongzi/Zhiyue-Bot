@@ -32,6 +32,10 @@ personality:
   other_mood_boost: 0.03
   other_energy_delta: -0.01
   reply_energy_cost: 0.06
+  topic_interest_enabled: true
+  topic_interest_mood_boost: 0.08
+  topic_interest_sociability_boost: 0.06
+  topic_interest_reply_probability_boost: 0.18
   energy_timezone_offset_hours: 8
   energy_active_start_hour: 8
   energy_active_end_hour: 21
@@ -84,7 +88,7 @@ admin_commands:
 agent:
   observe_window: 30
   think_interval: 8
-  think_debounce_ms: 800
+  think_debounce_ms: 260
   message_buffer_size: 20
   context_window_size: 20
   max_step: 12

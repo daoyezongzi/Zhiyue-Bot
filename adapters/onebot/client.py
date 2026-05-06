@@ -4,6 +4,7 @@ import asyncio
 import inspect
 import json
 import time
+from pathlib import Path
 from typing import Any, Mapping
 from urllib.parse import parse_qs, urlparse
 
@@ -321,6 +322,42 @@ class OneBotClient:
             },
         )
 
+    async def send_group_image(self, group_id: int, file_path: str, *, as_sticker: bool = False) -> str:
+        message = [
+            {
+                "type": "image",
+                "data": {
+                    "file": self._build_file_uri(file_path),
+                    "sub_type": 1 if as_sticker else 0,
+                },
+            },
+        ]
+        return await self._send_action(
+            "send_group_msg",
+            {
+                "group_id": int(group_id),
+                "message": message,
+            },
+        )
+
+    async def send_private_image(self, user_id: int, file_path: str, *, as_sticker: bool = False) -> str:
+        message = [
+            {
+                "type": "image",
+                "data": {
+                    "file": self._build_file_uri(file_path),
+                    "sub_type": 1 if as_sticker else 0,
+                },
+            },
+        ]
+        return await self._send_action(
+            "send_private_msg",
+            {
+                "user_id": int(user_id),
+                "message": message,
+            },
+        )
+
     async def send_group_message(
         self,
         group_id: int,
@@ -427,6 +464,20 @@ class OneBotClient:
 
         self._logger.info("TX action=%s echo=%s params=%s", action, echo, params)
         return echo
+
+    @staticmethod
+    def _build_file_uri(file_path: str) -> str:
+        raw = str(file_path or "").strip()
+        if not raw:
+            raise ValueError("file path is empty")
+        if raw.lower().startswith("file:///"):
+            return raw
+        path = Path(raw).expanduser()
+        try:
+            path = path.resolve(strict=False)
+        except Exception:
+            pass
+        return f"file:///{path.as_posix()}"
 
     def _is_authorized_reverse_connection(self, websocket: Any, raw_path: str) -> bool:
         expected = self.access_token.strip()

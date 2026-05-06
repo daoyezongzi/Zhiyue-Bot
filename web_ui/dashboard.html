@@ -723,6 +723,47 @@
       </section>
 
       <section class="card">
+        <h2>系统健康页（/health）</h2>
+        <div class="row split">
+          <button id="refreshHealthBtn" class="secondary">刷新健康状态</button>
+          <div id="healthSummaryText" class="muted">等待读取...</div>
+        </div>
+        <div class="row">
+          <label>健康详情</label>
+          <div id="healthDetailView" class="dialog-panel"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>话题系统</h2>
+        <div class="row triple">
+          <input id="topicGroupIdInput" placeholder="group_id（可选）" />
+          <select id="topicStatusSelect">
+            <option value="">status: 全部</option>
+            <option value="active">active</option>
+            <option value="archived">archived</option>
+          </select>
+          <input id="topicKeywordInput" placeholder="关键词（标题/摘要/消息）" />
+        </div>
+        <div class="row split">
+          <button id="refreshTopicsBtn" class="secondary">刷新话题</button>
+          <button id="topicSummaryRefreshBtn" class="warn">刷新选中摘要</button>
+        </div>
+        <div class="row split">
+          <button id="topicActivateBtn">激活选中话题</button>
+          <button id="topicArchiveBtn" class="danger">归档选中话题</button>
+        </div>
+        <div class="row">
+          <label>话题列表</label>
+          <div id="topicList" class="list-box"></div>
+        </div>
+        <div class="row">
+          <label>话题详情</label>
+          <div id="topicDetailView" class="dialog-panel"></div>
+        </div>
+      </section>
+
+      <section class="card">
         <h2>性格切换与 Prompt</h2>
         <div class="row">
           <label for="personaPresetSelect">预设性格（本地模板，写入 config/persona.prompt）</label>
@@ -786,6 +827,104 @@
         <div class="row">
           <label>成员详情</label>
           <div id="memberDetailView" class="dialog-panel"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>风格卡片治理</h2>
+        <div class="row triple">
+          <input id="styleCardGroupIdInput" placeholder="group_id（可选）" />
+          <select id="styleCardStatusSelect">
+            <option value="">status: 全部</option>
+            <option value="candidate">candidate</option>
+            <option value="active">active</option>
+            <option value="rejected">rejected</option>
+          </select>
+          <input id="styleCardKeywordInput" placeholder="关键词（标题/内容/标签）" />
+        </div>
+        <div class="row split">
+          <button id="refreshStyleCardsBtn" class="secondary">刷新风格卡片</button>
+          <button id="saveStyleCardBtn">新增风格卡片</button>
+        </div>
+        <div class="row triple">
+          <input id="styleCardTitleInput" placeholder="标题" />
+          <input id="styleCardIntentInput" placeholder="intent（可选）" />
+          <input id="styleCardToneInput" placeholder="tone（可选）" />
+        </div>
+        <div class="row split">
+          <input id="styleCardCreateGroupIdInput" placeholder="新增 group_id（默认 0）" />
+          <input id="styleCardTagsInput" placeholder="tags（逗号分隔）" />
+        </div>
+        <div class="row">
+          <textarea id="styleCardContentInput" style="min-height: 96px;" placeholder="风格卡片内容"></textarea>
+        </div>
+        <div class="row triple">
+          <button id="styleCardActivateBtn">设为 active</button>
+          <button id="styleCardCandidateBtn" class="secondary">设为 candidate</button>
+          <button id="styleCardRejectBtn" class="warn">设为 rejected</button>
+        </div>
+        <div class="row">
+          <button id="styleCardDeleteBtn" class="danger">删除选中风格卡片</button>
+        </div>
+        <div class="row">
+          <label>风格卡片列表</label>
+          <div id="styleCardList" class="list-box"></div>
+        </div>
+        <div class="row">
+          <label>风格卡片详情</label>
+          <div id="styleCardDetailView" class="dialog-panel"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>黑话治理</h2>
+        <div class="row triple">
+          <select id="jargonStatusSelect">
+            <option value="">status: 全部</option>
+            <option value="candidate">candidate</option>
+            <option value="active">active</option>
+            <option value="rejected">rejected</option>
+          </select>
+          <select id="jargonScopeSelect">
+            <option value="">scope: 全部</option>
+            <option value="group">group</option>
+            <option value="user">user</option>
+            <option value="public">public</option>
+            <option value="rejected">rejected</option>
+          </select>
+          <input id="jargonKeywordInput" placeholder="关键词（黑话/标准词/释义）" />
+        </div>
+        <div class="row split">
+          <button id="refreshJargonsBtn" class="secondary">刷新黑话</button>
+          <button id="saveJargonBtn">新增黑话</button>
+        </div>
+        <div class="row triple">
+          <input id="jargonTermInput" placeholder="黑话词（jargon）" />
+          <input id="jargonStandardInput" placeholder="标准说法（standard）" />
+          <select id="jargonCreateScopeSelect">
+            <option value="group">group（candidate）</option>
+            <option value="user">user（candidate）</option>
+            <option value="public">public（active）</option>
+          </select>
+        </div>
+        <div class="row">
+          <input id="jargonMeaningInput" placeholder="释义（可选）" />
+        </div>
+        <div class="row triple">
+          <button id="jargonActivateBtn">设为 active</button>
+          <button id="jargonCandidateBtn" class="secondary">设为 candidate</button>
+          <button id="jargonRejectBtn" class="warn">设为 rejected</button>
+        </div>
+        <div class="row">
+          <button id="jargonDeleteBtn" class="danger">删除选中黑话</button>
+        </div>
+        <div class="row">
+          <label>黑话列表</label>
+          <div id="jargonList" class="list-box"></div>
+        </div>
+        <div class="row">
+          <label>黑话详情</label>
+          <div id="jargonDetailView" class="dialog-panel"></div>
         </div>
       </section>
 
@@ -1089,6 +1228,23 @@
     const restartBotBtn = document.getElementById("restartBotBtn");
     const shutdownBotBtn = document.getElementById("shutdownBotBtn");
     const refreshMembersBtn = document.getElementById("refreshMembersBtn");
+    const refreshHealthBtn = document.getElementById("refreshHealthBtn");
+    const refreshTopicsBtn = document.getElementById("refreshTopicsBtn");
+    const topicSummaryRefreshBtn = document.getElementById("topicSummaryRefreshBtn");
+    const topicActivateBtn = document.getElementById("topicActivateBtn");
+    const topicArchiveBtn = document.getElementById("topicArchiveBtn");
+    const refreshStyleCardsBtn = document.getElementById("refreshStyleCardsBtn");
+    const saveStyleCardBtn = document.getElementById("saveStyleCardBtn");
+    const styleCardActivateBtn = document.getElementById("styleCardActivateBtn");
+    const styleCardCandidateBtn = document.getElementById("styleCardCandidateBtn");
+    const styleCardRejectBtn = document.getElementById("styleCardRejectBtn");
+    const styleCardDeleteBtn = document.getElementById("styleCardDeleteBtn");
+    const refreshJargonsBtn = document.getElementById("refreshJargonsBtn");
+    const saveJargonBtn = document.getElementById("saveJargonBtn");
+    const jargonActivateBtn = document.getElementById("jargonActivateBtn");
+    const jargonCandidateBtn = document.getElementById("jargonCandidateBtn");
+    const jargonRejectBtn = document.getElementById("jargonRejectBtn");
+    const jargonDeleteBtn = document.getElementById("jargonDeleteBtn");
 
     const statusLine = document.getElementById("statusLine");
     const apiStateChip = document.getElementById("apiStateChip");
@@ -1113,6 +1269,13 @@
     const lastActiveText = document.getElementById("lastActiveText");
     const energyBar = document.getElementById("energyBar");
     const modelInfo = document.getElementById("modelInfo");
+    const healthSummaryText = document.getElementById("healthSummaryText");
+    const healthDetailView = document.getElementById("healthDetailView");
+    const topicGroupIdInput = document.getElementById("topicGroupIdInput");
+    const topicStatusSelect = document.getElementById("topicStatusSelect");
+    const topicKeywordInput = document.getElementById("topicKeywordInput");
+    const topicList = document.getElementById("topicList");
+    const topicDetailView = document.getElementById("topicDetailView");
 
     const personaPresetSelect = document.getElementById("personaPresetSelect");
     const promptInput = document.getElementById("promptInput");
@@ -1124,6 +1287,26 @@
     const memberKeywordInput = document.getElementById("memberKeywordInput");
     const memberList = document.getElementById("memberList");
     const memberDetailView = document.getElementById("memberDetailView");
+    const styleCardGroupIdInput = document.getElementById("styleCardGroupIdInput");
+    const styleCardStatusSelect = document.getElementById("styleCardStatusSelect");
+    const styleCardKeywordInput = document.getElementById("styleCardKeywordInput");
+    const styleCardTitleInput = document.getElementById("styleCardTitleInput");
+    const styleCardIntentInput = document.getElementById("styleCardIntentInput");
+    const styleCardToneInput = document.getElementById("styleCardToneInput");
+    const styleCardCreateGroupIdInput = document.getElementById("styleCardCreateGroupIdInput");
+    const styleCardTagsInput = document.getElementById("styleCardTagsInput");
+    const styleCardContentInput = document.getElementById("styleCardContentInput");
+    const styleCardList = document.getElementById("styleCardList");
+    const styleCardDetailView = document.getElementById("styleCardDetailView");
+    const jargonStatusSelect = document.getElementById("jargonStatusSelect");
+    const jargonScopeSelect = document.getElementById("jargonScopeSelect");
+    const jargonKeywordInput = document.getElementById("jargonKeywordInput");
+    const jargonTermInput = document.getElementById("jargonTermInput");
+    const jargonStandardInput = document.getElementById("jargonStandardInput");
+    const jargonCreateScopeSelect = document.getElementById("jargonCreateScopeSelect");
+    const jargonMeaningInput = document.getElementById("jargonMeaningInput");
+    const jargonList = document.getElementById("jargonList");
+    const jargonDetailView = document.getElementById("jargonDetailView");
     const stickerEnabledToggle = document.getElementById("stickerEnabledToggle");
     const stickerCollectionRateInput = document.getElementById("stickerCollectionRateInput");
     const stickerStorageModeSelect = document.getElementById("stickerStorageModeSelect");
@@ -1191,6 +1374,13 @@
     let selectedSessionId = "";
     let toolCallRows = [];
     let selectedToolCallId = 0;
+    let healthSnapshot = null;
+    let topicRows = [];
+    let selectedTopicId = 0;
+    let styleCardRows = [];
+    let selectedStyleCardId = 0;
+    let jargonRows = [];
+    let selectedJargonId = "";
     let toolCallPage = 1;
     let toolCallPageSize = 50;
     let toolCallTotal = 0;
@@ -1254,6 +1444,17 @@
         "tx action",
         "post_type=",
         "message_type=",
+        "queue.dispatch",
+        "queue.reply",
+        "queue.skipreply",
+        "queue.lowenergyreply",
+        "queue.silence",
+        "queue.forcereply",
+        "sendchain.",
+        "replystatus",
+        "llm.think",
+        "llm.reply",
+        "sticker.reply",
         "[plugins]",
         "[groups]",
         "[stickers]",
@@ -1489,6 +1690,444 @@
       renderMemorySessions(sessions);
       renderMemoryGovernanceSummary(data.long_term_memory || {});
       renderToolCallStats(data.tool_calls || {});
+    }
+
+    function renderHealth(snapshot) {
+      if (!snapshot || typeof snapshot !== "object") {
+        healthSummaryText.textContent = "健康检查失败";
+        healthDetailView.textContent = "暂无健康数据";
+        return;
+      }
+      const statusText = String(snapshot.status || "-");
+      const name = String(snapshot.name || "-");
+      const timeText = formatLocalTime(snapshot.time || "");
+      const connectedText = Boolean(snapshot.connected) ? "connected" : "disconnected";
+      const uptimeTextValue = formatUptime(snapshot.uptime_seconds || 0);
+      healthSummaryText.textContent = `${statusText} | ${connectedText}`;
+      healthDetailView.textContent = [
+        `name: ${name}`,
+        `status: ${statusText}`,
+        `connected: ${connectedText}`,
+        `time: ${timeText}`,
+        `started_at: ${formatLocalTime(snapshot.started_at || "")}`,
+        `uptime: ${uptimeTextValue}`,
+      ].join("\n");
+    }
+
+    async function refreshHealth() {
+      try {
+        healthSnapshot = await apiRequest("/api/health");
+        renderHealth(healthSnapshot);
+      } catch (err) {
+        renderHealth(null);
+        appendLog(`[health] 获取失败: ${err.message}`, "status-error");
+      }
+    }
+
+    function buildTopicQuery() {
+      const groupRaw = String(topicGroupIdInput.value || "").trim();
+      const groupId = /^\d+$/.test(groupRaw) ? Number(groupRaw) : 0;
+      return {
+        group_id: groupId > 0 ? groupId : 0,
+        status: String(topicStatusSelect.value || "").trim(),
+        keyword: String(topicKeywordInput.value || "").trim(),
+      };
+    }
+
+    function renderTopicDetail(item) {
+      if (!item || typeof item !== "object") {
+        topicDetailView.textContent = "暂无话题详情";
+        return;
+      }
+      try {
+        topicDetailView.textContent = JSON.stringify(item, null, 2);
+      } catch {
+        topicDetailView.textContent = String(item);
+      }
+    }
+
+    function renderTopics(items) {
+      topicRows = Array.isArray(items) ? items : [];
+      topicList.innerHTML = "";
+      if (!topicRows.length) {
+        topicList.innerHTML = `<div class="muted">暂无话题</div>`;
+        selectedTopicId = 0;
+        renderTopicDetail(null);
+        return;
+      }
+      const hasSelected = topicRows.some((item) => Number(item.topic_id || 0) === selectedTopicId);
+      if (!hasSelected) {
+        selectedTopicId = Number(topicRows[0].topic_id || 0);
+      }
+      topicRows.forEach((item) => {
+        const topicId = Number(item.topic_id || 0);
+        const row = document.createElement("div");
+        row.className = `list-item ${topicId === selectedTopicId ? "active" : ""}`;
+        const summary = item.summary && typeof item.summary === "object" ? item.summary : {};
+        const title = String(summary.title || summary.gist || "-").replace(/\s+/g, " ").slice(0, 54);
+        const statusText = String(item.status || "-");
+        const groupText = Number(item.group_id || 0);
+        const msgCount = Number(item.message_count || 0);
+        row.textContent = `#${topicId} [${statusText}] g=${groupText} msg=${msgCount} | ${title}`;
+        row.addEventListener("click", async () => {
+          selectedTopicId = topicId;
+          renderTopics(topicRows);
+          await loadTopicDetail(topicId);
+        });
+        topicList.appendChild(row);
+      });
+    }
+
+    async function refreshTopics() {
+      try {
+        const query = buildTopicQuery();
+        const params = new URLSearchParams();
+        if (query.group_id > 0) {
+          params.set("group_id", String(query.group_id));
+        }
+        if (query.status) {
+          params.set("status", query.status);
+        }
+        if (query.keyword) {
+          params.set("keyword", query.keyword);
+        }
+        params.set("page", "1");
+        params.set("page_size", "120");
+        const data = await apiRequest(`/api/topics?${params.toString()}`);
+        renderTopics(Array.isArray(data.items) ? data.items : []);
+        if (selectedTopicId > 0) {
+          await loadTopicDetail(selectedTopicId);
+        }
+      } catch (err) {
+        appendLog(`[topics] 刷新失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function loadTopicDetail(topicId) {
+      const id = Number(topicId || 0);
+      if (!id) {
+        renderTopicDetail(null);
+        return;
+      }
+      try {
+        const data = await apiRequest(`/api/topics/${encodeURIComponent(id)}?message_limit=120`);
+        renderTopicDetail(data.item || null);
+      } catch (err) {
+        renderTopicDetail(null);
+        appendLog(`[topics] 读取详情失败 #${id}: ${err.message}`, "status-error");
+      }
+    }
+
+    async function setTopicStatus(nextStatus) {
+      const id = Number(selectedTopicId || 0);
+      if (!id) {
+        appendLog("[topics] 请先选择话题", "status-warn");
+        return;
+      }
+      const statusText = String(nextStatus || "").trim().toLowerCase();
+      const action = statusText === "active" ? "activate" : "archive";
+      try {
+        await apiRequest(`/api/topics/${encodeURIComponent(id)}/${action}`, { method: "POST" });
+        appendLog(`[topics] #${id} -> ${statusText}`, "status-ok");
+        await refreshTopics();
+      } catch (err) {
+        appendLog(`[topics] 状态更新失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function refreshSelectedTopicSummary() {
+      const id = Number(selectedTopicId || 0);
+      if (!id) {
+        appendLog("[topics] 请先选择话题", "status-warn");
+        return;
+      }
+      try {
+        await apiRequest(`/api/topics/${encodeURIComponent(id)}/summary/refresh`, { method: "POST" });
+        appendLog(`[topics] #${id} 摘要已刷新`, "status-ok");
+        await loadTopicDetail(id);
+        await refreshTopics();
+      } catch (err) {
+        appendLog(`[topics] 摘要刷新失败: ${err.message}`, "status-error");
+      }
+    }
+
+    function parseTagInput(rawValue) {
+      return String(rawValue || "")
+        .split(/[,\n\r;|]/g)
+        .map((item) => item.trim())
+        .filter((item, idx, arr) => item && arr.indexOf(item) === idx);
+    }
+
+    function renderStyleCardDetail(item) {
+      if (!item || typeof item !== "object") {
+        styleCardDetailView.textContent = "暂无风格卡片详情";
+        return;
+      }
+      try {
+        styleCardDetailView.textContent = JSON.stringify(item, null, 2);
+      } catch {
+        styleCardDetailView.textContent = String(item);
+      }
+    }
+
+    function renderStyleCards(items) {
+      styleCardRows = Array.isArray(items) ? items : [];
+      styleCardList.innerHTML = "";
+      if (!styleCardRows.length) {
+        styleCardList.innerHTML = `<div class="muted">暂无风格卡片</div>`;
+        selectedStyleCardId = 0;
+        renderStyleCardDetail(null);
+        return;
+      }
+      const hasSelected = styleCardRows.some((item) => Number(item.id || 0) === selectedStyleCardId);
+      if (!hasSelected) {
+        selectedStyleCardId = Number(styleCardRows[0].id || 0);
+      }
+      styleCardRows.forEach((item) => {
+        const id = Number(item.id || 0);
+        const row = document.createElement("div");
+        row.className = `list-item ${id === selectedStyleCardId ? "active" : ""}`;
+        const statusText = String(item.status || "-");
+        const groupText = Number(item.group_id || 0);
+        const title = String(item.title || "-").replace(/\s+/g, " ").slice(0, 38);
+        row.textContent = `#${id} [${statusText}] g=${groupText} | ${title}`;
+        row.addEventListener("click", () => {
+          selectedStyleCardId = id;
+          renderStyleCards(styleCardRows);
+          renderStyleCardDetail(item);
+        });
+        styleCardList.appendChild(row);
+      });
+      const current = styleCardRows.find((row) => Number(row.id || 0) === selectedStyleCardId) || styleCardRows[0];
+      renderStyleCardDetail(current);
+    }
+
+    async function refreshStyleCards() {
+      try {
+        const groupRaw = String(styleCardGroupIdInput.value || "").trim();
+        const groupId = /^\d+$/.test(groupRaw) ? Number(groupRaw) : 0;
+        const statusValue = String(styleCardStatusSelect.value || "").trim();
+        const keyword = String(styleCardKeywordInput.value || "").trim();
+        const params = new URLSearchParams();
+        if (groupId > 0) {
+          params.set("group_id", String(groupId));
+        }
+        if (statusValue) {
+          params.set("status", statusValue);
+        }
+        if (keyword) {
+          params.set("keyword", keyword);
+        }
+        params.set("page", "1");
+        params.set("page_size", "200");
+        const data = await apiRequest(`/api/style-cards?${params.toString()}`);
+        renderStyleCards(Array.isArray(data.items) ? data.items : []);
+      } catch (err) {
+        appendLog(`[style-cards] 刷新失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function saveStyleCard() {
+      const title = String(styleCardTitleInput.value || "").trim();
+      const content = String(styleCardContentInput.value || "").trim();
+      if (!title) {
+        appendLog("[style-cards] 标题不能为空", "status-warn");
+        return;
+      }
+      if (!content) {
+        appendLog("[style-cards] 内容不能为空", "status-warn");
+        return;
+      }
+      const groupRaw = String(styleCardCreateGroupIdInput.value || "").trim();
+      const groupId = /^\d+$/.test(groupRaw) ? Number(groupRaw) : 0;
+      try {
+        await apiRequest("/api/style-cards", {
+          method: "POST",
+          json: {
+            group_id: groupId > 0 ? groupId : 0,
+            title,
+            content,
+            intent: String(styleCardIntentInput.value || "").trim(),
+            tone: String(styleCardToneInput.value || "").trim(),
+            tags: parseTagInput(styleCardTagsInput.value),
+            status: "candidate",
+          },
+        });
+        appendLog("[style-cards] 已新增", "status-ok");
+        await refreshStyleCards();
+      } catch (err) {
+        appendLog(`[style-cards] 新增失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function setStyleCardStatus(nextStatus) {
+      const id = Number(selectedStyleCardId || 0);
+      if (!id) {
+        appendLog("[style-cards] 请先选择风格卡片", "status-warn");
+        return;
+      }
+      try {
+        await apiRequest(`/api/style-cards/${encodeURIComponent(id)}/status`, {
+          method: "POST",
+          json: { status: String(nextStatus || "").trim().toLowerCase() },
+        });
+        appendLog(`[style-cards] #${id} 状态已更新为 ${nextStatus}`, "status-ok");
+        await refreshStyleCards();
+      } catch (err) {
+        appendLog(`[style-cards] 状态更新失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function deleteSelectedStyleCard() {
+      const id = Number(selectedStyleCardId || 0);
+      if (!id) {
+        appendLog("[style-cards] 请先选择风格卡片", "status-warn");
+        return;
+      }
+      const confirmed = window.confirm(`确定删除风格卡片 #${id} 吗？`);
+      if (!confirmed) {
+        return;
+      }
+      try {
+        await apiRequest(`/api/style-cards/${encodeURIComponent(id)}`, { method: "DELETE" });
+        appendLog(`[style-cards] 已删除 #${id}`, "status-ok");
+        await refreshStyleCards();
+      } catch (err) {
+        appendLog(`[style-cards] 删除失败: ${err.message}`, "status-error");
+      }
+    }
+
+    function renderJargonDetail(item) {
+      if (!item || typeof item !== "object") {
+        jargonDetailView.textContent = "暂无黑话详情";
+        return;
+      }
+      try {
+        jargonDetailView.textContent = JSON.stringify(item, null, 2);
+      } catch {
+        jargonDetailView.textContent = String(item);
+      }
+    }
+
+    function renderJargons(items) {
+      jargonRows = Array.isArray(items) ? items : [];
+      jargonList.innerHTML = "";
+      if (!jargonRows.length) {
+        jargonList.innerHTML = `<div class="muted">暂无黑话</div>`;
+        selectedJargonId = "";
+        renderJargonDetail(null);
+        return;
+      }
+      const hasSelected = jargonRows.some((item) => String(item.id || "") === selectedJargonId);
+      if (!hasSelected) {
+        selectedJargonId = String(jargonRows[0].id || "");
+      }
+      jargonRows.forEach((item) => {
+        const id = String(item.id || "");
+        const row = document.createElement("div");
+        row.className = `list-item ${id === selectedJargonId ? "active" : ""}`;
+        const statusText = String(item.status || "-");
+        const scope = String(item.scope || "-");
+        const jargon = String(item.jargon || "-").replace(/\s+/g, " ").slice(0, 20);
+        const standard = String(item.standard || "-").replace(/\s+/g, " ").slice(0, 20);
+        row.textContent = `[${statusText}/${scope}] ${jargon} -> ${standard}`;
+        row.addEventListener("click", () => {
+          selectedJargonId = id;
+          renderJargons(jargonRows);
+          renderJargonDetail(item);
+        });
+        jargonList.appendChild(row);
+      });
+      const current = jargonRows.find((row) => String(row.id || "") === selectedJargonId) || jargonRows[0];
+      renderJargonDetail(current);
+    }
+
+    async function refreshJargons() {
+      try {
+        const params = new URLSearchParams();
+        const statusValue = String(jargonStatusSelect.value || "").trim();
+        const scopeValue = String(jargonScopeSelect.value || "").trim();
+        const keyword = String(jargonKeywordInput.value || "").trim();
+        if (statusValue) {
+          params.set("status", statusValue);
+        }
+        if (scopeValue) {
+          params.set("scope", scopeValue);
+        }
+        if (keyword) {
+          params.set("keyword", keyword);
+        }
+        params.set("page", "1");
+        params.set("page_size", "200");
+        const data = await apiRequest(`/api/jargons?${params.toString()}`);
+        renderJargons(Array.isArray(data.items) ? data.items : []);
+      } catch (err) {
+        appendLog(`[jargons] 刷新失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function saveJargon() {
+      const jargon = String(jargonTermInput.value || "").trim();
+      const standard = String(jargonStandardInput.value || "").trim();
+      if (!jargon || !standard) {
+        appendLog("[jargons] 黑话词和标准说法不能为空", "status-warn");
+        return;
+      }
+      try {
+        await apiRequest("/api/jargons", {
+          method: "POST",
+          json: {
+            jargon,
+            standard,
+            meaning: String(jargonMeaningInput.value || "").trim(),
+            scope: String(jargonCreateScopeSelect.value || "group").trim(),
+          },
+        });
+        appendLog("[jargons] 已新增", "status-ok");
+        await refreshJargons();
+      } catch (err) {
+        appendLog(`[jargons] 新增失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function setJargonStatus(nextStatus) {
+      const id = String(selectedJargonId || "").trim();
+      if (!id) {
+        appendLog("[jargons] 请先选择黑话", "status-warn");
+        return;
+      }
+      try {
+        await apiRequest(`/api/jargons/${encodeURIComponent(id)}/status`, {
+          method: "POST",
+          json: {
+            status: String(nextStatus || "").trim().toLowerCase(),
+            scope: "group",
+          },
+        });
+        appendLog(`[jargons] 状态已更新为 ${nextStatus}`, "status-ok");
+        await refreshJargons();
+      } catch (err) {
+        appendLog(`[jargons] 状态更新失败: ${err.message}`, "status-error");
+      }
+    }
+
+    async function deleteSelectedJargon() {
+      const id = String(selectedJargonId || "").trim();
+      if (!id) {
+        appendLog("[jargons] 请先选择黑话", "status-warn");
+        return;
+      }
+      const confirmed = window.confirm("确定删除选中的黑话吗？");
+      if (!confirmed) {
+        return;
+      }
+      try {
+        await apiRequest(`/api/jargons/${encodeURIComponent(id)}`, { method: "DELETE" });
+        appendLog("[jargons] 已删除", "status-ok");
+        await refreshJargons();
+      } catch (err) {
+        appendLog(`[jargons] 删除失败: ${err.message}`, "status-error");
+      }
     }
 
     function renderToolCallStats(stats) {
@@ -2964,7 +3603,11 @@
 
     async function refreshAll() {
       await Promise.all([
+        refreshHealth(),
         refreshStatus(),
+        refreshTopics(),
+        refreshStyleCards(),
+        refreshJargons(),
         refreshGovernedMemories(),
         refreshRuntimeConfig(),
         refreshMembers(),
@@ -2978,10 +3621,55 @@
     connectLogsBtn.addEventListener("click", () => connectLogStream(true));
     refreshAllBtn.addEventListener("click", refreshAll);
     refreshStatusBtn.addEventListener("click", refreshStatus);
+    refreshHealthBtn.addEventListener("click", refreshHealth);
     savePromptBtn.addEventListener("click", updatePrompt);
     saveMasterBtn.addEventListener("click", saveMasterId);
     addGroupBtn.addEventListener("click", addGroup);
     refreshMembersBtn.addEventListener("click", refreshMembers);
+    refreshTopicsBtn.addEventListener("click", refreshTopics);
+    topicSummaryRefreshBtn.addEventListener("click", refreshSelectedTopicSummary);
+    topicActivateBtn.addEventListener("click", () => setTopicStatus("active"));
+    topicArchiveBtn.addEventListener("click", () => setTopicStatus("archived"));
+    [topicGroupIdInput, topicKeywordInput].forEach((inputEl) => {
+      inputEl.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          refreshTopics();
+        }
+      });
+    });
+    topicStatusSelect.addEventListener("change", refreshTopics);
+
+    refreshStyleCardsBtn.addEventListener("click", refreshStyleCards);
+    saveStyleCardBtn.addEventListener("click", saveStyleCard);
+    styleCardActivateBtn.addEventListener("click", () => setStyleCardStatus("active"));
+    styleCardCandidateBtn.addEventListener("click", () => setStyleCardStatus("candidate"));
+    styleCardRejectBtn.addEventListener("click", () => setStyleCardStatus("rejected"));
+    styleCardDeleteBtn.addEventListener("click", deleteSelectedStyleCard);
+    [styleCardGroupIdInput, styleCardKeywordInput].forEach((inputEl) => {
+      inputEl.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          refreshStyleCards();
+        }
+      });
+    });
+    styleCardStatusSelect.addEventListener("change", refreshStyleCards);
+
+    refreshJargonsBtn.addEventListener("click", refreshJargons);
+    saveJargonBtn.addEventListener("click", saveJargon);
+    jargonActivateBtn.addEventListener("click", () => setJargonStatus("active"));
+    jargonCandidateBtn.addEventListener("click", () => setJargonStatus("candidate"));
+    jargonRejectBtn.addEventListener("click", () => setJargonStatus("rejected"));
+    jargonDeleteBtn.addEventListener("click", deleteSelectedJargon);
+    [jargonKeywordInput, jargonTermInput, jargonStandardInput].forEach((inputEl) => {
+      inputEl.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          refreshJargons();
+        }
+      });
+    });
+    jargonStatusSelect.addEventListener("change", refreshJargons);
+    jargonScopeSelect.addEventListener("change", refreshJargons);
+
     memberKeywordInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         refreshMembers();
