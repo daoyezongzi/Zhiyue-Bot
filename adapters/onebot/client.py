@@ -313,7 +313,7 @@ class OneBotClient:
             },
         )
 
-    async def send_group_msg(self, group_id: int, message: str) -> str:
+    async def send_group_msg(self, group_id: int, message: Any) -> str:
         return await self._send_action(
             "send_group_msg",
             {
@@ -365,9 +365,55 @@ class OneBotClient:
         reply_to: int | None = None,
         mentions: list[int] | None = None,
     ) -> int:
-        del reply_to
-        del mentions
-        echo = await self.send_group_msg(group_id=group_id, message=content)
+        message: list[dict[str, Any]] = []
+
+        try:
+            reply_id = int(reply_to or 0)
+        except (TypeError, ValueError):
+            reply_id = 0
+        if reply_id > 0:
+            message.append(
+                {
+                    "type": "reply",
+                    "data": {"id": str(reply_id)},
+                },
+            )
+
+        for user_id in list(mentions or []):
+            try:
+                mention_id = int(user_id or 0)
+            except (TypeError, ValueError):
+                continue
+            if mention_id <= 0:
+                continue
+            message.append(
+                {
+                    "type": "at",
+                    "data": {"qq": str(mention_id)},
+                },
+            )
+            message.append(
+                {
+                    "type": "text",
+                    "data": {"text": " "},
+                },
+            )
+
+        text = str(content or "")
+        if text:
+            message.append(
+                {
+                    "type": "text",
+                    "data": {"text": text},
+                },
+            )
+
+        payload: str | list[dict[str, Any]]
+        if message:
+            payload = message
+        else:
+            payload = text
+        echo = await self.send_group_msg(group_id=group_id, message=payload)
         return int(echo)
 
     async def send_private_message(self, user_id: int, content: str) -> int:

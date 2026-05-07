@@ -405,15 +405,6 @@ class ZhiyueAgent:
         re.DOTALL,
     )
     _LEADING_QUOTES = ("\"", "'", "“", "‘", "「", "『")
-    _LOW_ENERGY_THRESHOLD = 30.0
-    _LOW_ENERGY_GROUP_BASE_REPLY_PROBABILITY = 0.001
-    _LOW_ENERGY_GROUP_REPLY_ENERGY_SPAN = 0.009
-    _LOW_ENERGY_DIRECT_BASE_REPLY_PROBABILITY = 0.02
-    _LOW_ENERGY_DIRECT_REPLY_ENERGY_SPAN = 0.08
-    _LOW_ENERGY_GROUP_COOLDOWN_SEC = 360
-    _LOW_ENERGY_DIRECT_COOLDOWN_SEC = 120
-    _LOW_ENERGY_REPLIES = ("嗯。", "收到。", "知道了。", "行。")
-    _LOW_ENERGY_AT_ONLY_REPLY = "我累了，先休息一下。"
     _MOOD_FAST_REPLY_HIGH_ENERGY_TOKEN_CAP = 192
     _MOOD_FAST_REPLY_MID_ENERGY_TOKEN_CAP = 144
     _MOOD_FAST_REPLY_LOW_ENERGY_TOKEN_CAP = 112
@@ -432,6 +423,7 @@ class ZhiyueAgent:
     }
     _SILENCE_FORCE_REPLY_SKIP_THRESHOLD = 3
     _SILENCE_FORCE_REPLY_IDLE_SEC = 180
+    _NON_IMMEDIATE_REPLY_WINDOW_SEC = 180
     _TOOL_MAX_STEP = 6
 
     def __init__(
@@ -457,7 +449,10 @@ class ZhiyueAgent:
             heartbeat_interval_sec=600,
             idle_threshold_sec=180,
             recovery_step=8.0,
-            reply_cost_per_turn=2.0,
+            reply_cost_per_turn=self.cfg.personality.energy_reply_cost_per_turn,
+            fatigue_silence_threshold=self.cfg.personality.energy_fatigue_silence_threshold,
+            rest_lock_threshold=self.cfg.personality.energy_rest_lock_threshold,
+            rest_unlock_threshold=self.cfg.personality.energy_rest_unlock_threshold,
             timezone_offset_hours=self.cfg.personality.energy_timezone_offset_hours,
             active_start_hour=self.cfg.personality.energy_active_start_hour,
             active_end_hour=self.cfg.personality.energy_active_end_hour,
@@ -512,8 +507,6 @@ class ZhiyueAgent:
         if debounce_ms is None:
             debounce_ms = 260
         self._debounce_window_sec = max(0.08, min(float(debounce_ms) / 1000.0, 0.35))
-        self._low_energy_last_reply_at: dict[str, datetime] = {}
-        self._low_energy_last_reply_text: dict[str, str] = {}
         self._consecutive_skip_count: dict[str, int] = {}
         self._last_reply_at: dict[str, datetime] = {}
         self._sticker_last_sent_at: dict[str, datetime] = {}
@@ -972,7 +965,7 @@ class ZhiyueAgent:
         self._logger.info(
             (
                 "HandleMessage: session=%s type=%s user_id=%s group_id=%s master=%s "
-                "status_energy=%.1f status_tier=%s fatigue=%s topic_interest=%.2f"
+                "status_energy=%.1f status_tier=%s fatigue=%s rest_locked=%s topic_interest=%.2f"
             ),
             session_id,
             message_type,
@@ -982,64 +975,32 @@ class ZhiyueAgent:
             status_after_user.energy,
             status_after_user.energy_tier,
             status_after_user.fatigue_mode,
+            status_after_user.rest_locked,
             topic_interest_score,
         )
 
         low_energy_mode = bool(status_after_user.fatigue_mode)
+        rest_locked = bool(status_after_user.rest_locked)
         final_reply = ""
-        forced_rest = False
+        forced_rest = rest_locked
+
+        if rest_locked:
+            self._logger.info(
+                "Queue.SkipReply: session=%s reason=rest_locked status_energy=%.1f",
+                session_id,
+                status_after_user.energy,
+            )
+            self._track_reply_skip(session_id=session_id, reason="rest_locked")
+            return
 
         if low_energy_mode:
-            if explicit_at_in_window:
-                final_reply = self._LOW_ENERGY_AT_ONLY_REPLY
-                forced_rest = True
-                self._logger.info(
-                    "Queue.LowEnergyReply: session=%s status_energy=%.1f fatigue=%s forced_rest=%s mode=explicit_at_only",
-                    session_id,
-                    status_after_user.energy,
-                    status_after_user.fatigue_mode,
-                    forced_rest,
-                )
-            elif mentioned_in_window:
-                final_reply = self._pick_low_energy_reply(session_id=session_id)
-                self._logger.info(
-                    "Queue.LowEnergyReply: session=%s status_energy=%.1f fatigue=%s forced_rest=%s mode=mention_guard",
-                    session_id,
-                    status_after_user.energy,
-                    status_after_user.fatigue_mode,
-                    forced_rest,
-                )
-            elif bool(status_after_user.forced_rest):
-                self._logger.info(
-                    "Queue.SkipReply: session=%s reason=forced_rest status_energy=%.1f",
-                    session_id,
-                    status_after_user.energy,
-                )
-                self._track_reply_skip(session_id=session_id, reason="forced_rest")
-                return
-            elif self._allow_low_energy_reply(
-                session_id=session_id,
-                message_type=message_type,
-                mentioned_in_window=mentioned_in_window,
-                status_energy=status_after_user.energy,
-                forced_rest=False,
-            ):
-                final_reply = self._pick_low_energy_reply(session_id=session_id)
-                self._logger.info(
-                    "Queue.LowEnergyReply: session=%s status_energy=%.1f fatigue=%s forced_rest=%s mode=probability",
-                    session_id,
-                    status_after_user.energy,
-                    status_after_user.fatigue_mode,
-                    forced_rest,
-                )
-            else:
-                self._logger.info(
-                    "Queue.SkipReply: session=%s reason=low_energy_no_explicit_at status_energy=%.1f",
-                    session_id,
-                    status_after_user.energy,
-                )
-                self._track_reply_skip(session_id=session_id, reason="low_energy_no_explicit_at")
-                return
+            self._logger.info(
+                "Queue.SkipReply: session=%s reason=low_energy_silent status_energy=%.1f",
+                session_id,
+                status_after_user.energy,
+            )
+            self._track_reply_skip(session_id=session_id, reason="low_energy_silent")
+            return
 
         if not final_reply:
             force_active_reply = self._should_force_active_reply(
@@ -1155,8 +1116,6 @@ class ZhiyueAgent:
             self._track_reply_skip(session_id=session_id, reason="send_failed")
             raise
         self._mark_reply_sent(session_id=session_id)
-        if low_energy_mode:
-            self._mark_low_energy_reply(session_id=session_id, reply=final_reply)
 
         now_after_reply = datetime.now(timezone.utc)
         status_after_reply = await self.status_engine.consume_reply(final_reply)
@@ -2301,6 +2260,7 @@ class ZhiyueAgent:
             "energy_tier": status.energy_tier,
             "fatigue_mode": status.fatigue_mode,
             "forced_rest": status.forced_rest,
+            "rest_locked": status.rest_locked,
             "last_active_at": status.last_active_at.isoformat(),
             "runtime_started_at": self._started_at_utc.isoformat(),
             "uptime_seconds": self.uptime_seconds(),
@@ -2345,6 +2305,7 @@ class ZhiyueAgent:
                 "energy_tier": snapshot.energy_tier,
                 "fatigue_mode": snapshot.fatigue_mode,
                 "forced_rest": snapshot.forced_rest,
+                "rest_locked": snapshot.rest_locked,
             },
             "cleared_session": session_id.strip() if session_id and cleared else "",
             "cleared": cleared,
@@ -2370,12 +2331,14 @@ class ZhiyueAgent:
     @staticmethod
     def _build_status_prompt(status: StatusSnapshot) -> str:
         tier = status.energy_tier
-        if tier == "充沛":
+        if status.rest_locked:
+            policy = "休息锁定中，本轮不回复。"
+        elif tier == "充沛":
             policy = "维持常规清冷人设，按正常节奏短答。"
         elif tier == "一般":
-            policy = "回复更短，体现轻微疲惫，避免展开。"
+            policy = "保持简洁回复，不展开闲聊。"
         else:
-            policy = "极度冷淡，拒绝长谈，必要时可不回复。"
+            policy = "低精力时保持沉默。"
         return (
             "## 状态分档\n"
             f"- 当前状态：[精力:{tier}]\n"
@@ -2421,23 +2384,31 @@ class ZhiyueAgent:
             if group_id is None:
                 self._logger.warning("Skip group reply: missing group_id")
                 return
+            reply_to = self._resolve_reply_to_message_id(message)
             for idx, part in enumerate(parts):
                 try:
-                    echo = await self.bot_client.send_group_msg(group_id=group_id, message=part)
+                    part_reply_to = reply_to if idx == 0 else None
+                    echo = await self.bot_client.send_group_message(
+                        group_id=group_id,
+                        content=part,
+                        reply_to=part_reply_to,
+                    )
                 except Exception as exc:
                     self._logger.warning(
-                        "SendChain.Failed: target=group group_id=%s part=%s/%s err=%s",
+                        "SendChain.Failed: target=group group_id=%s part=%s/%s reply_to=%s err=%s",
                         group_id,
                         idx + 1,
                         len(parts),
+                        part_reply_to,
                         exc,
                     )
                     raise
                 self._logger.info(
-                    "SendChain.Sent: target=group group_id=%s part=%s/%s echo=%s preview=%s",
+                    "SendChain.Sent: target=group group_id=%s part=%s/%s reply_to=%s echo=%s preview=%s",
                     group_id,
                     idx + 1,
                     len(parts),
+                    part_reply_to,
                     echo,
                     part[:80],
                 )
@@ -2483,6 +2454,48 @@ class ZhiyueAgent:
             )
             if idx + 1 < len(parts):
                 await asyncio.sleep(self._reply_gap_seconds(part))
+
+    def _resolve_reply_to_message_id(self, message: dict[str, Any]) -> int | None:
+        if str(message.get("message_type", "")).strip() != "group":
+            return None
+
+        message_id = self._to_int(message.get("message_id"))
+        if message_id is None or message_id <= 0:
+            return None
+
+        message_time = self._extract_message_time_utc(message)
+        if message_time is None:
+            return None
+
+        age_seconds = (datetime.now(timezone.utc) - message_time).total_seconds()
+        if age_seconds < float(self._NON_IMMEDIATE_REPLY_WINDOW_SEC):
+            return None
+
+        self._logger.info(
+            "SendChain.ReplyMode: target=group message_id=%s age_seconds=%.1f threshold=%s mode=reply",
+            message_id,
+            age_seconds,
+            self._NON_IMMEDIATE_REPLY_WINDOW_SEC,
+        )
+        return message_id
+
+    @staticmethod
+    def _extract_message_time_utc(message: dict[str, Any]) -> datetime | None:
+        raw_time = message.get("time")
+        if raw_time is None:
+            return None
+        try:
+            timestamp = float(raw_time)
+        except (TypeError, ValueError):
+            return None
+        if timestamp <= 0:
+            return None
+        if timestamp > 10_000_000_000:
+            timestamp /= 1000.0
+        try:
+            return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+        except (OverflowError, OSError, ValueError):
+            return None
 
     @classmethod
     def _split_reply_parts(cls, reply: str) -> list[str]:
@@ -3486,91 +3499,6 @@ class ZhiyueAgent:
             )
             base = base + (boost * interest_score)
         return self._clamp_probability(base)
-
-    def _allow_low_energy_reply(
-        self,
-        *,
-        session_id: str,
-        message_type: str,
-        mentioned_in_window: bool,
-        status_energy: float,
-        forced_rest: bool,
-    ) -> bool:
-        if forced_rest:
-            self._logger.info(
-                (
-                    "Queue.SkipReply: session=%s reason=forced_rest "
-                    "status_energy=%.1f direct=%s"
-                ),
-                session_id,
-                status_energy,
-                message_type != "group" or mentioned_in_window,
-            )
-            return False
-
-        now = datetime.now(timezone.utc)
-        is_direct = message_type != "group" or mentioned_in_window
-        cooldown = self._LOW_ENERGY_DIRECT_COOLDOWN_SEC if is_direct else self._LOW_ENERGY_GROUP_COOLDOWN_SEC
-
-        previous = self._low_energy_last_reply_at.get(session_id)
-        if previous is not None:
-            elapsed = (now - previous).total_seconds()
-            if elapsed < float(cooldown):
-                self._logger.info(
-                    (
-                        "Queue.SkipReply: session=%s reason=low_energy_cooldown "
-                        "status_energy=%.1f elapsed=%.1fs cooldown=%ss direct=%s"
-                    ),
-                    session_id,
-                    status_energy,
-                    elapsed,
-                    cooldown,
-                    is_direct,
-                )
-                return False
-
-        probability = self._low_energy_reply_probability(
-            status_energy=status_energy,
-            is_direct=is_direct,
-        )
-        roll = self._rng.random()
-        if roll >= probability:
-            self._logger.info(
-                (
-                    "Queue.SkipReply: session=%s reason=low_energy_probability "
-                    "status_energy=%.1f roll=%.4f threshold=%.4f direct=%s"
-                ),
-                session_id,
-                status_energy,
-                roll,
-                probability,
-                is_direct,
-            )
-            return False
-        return True
-
-    def _low_energy_reply_probability(self, *, status_energy: float, is_direct: bool) -> float:
-        threshold = max(1.0, float(self._LOW_ENERGY_THRESHOLD))
-        energy_ratio = self._clamp_probability(float(status_energy) / threshold)
-        if is_direct:
-            base = self._LOW_ENERGY_DIRECT_BASE_REPLY_PROBABILITY
-            span = self._LOW_ENERGY_DIRECT_REPLY_ENERGY_SPAN
-        else:
-            base = self._LOW_ENERGY_GROUP_BASE_REPLY_PROBABILITY
-            span = self._LOW_ENERGY_GROUP_REPLY_ENERGY_SPAN
-        scale = self._clamp_probability(self.cfg.agent.active_reply_probability)
-        return self._clamp_probability((base + span * energy_ratio) * scale)
-
-    def _pick_low_energy_reply(self, *, session_id: str) -> str:
-        options = list(self._LOW_ENERGY_REPLIES)
-        last_reply = self._low_energy_last_reply_text.get(session_id)
-        if last_reply and len(options) > 1:
-            options = [item for item in options if item != last_reply] or options
-        return str(self._rng.choice(options))
-
-    def _mark_low_energy_reply(self, *, session_id: str, reply: str) -> None:
-        self._low_energy_last_reply_at[session_id] = datetime.now(timezone.utc)
-        self._low_energy_last_reply_text[session_id] = str(reply or "").strip()
 
     def _track_reply_skip(self, *, session_id: str, reason: str) -> None:
         skip_count = int(self._consecutive_skip_count.get(session_id, 0)) + 1

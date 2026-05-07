@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -20,7 +19,7 @@ def _energy_tier(energy: float) -> str:
         return "充沛"
     if energy >= 30.0:
         return "一般"
-    return "透支"
+    return "疲惫"
 
 
 @dataclass(slots=True, frozen=True)
@@ -29,6 +28,7 @@ class StatusSnapshot:
     energy_tier: str
     fatigue_mode: bool
     forced_rest: bool
+    rest_locked: bool
     last_active_at: datetime
     updated_at: datetime
 
@@ -41,7 +41,10 @@ class StatusEngine:
         heartbeat_interval_sec: int = 600,
         idle_threshold_sec: int = 180,
         recovery_step: float = 8.0,
-        reply_cost_per_turn: float = 2.0,
+        reply_cost_per_turn: float = 1.2,
+        fatigue_silence_threshold: float = 30.0,
+        rest_lock_threshold: float = 10.0,
+        rest_unlock_threshold: float = 45.0,
         timezone_offset_hours: int = 8,
         active_start_hour: int = 8,
         active_end_hour: int = 21,
@@ -62,6 +65,24 @@ class StatusEngine:
         self._idle_threshold_sec = max(30, int(idle_threshold_sec))
         self._recovery_step = max(0.5, float(recovery_step))
         self._reply_cost_per_turn = max(0.1, float(reply_cost_per_turn))
+        self._fatigue_silence_threshold = self._normalize_threshold(
+            fatigue_silence_threshold,
+            minimum=1.0,
+            maximum=99.0,
+            fallback=30.0,
+        )
+        self._rest_lock_threshold = self._normalize_threshold(
+            rest_lock_threshold,
+            minimum=0.0,
+            maximum=95.0,
+            fallback=10.0,
+        )
+        self._rest_unlock_threshold = self._normalize_threshold(
+            rest_unlock_threshold,
+            minimum=self._rest_lock_threshold + 1.0,
+            maximum=100.0,
+            fallback=max(45.0, self._rest_lock_threshold + 1.0),
+        )
         self._timezone_offset_hours = self._normalize_timezone_offset_hours(timezone_offset_hours)
         self._active_start_hour, self._active_end_hour = self._normalize_active_window(
             active_start_hour,
@@ -71,6 +92,7 @@ class StatusEngine:
         self._active_reply_cost_multiplier = self._normalize_multiplier(active_reply_cost_multiplier)
         self._rest_recovery_multiplier = self._normalize_multiplier(rest_recovery_multiplier)
         self._rest_reply_cost_multiplier = self._normalize_multiplier(rest_reply_cost_multiplier)
+        self._rest_locked = self._energy <= self._rest_lock_threshold
 
         self._lock = asyncio.Lock()
         self._stop_event = asyncio.Event()
@@ -106,7 +128,6 @@ class StatusEngine:
         del text
         async with self._lock:
             now = datetime.now(timezone.utc)
-            self._last_active_at = now
             self._updated_at = now
             self._persist_state_locked()
             return self._snapshot_locked()
@@ -119,6 +140,7 @@ class StatusEngine:
             self._energy = _clamp(self._energy - reply_cost, 0.0, 100.0)
             self._last_active_at = now
             self._updated_at = now
+            self._refresh_rest_lock_locked()
             self._persist_state_locked()
             return self._snapshot_locked()
 
@@ -126,12 +148,13 @@ class StatusEngine:
         clean = reply.strip()
         async with self._lock:
             energy = self._energy
+            rest_locked = self._rest_locked
 
-        if energy >= 30.0:
-            return clean, False
-        if energy < 10.0:
+        if rest_locked:
             return "", True
-        return self._clip_reply(clean, limit=16), False
+        if energy < self._fatigue_silence_threshold:
+            return "", False
+        return clean, False
 
     async def reset(self, *, fill_energy: bool = False) -> StatusSnapshot:
         async with self._lock:
@@ -139,6 +162,7 @@ class StatusEngine:
             if fill_energy:
                 self._energy = 100.0
             self._updated_at = now
+            self._refresh_rest_lock_locked()
             self._persist_state_locked()
             return self._snapshot_locked()
 
@@ -163,6 +187,7 @@ class StatusEngine:
                 return
             recovery_step = self._recovery_step_for(now)
             self._energy = _clamp(self._energy + recovery_step, 0.0, 100.0)
+            self._refresh_rest_lock_locked()
             self._updated_at = now
             self._persist_state_locked()
 
@@ -202,8 +227,9 @@ class StatusEngine:
         return StatusSnapshot(
             energy=energy,
             energy_tier=_energy_tier(energy),
-            fatigue_mode=energy < 30.0,
-            forced_rest=energy < 10.0,
+            fatigue_mode=energy < self._fatigue_silence_threshold,
+            forced_rest=self._rest_locked,
+            rest_locked=self._rest_locked,
             last_active_at=self._last_active_at,
             updated_at=self._updated_at,
         )
@@ -224,8 +250,15 @@ class StatusEngine:
         restored_energy = _clamp(self._to_float(payload.get("energy"), self._energy), 0.0, 100.0)
         restored_last_active = self._parse_datetime(payload.get("last_active_at"), self._last_active_at)
         restored_updated = self._parse_datetime(payload.get("updated_at"), self._updated_at)
+        restored_locked_raw = payload.get("rest_locked")
+        if isinstance(restored_locked_raw, bool):
+            restored_locked = restored_locked_raw
+        else:
+            restored_locked = restored_energy <= self._rest_lock_threshold
 
         self._energy = restored_energy
+        self._rest_locked = restored_locked
+        self._refresh_rest_lock_locked()
         self._last_active_at = restored_last_active
         self._updated_at = restored_updated
         self._logger.info("Status restored: energy=%.1f file=%s", self._energy, path)
@@ -237,6 +270,10 @@ class StatusEngine:
         payload = {
             "energy": round(_clamp(self._energy, 0.0, 100.0), 3),
             "energy_tier": _energy_tier(self._energy),
+            "rest_locked": bool(self._rest_locked),
+            "fatigue_silence_threshold": round(self._fatigue_silence_threshold, 3),
+            "rest_lock_threshold": round(self._rest_lock_threshold, 3),
+            "rest_unlock_threshold": round(self._rest_unlock_threshold, 3),
             "last_active_at": self._last_active_at.astimezone(timezone.utc).isoformat(),
             "updated_at": self._updated_at.astimezone(timezone.utc).isoformat(),
         }
@@ -287,6 +324,14 @@ class StatusEngine:
         return _clamp(numeric, 0.1, 3.0)
 
     @staticmethod
+    def _normalize_threshold(value: Any, *, minimum: float, maximum: float, fallback: float) -> float:
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            numeric = float(fallback)
+        return _clamp(numeric, minimum, maximum)
+
+    @staticmethod
     def _to_float(value: Any, fallback: float) -> float:
         try:
             return float(value)
@@ -307,14 +352,11 @@ class StatusEngine:
             return parsed.replace(tzinfo=timezone.utc)
         return parsed.astimezone(timezone.utc)
 
-    @staticmethod
-    def _clip_reply(text: str, *, limit: int) -> str:
-        if not text:
-            return ""
-        pieces = [part.strip() for part in re.split(r"[。！？!?；;\n]", text) if part.strip()]
-        if not pieces:
-            return text[:limit].strip()
-        first = pieces[0]
-        if len(first) <= limit:
-            return first
-        return first[:limit].strip()
+    def _refresh_rest_lock_locked(self) -> None:
+        energy = _clamp(self._energy, 0.0, 100.0)
+        if self._rest_locked:
+            if energy >= self._rest_unlock_threshold:
+                self._rest_locked = False
+            return
+        if energy <= self._rest_lock_threshold:
+            self._rest_locked = True

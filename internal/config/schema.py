@@ -42,6 +42,10 @@ class PersonalityConfig(BaseModel):
     other_mood_boost: float = 0.03
     other_energy_delta: float = -0.01
     reply_energy_cost: float = 0.06
+    energy_reply_cost_per_turn: float = 1.2
+    energy_fatigue_silence_threshold: float = 30.0
+    energy_rest_lock_threshold: float = 10.0
+    energy_rest_unlock_threshold: float = 45.0
     topic_interest_enabled: bool = True
     topic_interest_mood_boost: float = 0.08
     topic_interest_sociability_boost: float = 0.06

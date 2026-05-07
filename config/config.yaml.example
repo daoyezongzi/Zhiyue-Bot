@@ -32,6 +32,10 @@ personality:
   other_mood_boost: 0.03
   other_energy_delta: -0.01
   reply_energy_cost: 0.06
+  energy_reply_cost_per_turn: 1.2
+  energy_fatigue_silence_threshold: 30.0
+  energy_rest_lock_threshold: 10.0
+  energy_rest_unlock_threshold: 45.0
   topic_interest_enabled: true
   topic_interest_mood_boost: 0.08
   topic_interest_sociability_boost: 0.06
